@@ -3,11 +3,19 @@ import { resolve } from 'path';
 import { routes } from './config/routes';
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt'],
+  modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n'],
 
   components: [{ path: './components', pathPrefix: false }],
 
   devtools: { enabled: true },
+
+  app: {
+    head: {
+      link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+      title: 'Terra Incognita',
+      titleTemplate: '%s · Terra Incognita',
+    },
+  },
 
   css: ['~/assets/scss/main.scss'],
 
@@ -27,7 +35,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' }
+    [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
   },
 
   compatibilityDate: '2024-04-03',
@@ -56,7 +64,24 @@ export default defineNuxtConfig({
 
   eslint: {
     config: {
-      stylistic: true
-    }
+      stylistic: true,
+    },
+  },
+
+  i18n: {
+    strategy: 'prefix',
+    defaultLocale: 'de',
+    locales: [
+      { code: 'de', name: 'Deutsch', language: 'de-DE', file: 'de.json' },
+      { code: 'en', name: 'English', language: 'en-US', file: 'en.json' },
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root',
+    },
+    bundle: {
+      optimizeTranslationDirective: false,
+    },
   },
 });

@@ -1,1 +1,4 @@
-
+User-agent: *
+Disallow: /styleguide
+Disallow: /de/styleguide
+Disallow: /en/styleguide

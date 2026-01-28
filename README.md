@@ -1,15 +1,4 @@
-# Nuxt 4 Starter
-
-Very opinionated.
-
-## Version
-
-Nuxt 4.2.2
-
-## Included Modules
-
-- Pinia
-- Vue Use Core
-- ESLint
-- Typescript
-- SCSS
+<div align="center">
+  <h1>Terra Incognita</h1>
+  <img src="./app/assets/images/logo-full.svg" alt width="300">
+</div>
