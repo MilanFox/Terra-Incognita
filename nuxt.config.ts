@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { routes } from './config/routes';
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt'],
+  modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n'],
 
   components: [{ path: './components', pathPrefix: false }],
 
@@ -65,6 +65,20 @@ export default defineNuxtConfig({
   eslint: {
     config: {
       stylistic: true,
+    },
+  },
+
+  i18n: {
+    strategy: 'prefix',
+    defaultLocale: 'de',
+    locales: [
+      { code: 'de', name: 'Deutsch', language: 'de-DE', file: 'de.json' },
+      { code: 'en', name: 'English', language: 'en-US', file: 'en.json' },
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root',
     },
   },
 });
