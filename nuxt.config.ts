@@ -9,6 +9,14 @@ export default defineNuxtConfig({
 
   devtools: { enabled: true },
 
+  app: {
+    head: {
+      link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
+      title: 'Terra Incognita',
+      titleTemplate: '%s · Terra Incognita',
+    },
+  },
+
   css: ['~/assets/scss/main.scss'],
 
   alias: {
@@ -27,7 +35,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' }
+    [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
   },
 
   compatibilityDate: '2024-04-03',
@@ -56,7 +64,7 @@ export default defineNuxtConfig({
 
   eslint: {
     config: {
-      stylistic: true
-    }
+      stylistic: true,
+    },
   },
 });

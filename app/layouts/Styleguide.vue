@@ -28,6 +28,13 @@
 import { routes } from '@config/routes';
 import type { TreeNode } from '@components/styleguide/StyleguideNavigation/StyleguideNavigation.types';
 
+const curRoute = useRoute();
+useHead(() => ({
+  title: String(curRoute.name ?? '')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase()),
+}));
+
 const demoRoutes = useRouter()
   .getRoutes()
   .sort((a, b) => a.path.localeCompare(b.path))
