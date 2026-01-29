@@ -36,7 +36,7 @@ export default defineNuxtConfig({
   css: ['~/assets/scss/main.scss'],
 
   alias: {
-    '@assets': resolve(__dirname, './assets'),
+    '@assets': resolve(__dirname, './app/assets'),
     '@config': resolve(__dirname, './config'),
     '@components': resolve(__dirname, './app/components'),
     '@atoms': resolve(__dirname, './app/components/atoms'),
