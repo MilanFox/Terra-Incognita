@@ -12,8 +12,20 @@ export default defineNuxtConfig({
     head: {
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.png' },
-        { rel: 'preload', href: '/fonts/inter/InterVariable.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-        { rel: 'preload', href: '/fonts/inter/InterVariable-Italic.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+        {
+          rel: 'preload',
+          href: '/fonts/inter/InterVariable.woff2',
+          as: 'font',
+          type: 'font/woff2',
+          crossorigin: 'anonymous',
+        },
+        {
+          rel: 'preload',
+          href: '/fonts/inter/InterVariable-Italic.woff2',
+          as: 'font',
+          type: 'font/woff2',
+          crossorigin: 'anonymous',
+        },
       ],
       title: 'Terra Incognita',
       titleTemplate: '%s · Terra Incognita',
@@ -23,7 +35,8 @@ export default defineNuxtConfig({
   css: ['~/assets/scss/main.scss'],
 
   routeRules: {
-    [`/**${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
+    [`/de${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
+    [`/en${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
   },
 
   compatibilityDate: '2024-04-03',
@@ -60,7 +73,7 @@ export default defineNuxtConfig({
   i18n: {
     baseUrl: 'https://terra-incognita.vercel.app/',
     strategy: 'prefix',
-    defaultLocale: 'de',
+    defaultLocale: 'en',
     locales: [
       { code: 'de', name: 'Deutsch', language: 'de-DE', file: 'de.json' },
       { code: 'en', name: 'English', language: 'en-US', file: 'en.json' },
