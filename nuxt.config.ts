@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { routes } from './config/routes';
+import { resolve } from 'path';
 
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n'],
@@ -33,6 +34,21 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/scss/main.scss'],
+
+  alias: {
+    '@assets': resolve(__dirname, './assets'),
+    '@config': resolve(__dirname, './config'),
+    '@components': resolve(__dirname, './app/components'),
+    '@atoms': resolve(__dirname, './app/components/atoms'),
+    '@molecules': resolve(__dirname, './app/components/molecules'),
+    '@organisms': resolve(__dirname, './app/components/organisms'),
+    '@stores': resolve(__dirname, './app/stores'),
+    '@composables': resolve(__dirname, './app/composables'),
+    '@constants': resolve(__dirname, './app/constants'),
+    '@server': resolve(__dirname, './server'),
+    '@layouts': resolve(__dirname, './app/layouts'),
+    '@middleware': resolve(__dirname, './app/middleware'),
+  },
 
   routeRules: {
     [`/de${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
