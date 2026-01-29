@@ -21,7 +21,9 @@
         <component
           :is="component"
           v-bind="state"
-        />
+        >
+          <slot />
+        </component>
       </div>
     </div>
   </div>
