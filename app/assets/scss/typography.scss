@@ -1,0 +1,23 @@
+@use 'variables' as *;
+
+.headline {
+  &--level-1 {
+    font-size: 32px;
+    font-weight: 800;
+    text-wrap: balance;
+
+    @include breakpoint(tablet) {
+      font-size: 48px;
+    }
+  }
+
+  &--level-2 {
+    font-size: 24px;
+    font-weight: 400;
+    text-wrap: balance;
+
+    @include breakpoint(tablet) {
+      font-size: 32px;
+    }
+  }
+}
