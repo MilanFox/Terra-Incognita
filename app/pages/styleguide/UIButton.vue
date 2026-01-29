@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PlaygroundFieldType } from '~/components/styleguide/PlaygroundField/PlaygroundField.types';
+import type { PlaygroundFieldType } from '@components/styleguide/PlaygroundField/PlaygroundField.types';
 import { UIButton } from '#components';
 
 const fields: Record<string, PlaygroundFieldType> = {
@@ -25,6 +25,6 @@ const fields: Record<string, PlaygroundFieldType> = {
 const defaults = {
   type: 'button',
   color: 'grey',
-  to: '/styleguide'
+  to: '/styleguide',
 };
 </script>
