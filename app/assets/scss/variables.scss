@@ -1,4 +1,60 @@
+@use 'sass:map';
+
 /*
 Careful: Anything imported or written here will be automatically imported and loaded in _every_ component for you.
 Only use it for variables and light-weight stuff.
 */
+
+/* COLORS */
+
+$colors-text-light: #FEFCFD;
+$colors-text-dark: #2D333E;
+
+$colors-green-light: #6ab65c;
+$colors-green-dark: #4c8f59;
+
+$colors-grey-light: #f1f2f3;
+$colors-grey-dark: #d0dae0;
+
+$colors-blue-light: #347fbf;
+$colors-blue-dark: #175898;
+
+$colors-orange-light: #eeb340;
+$colors-orange-dark: #d29232;
+
+/* A11Y */
+
+@mixin focus-state($offset: 2px, $color: $colors-blue-dark) {
+  &:focus-visible {
+    outline-offset: $offset;
+    outline: 2px solid $color;
+  }
+}
+
+/* BREAKPOINTS */
+
+$grid-breakpoints: (
+  desktop: 1200px,
+  tablet: 768px,
+);
+
+@mixin breakpoint($breakpoint) {
+  $value: map.get($grid-breakpoints, $breakpoint);
+  @if $value {
+    @media (min-width: $value) {
+      @content;
+    }
+  }
+}
+
+/* CONTAINER */
+@mixin container() {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+@mixin container-breakout() {
+  margin-inline: -16px;
+  padding-inline: 16px;
+}

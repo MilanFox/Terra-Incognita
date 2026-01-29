@@ -1,11 +1,38 @@
-@use "variables" as *;
+@use 'variables' as *;
+@use 'typography';
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/nunito/Nunito-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/nunito/Nunito-Variable-Italic.woff2') format('woff2');
+}
 
 *, *::after, *::before {
   box-sizing: border-box;
+}
+
+html {
+  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   margin: 0;
   font-size: 16px;
   min-height: 100vh;
+  color: $colors-text-dark;
 }
+

@@ -25,23 +25,24 @@
 </template>
 
 <script setup lang="ts">
-import { routes } from '@config/routes';
-import type { TreeNode } from '@components/styleguide/StyleguideNavigation/StyleguideNavigation.types';
+import { routes } from '~~/config/routes';
+import type { TreeNode } from '~/components/styleguide/StyleguideNavigation/StyleguideNavigation.types';
 
 const curRoute = useRoute();
 useHead(() => ({
   title: String(curRoute.name ?? '')
     .replace(/-/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase()),
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .slice(0, -5)
 }));
 
 const demoRoutes = useRouter()
   .getRoutes()
   .sort((a, b) => a.path.localeCompare(b.path))
   .reduce((tree, route) => {
-    if (!route.path.startsWith(`${routes.STYLEGUIDE}/`)) return tree;
+    if (!route.path.startsWith(`${routes.STYLEGUIDE}/`, 3)) return tree;
 
-    const parts = route.path.split('/').slice(2);
+    const parts = route.path.split('/').slice(3);
 
     let currentNode: TreeNode = tree;
     parts.forEach((part, i) => {
@@ -63,7 +64,6 @@ const demoRoutes = useRouter()
   display: grid;
   grid-template-columns: minmax(260px, 300px) 1fr;
   min-height: 100dvh;
-  font-family: 'Inter', system-ui, sans-serif;
   background: radial-gradient(circle at top, #f5f8ff, #edf2ff 60%, #e5e9ff);
   color: #111;
 
