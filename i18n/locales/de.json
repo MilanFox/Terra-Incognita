@@ -1,3 +1,6 @@
 {
-  "welcome": "Willkommen"
+  "hero": {
+    "title": "Willkommen bei Terra Incognita",
+    "subtitle": "Viel Spaß beim testen deiner Geografie Kenntnisse!"
+  }
 }

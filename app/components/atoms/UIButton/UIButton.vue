@@ -23,7 +23,7 @@ import type { UIButtonProps } from './UIButton.types';
 
 withDefaults(defineProps<UIButtonProps>(), {
   color: 'grey',
-  type: 'button'
+  type: 'button',
 });
 </script>
 
@@ -46,11 +46,11 @@ withDefaults(defineProps<UIButtonProps>(), {
 
   border-radius: 999px;
   border: none;
-  padding: 6px 40px;
+  padding: 12px 40px;
 
   font-family: inherit;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.05em;
   text-decoration: none;
@@ -59,11 +59,11 @@ withDefaults(defineProps<UIButtonProps>(), {
 
   &:active {
     transform: translateY(1px);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1)
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1)
   }
 
   &--link::after {
-    content: "›" / ""
+    content: '›' / ''
   }
 
   @include theme('grey', $colors-grey-light, $colors-grey-dark, $colors-text-dark);

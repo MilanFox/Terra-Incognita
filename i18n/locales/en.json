@@ -1,3 +1,6 @@
 {
-  "welcome": "Welcome"
+  "hero": {
+    "title": "Welcome to Terra Incognita",
+    "subtitle": "Have fun testing your geography knowledge!"
+  }
 }
