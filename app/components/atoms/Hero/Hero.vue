@@ -26,7 +26,7 @@
   background-size: cover;
   background-position: 50% 50%;
   text-align: center;
-  padding: 32px 0;
+  padding: 16px 0 80px;
 
   &__logo {
     display: block;
