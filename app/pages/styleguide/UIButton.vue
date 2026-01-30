@@ -3,10 +3,12 @@
     <h1>DemoBadge - Basic</h1>
 
     <Playground
+      v-for="props in defaults"
+      :key="props.color"
       title="Badge playground"
       :component="UIButton"
       :fields="fields"
-      :defaults="defaults"
+      :defaults="props"
     >
       Click me
     </Playground>
@@ -22,9 +24,10 @@ const fields: Record<string, PlaygroundFieldType> = {
   color: { type: 'select', options: ['grey', 'blue', 'green', 'orange'] },
 };
 
-const defaults = {
-  type: 'button',
-  color: 'grey',
-  to: '/styleguide',
-};
+const defaults = [
+  { type: 'button', color: 'grey', to: '/styleguide' },
+  { type: 'button', color: 'blue', to: '/styleguide' },
+  { type: 'button', color: 'green', to: '/styleguide' },
+  { type: 'button', color: 'orange', to: '/styleguide' },
+];
 </script>
