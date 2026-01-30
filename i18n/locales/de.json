@@ -9,5 +9,8 @@
   "hero": {
     "title": "Willkommen bei Terra Incognita",
     "subtitle": "Viel Spaß beim testen deiner Geografie Kenntnisse!"
+  },
+  "sections": {
+    "playAQuiz": "Starte ein Quiz"
   }
 }

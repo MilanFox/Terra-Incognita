@@ -8,4 +8,5 @@ export interface CardProps {
     text: string
     to: string
   }
+  img: string
 }
