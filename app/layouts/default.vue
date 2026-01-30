@@ -20,9 +20,3 @@ useHead(() => ({
   link: i18nHead.value.link,
 }));
 </script>
-
-<style lang="scss">
-.default-layout {
-  @include container();
-}
-</style>

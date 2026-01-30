@@ -3,16 +3,18 @@
 
 <template>
   <div class="hero">
-    <LogoFull class="hero__logo" />
+    <LogoFull class="hero__logo" aria-hidden="true" />
 
-    <h1 class="hero__title headline--level-1">{{ $t('hero.title') }}</h1>
+    <div class="hero__content">
+      <h1 class="hero__title headline--level-1">{{ $t('hero.title') }}</h1>
 
-    <p class="hero__subtitle headline--level-2">{{ $t('hero.subtitle') }}</p>
+      <p class="hero__subtitle headline--level-2">{{ $t('hero.subtitle') }}</p>
 
-    <div class="hero__links">
-      <UIButton type="link" class="hero__link" color="green" to="/">Daily Challenge</UIButton>
+      <div class="hero__links">
+        <UIButton type="link" class="hero__link" color="green" to="/">Daily Challenge</UIButton>
 
-      <UIButton type="link" class="hero__link" to="/">Github Repo</UIButton>
+        <UIButton type="link" class="hero__link" to="/">Github Repo</UIButton>
+      </div>
     </div>
   </div>
 </template>
@@ -24,20 +26,22 @@
   background-size: cover;
   background-position: 50% 50%;
   text-align: center;
-  padding: 64px 0;
-
-  @include container-breakout();
+  padding: 32px 0;
 
   &__logo {
     display: block;
-    height: 200px;
+    height: 160px;
     margin: 0 auto;
     filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(4px 4px 0 #fff) drop-shadow(-4px 4px 0 #fff) drop-shadow(4px -4px 0 #fff) drop-shadow(-4px -4px 0 #fff);
-    transform: translateY(-128px);
+    transform: translateY(-100px);
+  }
+
+  &__content {
+    filter: drop-shadow(0 0 30px white) drop-shadow(0 0 30px white)
   }
 
   &__title {
-    margin: -112px 0 8px;
+    margin: -80px 0 8px;
   }
 
   &__subtitle {

@@ -49,7 +49,7 @@ withDefaults(defineProps<UIButtonProps>(), {
   padding: 12px 40px;
 
   font-family: inherit;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: 0.05em;
@@ -71,6 +71,10 @@ withDefaults(defineProps<UIButtonProps>(), {
   @include theme('blue', $colors-blue-light, $colors-blue-dark, $colors-text-light);
   @include theme('orange', $colors-orange-light, $colors-orange-dark, $colors-text-light);
 
-  @include focus-state()
+  @include focus-state();
+
+  @include breakpoint(tablet) {
+    font-size: 18px;
+  }
 }
 </style>
