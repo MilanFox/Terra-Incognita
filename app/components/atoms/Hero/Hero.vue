@@ -11,9 +11,9 @@
       <p class="hero__subtitle headline--level-2">{{ $t('hero.subtitle') }}</p>
 
       <div class="hero__links">
-        <UIButton type="link" class="hero__link" color="blue" to="/">Daily Challenge</UIButton>
+        <UIButton type="link" class="hero__link" color="blue" to="/">Placeholder 1</UIButton>
 
-        <UIButton type="link" class="hero__link" to="/">Github Repo</UIButton>
+        <UIButton type="link" class="hero__link" to="/">Placeholder 2</UIButton>
       </div>
     </div>
   </div>
