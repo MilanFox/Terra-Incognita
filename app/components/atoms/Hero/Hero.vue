@@ -30,10 +30,15 @@
 
   &__logo {
     display: block;
-    height: 160px;
+    height: 80px;
     margin: 0 auto;
     filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(4px 4px 0 #fff) drop-shadow(-4px 4px 0 #fff) drop-shadow(4px -4px 0 #fff) drop-shadow(-4px -4px 0 #fff);
-    transform: translateY(-100px);
+    transform: translateY(-80px);
+
+    @include breakpoint(mobile) {
+      height: 160px;
+      transform: translateY(-100px);
+    }
   }
 
   &__content {
@@ -41,7 +46,11 @@
   }
 
   &__title {
-    margin: -80px 0 8px;
+    margin: -50px 0 8px;
+
+    @include breakpoint(mobile) {
+      margin: -80px 0 8px;
+    }
   }
 
   &__subtitle {
