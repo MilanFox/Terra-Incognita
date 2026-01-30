@@ -1,11 +1,11 @@
 <template>
   <div>
-    <h1>DemoBadge - Basic</h1>
+    <h1>UI Button</h1>
 
     <Playground
       v-for="props in defaults"
       :key="props.color"
-      title="Badge playground"
+      :title="props.color"
       :component="UIButton"
       :fields="fields"
       :defaults="props"
