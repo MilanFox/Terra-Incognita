@@ -51,8 +51,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    [`/de${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
-    [`/en${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
+    [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
   },
 
   compatibilityDate: '2024-04-03',
@@ -61,7 +60,7 @@ export default defineNuxtConfig({
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: '@use "~/assets/scss/variables" as *;',
+          additionalData: '@use "~/assets/scss/global" as *;',
         },
       },
     },
@@ -88,7 +87,7 @@ export default defineNuxtConfig({
 
   i18n: {
     baseUrl: 'https://terra-incognita.vercel.app/',
-    strategy: 'prefix',
+    strategy: 'no_prefix',
     defaultLocale: 'en',
     locales: [
       { code: 'de', name: 'Deutsch', language: 'de-DE', file: 'de.json' },

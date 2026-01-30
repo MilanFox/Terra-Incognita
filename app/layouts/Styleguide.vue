@@ -33,16 +33,15 @@ useHead(() => ({
   title: String(curRoute.name ?? '')
     .replace(/-/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase())
-    .slice(0, -5)
 }));
 
 const demoRoutes = useRouter()
   .getRoutes()
   .sort((a, b) => a.path.localeCompare(b.path))
   .reduce((tree, route) => {
-    if (!route.path.startsWith(`${routes.STYLEGUIDE}/`, 3)) return tree;
+    if (!route.path.startsWith(`${routes.STYLEGUIDE}/`)) return tree;
 
-    const parts = route.path.split('/').slice(3);
+    const parts = route.path.split('/').slice(2);
 
     let currentNode: TreeNode = tree;
     parts.forEach((part, i) => {
