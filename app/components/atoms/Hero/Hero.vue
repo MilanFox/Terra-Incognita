@@ -21,12 +21,13 @@
 
 <style lang="scss">
 .hero {
-  background-image: url('@assets/images/hero-bg.png');
+  background-image: linear-gradient(180deg, transparent 90%, white 100%), url('@assets/images/backgrounds/clouds.png');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: 50% 50%;
   text-align: center;
   padding: 16px 16px 80px;
+  border-top: 1px solid rgba($colors-blue-dark, 0.5);
 
   &__logo {
     display: block;

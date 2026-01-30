@@ -1,4 +1,4 @@
-type UIButtonColor = 'grey' | 'green' | 'blue' | 'orange';
+export type UIButtonColor = 'grey' | 'green' | 'blue' | 'orange';
 
 type UIButtonBaseProps = {
   color?: UIButtonColor
