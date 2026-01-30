@@ -14,6 +14,8 @@ defineProps<ContentSectionProps>();
 
 <style lang="scss">
 .content-section {
+  margin-top: 0;
+
   @include container();
 
   &__title {
@@ -30,11 +32,11 @@ defineProps<ContentSectionProps>();
     }
 
     &::before {
-      background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.15));
+      background: linear-gradient(to right, transparent, rgba($colors-blue-dark, 0.5));
     }
 
     &::after {
-      background: linear-gradient(to left, transparent, rgba(0, 0, 0, 0.15));
+      background: linear-gradient(to left, transparent, rgba($colors-blue-dark, 0.5));
     }
   }
 }
