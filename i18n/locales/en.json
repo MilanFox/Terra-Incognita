@@ -1,4 +1,11 @@
 {
+  "languagePicker": {
+    "label": "Choose your language",
+    "langs": {
+      "en": "English",
+      "de": "Deutsch"
+    }
+  },
   "hero": {
     "title": "Welcome to Terra Incognita",
     "subtitle": "Have fun testing your geography knowledge!"

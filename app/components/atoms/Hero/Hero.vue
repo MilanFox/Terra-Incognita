@@ -11,9 +11,9 @@
       <p class="hero__subtitle headline--level-2">{{ $t('hero.subtitle') }}</p>
 
       <div class="hero__links">
-        <UIButton type="link" class="hero__link" color="blue" to="/">Daily Challenge</UIButton>
+        <UIButton type="link" class="hero__link" color="blue" to="/">Placeholder 1</UIButton>
 
-        <UIButton type="link" class="hero__link" to="/">Github Repo</UIButton>
+        <UIButton type="link" class="hero__link" to="/">Placeholder 2</UIButton>
       </div>
     </div>
   </div>
@@ -30,10 +30,15 @@
 
   &__logo {
     display: block;
-    height: 160px;
+    height: 80px;
     margin: 0 auto;
     filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(4px 4px 0 #fff) drop-shadow(-4px 4px 0 #fff) drop-shadow(4px -4px 0 #fff) drop-shadow(-4px -4px 0 #fff);
-    transform: translateY(-100px);
+    transform: translateY(-80px);
+
+    @include breakpoint(mobile) {
+      height: 160px;
+      transform: translateY(-100px);
+    }
   }
 
   &__content {
@@ -41,7 +46,11 @@
   }
 
   &__title {
-    margin: -80px 0 8px;
+    margin: -50px 0 8px;
+
+    @include breakpoint(mobile) {
+      margin: -80px 0 8px;
+    }
   }
 
   &__subtitle {

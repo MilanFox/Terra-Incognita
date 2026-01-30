@@ -23,11 +23,14 @@ $colors-orange-light: #fbc664;
 $colors-orange-dark: #d29232;
 
 /* A11Y */
+@mixin focus-style($offset: 2px, $color: $colors-blue-dark) {
+    outline-offset: $offset;
+    outline: 2px solid $color;
+}
 
 @mixin focus-state($offset: 2px, $color: $colors-blue-dark) {
   &:focus-visible {
-    outline-offset: $offset;
-    outline: 2px solid $color;
+    @include focus-style($offset, $color)
   }
 }
 
@@ -36,6 +39,7 @@ $colors-orange-dark: #d29232;
 $grid-breakpoints: (
   desktop: 1200px,
   tablet: 768px,
+  mobile: 480px,
 );
 
 @mixin breakpoint($breakpoint) {
@@ -52,9 +56,13 @@ $grid-breakpoints: (
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 16px;
+
+  @include breakpoint(mobile) {
+    padding: 0 32px;
+  }
 }
 
 @mixin container-breakout() {
-  margin-inline: -16px;
-  padding-inline: 16px;
+  margin-inline: -32px;
+  padding-inline: 32px;
 }
