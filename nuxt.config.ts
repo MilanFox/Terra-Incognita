@@ -19,6 +19,11 @@ export default defineNuxtConfig({
 
   css: ['~/assets/scss/main.scss'],
 
+  runtimeConfig: {
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_KEY,
+  },
+
   alias: {
     '@assets': resolve(__dirname, './app/assets'),
     '@config': resolve(__dirname, './config'),
