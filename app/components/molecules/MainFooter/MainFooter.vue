@@ -2,18 +2,16 @@
 </script>
 
 <template>
-  <header class="main-header">
-    <div class="main-header__content">
-      <div />
-
-      <LanguagePicker />
+  <footer class="main-footer">
+    <div class="main-footer__content">
+      Lorem Ipsum
     </div>
-  </header>
+  </footer>
 </template>
 
 <style lang="scss">
-.main-header {
-  border-bottom: 1px solid rgba($colors-blue-dark, 0.5);
+.main-footer {
+  border-top: 1px solid rgba($colors-blue-dark, 0.5);
 
   &__content {
     @include container();
