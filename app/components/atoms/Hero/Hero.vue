@@ -21,7 +21,7 @@
 
 <style lang="scss">
 .hero {
-  background-image: linear-gradient(180deg, transparent 90%, white 100%), url('@assets/images/backgrounds/clouds.png');
+  background-image: linear-gradient(180deg, transparent 90%, white 100%), url('@assets/images/backgrounds/clouds.webp');
   background-repeat: no-repeat;
   background-size: cover;
   background-position: 50% 50%;

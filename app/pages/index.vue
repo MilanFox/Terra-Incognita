@@ -35,9 +35,9 @@
 </template>
 
 <script setup lang="ts">
-import blueIsland from '@assets/images/cards/blue-island.png';
-import orangeMap from '@assets/images/cards/orange-map.png';
-import greenHills from '@assets/images/cards/green-hills.png';
+import blueIsland from '@assets/images/cards/blue-island.webp';
+import orangeMap from '@assets/images/cards/orange-map.webp';
+import greenHills from '@assets/images/cards/green-hills.webp';
 </script>
 
 <style lang="scss">

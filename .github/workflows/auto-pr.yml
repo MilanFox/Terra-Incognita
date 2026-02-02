@@ -1,0 +1,23 @@
+name: Auto PR
+on:
+  push:
+    branches-ignore:
+      - main
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: repo-sync/pull-request@v2
+        with:
+          pr_body: ${{ github.ref_name }}
+          source_branch: ${{ github.ref_name }}
+          destination_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
