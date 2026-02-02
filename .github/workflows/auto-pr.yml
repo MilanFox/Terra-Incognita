@@ -1,0 +1,15 @@
+name: Auto PR
+on:
+  push:
+    branches-ignore:
+      - main
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: repo-sync/pull-request@v2
+        with:
+          pr_body: ${{ github.ref_name }}
+          source_branch: ${{ github.ref_name }}
+          destination_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
