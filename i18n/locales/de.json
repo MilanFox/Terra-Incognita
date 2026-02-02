@@ -6,6 +6,11 @@
       "de": "Deutsch"
     }
   },
+  "header": {
+    "a11y": {
+      "logo-alt": "Terra Incognita - Homepage"
+    }
+  },
   "hero": {
     "title": "Willkommen bei Terra Incognita",
     "subtitle": "Viel Spaß beim testen deiner Geografie Kenntnisse!"

@@ -5,6 +5,8 @@
     <main>
       <NuxtPage />
     </main>
+
+    <MainFooter />
   </div>
 </template>
 
@@ -20,3 +22,12 @@ useHead(() => ({
   link: i18nHead.value.link,
 }));
 </script>
+
+<style>
+.default-layout {
+  min-height: 100dvh;
+  display: grid;
+  gap: 32px;
+  grid-template-rows: min-content 1fr min-content;
+}
+</style>

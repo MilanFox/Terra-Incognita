@@ -1,6 +1,3 @@
-<script setup lang="ts">
-</script>
-
 <template>
   <div class="hero">
     <LogoFull class="hero__logo" aria-hidden="true" />
@@ -27,13 +24,13 @@
   background-position: 50% 50%;
   text-align: center;
   padding: 16px 16px 80px;
-  border-top: 1px solid rgba($colors-blue-dark, 0.5);
+  margin-top: -32px;
 
   &__logo {
     display: block;
     height: 80px;
     margin: 0 auto;
-    filter: drop-shadow(4px 0 0 #fff) drop-shadow(-4px 0 0 #fff) drop-shadow(0 4px 0 #fff) drop-shadow(0 -4px 0 #fff) drop-shadow(4px 4px 0 #fff) drop-shadow(-4px 4px 0 #fff) drop-shadow(4px -4px 0 #fff) drop-shadow(-4px -4px 0 #fff);
+    filter: drop-shadow(4px 0 1px #fff) drop-shadow(-4px 0 1px #fff) drop-shadow(0 4px 1px #fff) drop-shadow(0 -4px 1px #fff) drop-shadow(4px 4px 1px #fff) drop-shadow(-4px 4px 1px #fff) drop-shadow(4px -4px 1px #fff) drop-shadow(-4px -4px 1px #fff);
     transform: translateY(-80px);
 
     @include breakpoint(mobile) {
