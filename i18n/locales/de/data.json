@@ -1,0 +1,1006 @@
+{
+  "ABW": {
+    "name": "Aruba",
+    "alias": [ ]
+  },
+  "AFG": {
+    "name": "Afghanistan",
+    "alias": [ ]
+  },
+  "AGO": {
+    "name": "Angola",
+    "alias": [ ]
+  },
+  "AIA": {
+    "name": "Anguilla",
+    "alias": [ ]
+  },
+  "ALA": {
+    "name": "Ålandinseln",
+    "alias": [ ]
+  },
+  "ALB": {
+    "name": "Albanien",
+    "alias": [ ]
+  },
+  "AND": {
+    "name": "Andorra",
+    "alias": [ ]
+  },
+  "ARE": {
+    "name": "Vereinigte Arabische Emirate",
+    "alias": [ ]
+  },
+  "ARG": {
+    "name": "Argentinien",
+    "alias": [ ]
+  },
+  "ARM": {
+    "name": "Armenien",
+    "alias": [ ]
+  },
+  "ASM": {
+    "name": "Amerikanisch-Samoa",
+    "alias": [ ]
+  },
+  "ATA": {
+    "name": "Antarktis",
+    "alias": [ ]
+  },
+  "ATF": {
+    "name": "Französische Süd- und Antarktisgebiete",
+    "alias": [ ]
+  },
+  "ATG": {
+    "name": "Antigua und Barbuda",
+    "alias": [ ]
+  },
+  "AUS": {
+    "name": "Australien",
+    "alias": [ ]
+  },
+  "AUT": {
+    "name": "Österreich",
+    "alias": [ ]
+  },
+  "AZE": {
+    "name": "Aserbaidschan",
+    "alias": [ ]
+  },
+  "BDI": {
+    "name": "Burundi",
+    "alias": [ ]
+  },
+  "BEL": {
+    "name": "Belgien",
+    "alias": [ ]
+  },
+  "BEN": {
+    "name": "Benin",
+    "alias": [ ]
+  },
+  "BES": {
+    "name": "Karibische Niederlande",
+    "alias": [ ]
+  },
+  "BFA": {
+    "name": "Burkina Faso",
+    "alias": [ ]
+  },
+  "BGD": {
+    "name": "Bangladesch",
+    "alias": [ ]
+  },
+  "BGR": {
+    "name": "Bulgarien",
+    "alias": [ ]
+  },
+  "BHR": {
+    "name": "Bahrain",
+    "alias": [ ]
+  },
+  "BHS": {
+    "name": "Bahamas",
+    "alias": [ ]
+  },
+  "BIH": {
+    "name": "Bosnien und Herzegowina",
+    "alias": [ ]
+  },
+  "BLM": {
+    "name": "Saint-Barthélemy",
+    "alias": [ ]
+  },
+  "BLR": {
+    "name": "Belarus",
+    "alias": [ ]
+  },
+  "BLZ": {
+    "name": "Belize",
+    "alias": [ ]
+  },
+  "BMU": {
+    "name": "Bermuda",
+    "alias": [ ]
+  },
+  "BOL": {
+    "name": "Bolivien",
+    "alias": [ ]
+  },
+  "BRA": {
+    "name": "Brasilien",
+    "alias": [ ]
+  },
+  "BRB": {
+    "name": "Barbados",
+    "alias": [ ]
+  },
+  "BRN": {
+    "name": "Brunei",
+    "alias": [ ]
+  },
+  "BTN": {
+    "name": "Bhutan",
+    "alias": [ ]
+  },
+  "BVT": {
+    "name": "Bouvetinsel",
+    "alias": [ ]
+  },
+  "BWA": {
+    "name": "Botswana",
+    "alias": [ ]
+  },
+  "CAF": {
+    "name": "Zentralafrikanische Republik",
+    "alias": [ ]
+  },
+  "CAN": {
+    "name": "Kanada",
+    "alias": [ ]
+  },
+  "CCK": {
+    "name": "Kokosinseln",
+    "alias": [ ]
+  },
+  "CHE": {
+    "name": "Schweiz",
+    "alias": [ ]
+  },
+  "CHL": {
+    "name": "Chile",
+    "alias": [ ]
+  },
+  "CHN": {
+    "name": "China",
+    "alias": [ ]
+  },
+  "CIV": {
+    "name": "Côte d’Ivoire",
+    "alias": [ ]
+  },
+  "CMR": {
+    "name": "Kamerun",
+    "alias": [ ]
+  },
+  "COD": {
+    "name": "Demokratische Republik Kongo",
+    "alias": [ ]
+  },
+  "COG": {
+    "name": "Republik Kongo",
+    "alias": [ ]
+  },
+  "COK": {
+    "name": "Cookinseln",
+    "alias": [ ]
+  },
+  "COL": {
+    "name": "Kolumbien",
+    "alias": [ ]
+  },
+  "COM": {
+    "name": "Komoren",
+    "alias": [ ]
+  },
+  "CPV": {
+    "name": "Kap Verde",
+    "alias": [ ]
+  },
+  "CRI": {
+    "name": "Costa Rica",
+    "alias": [ ]
+  },
+  "CUB": {
+    "name": "Kuba",
+    "alias": [ ]
+  },
+  "CUW": {
+    "name": "Curaçao",
+    "alias": [ ]
+  },
+  "CXR": {
+    "name": "Weihnachtsinsel",
+    "alias": [ ]
+  },
+  "CYM": {
+    "name": "Kaimaninseln",
+    "alias": [ ]
+  },
+  "CYP": {
+    "name": "Zypern",
+    "alias": [ ]
+  },
+  "CZE": {
+    "name": "Tschechien",
+    "alias": [ ]
+  },
+  "DEU": {
+    "name": "Deutschland",
+    "alias": [ ]
+  },
+  "DJI": {
+    "name": "Dschibuti",
+    "alias": [ ]
+  },
+  "DMA": {
+    "name": "Dominica",
+    "alias": [ ]
+  },
+  "DNK": {
+    "name": "Dänemark",
+    "alias": [ ]
+  },
+  "DOM": {
+    "name": "Dominikanische Republik",
+    "alias": [ ]
+  },
+  "DZA": {
+    "name": "Algerien",
+    "alias": [ ]
+  },
+  "ECU": {
+    "name": "Ecuador",
+    "alias": [ ]
+  },
+  "EGY": {
+    "name": "Ägypten",
+    "alias": [ ]
+  },
+  "ERI": {
+    "name": "Eritrea",
+    "alias": [ ]
+  },
+  "ESH": {
+    "name": "Westsahara",
+    "alias": [ ]
+  },
+  "ESP": {
+    "name": "Spanien",
+    "alias": [ ]
+  },
+  "EST": {
+    "name": "Estland",
+    "alias": [ ]
+  },
+  "ETH": {
+    "name": "Äthiopien",
+    "alias": [ ]
+  },
+  "FIN": {
+    "name": "Finnland",
+    "alias": [ ]
+  },
+  "FJI": {
+    "name": "Fidschi",
+    "alias": [ ]
+  },
+  "FLK": {
+    "name": "Falklandinseln",
+    "alias": [ ]
+  },
+  "FRA": {
+    "name": "Frankreich",
+    "alias": [ ]
+  },
+  "FRO": {
+    "name": "Färöer",
+    "alias": [ ]
+  },
+  "FSM": {
+    "name": "Mikronesien",
+    "alias": [ ]
+  },
+  "GAB": {
+    "name": "Gabun",
+    "alias": [ ]
+  },
+  "GBR": {
+    "name": "Vereinigtes Königreich",
+    "alias": [ ]
+  },
+  "GEO": {
+    "name": "Georgien",
+    "alias": [ ]
+  },
+  "GGY": {
+    "name": "Guernsey",
+    "alias": [ ]
+  },
+  "GHA": {
+    "name": "Ghana",
+    "alias": [ ]
+  },
+  "GIB": {
+    "name": "Gibraltar",
+    "alias": [ ]
+  },
+  "GIN": {
+    "name": "Guinea",
+    "alias": [ ]
+  },
+  "GLP": {
+    "name": "Guadeloupe",
+    "alias": [ ]
+  },
+  "GMB": {
+    "name": "Gambia",
+    "alias": [ ]
+  },
+  "GNB": {
+    "name": "Guinea-Bissau",
+    "alias": [ ]
+  },
+  "GNQ": {
+    "name": "Äquatorialguinea",
+    "alias": [ ]
+  },
+  "GRC": {
+    "name": "Griechenland",
+    "alias": [ ]
+  },
+  "GRD": {
+    "name": "Grenada",
+    "alias": [ ]
+  },
+  "GRL": {
+    "name": "Grönland",
+    "alias": [ ]
+  },
+  "GTM": {
+    "name": "Guatemala",
+    "alias": [ ]
+  },
+  "GUF": {
+    "name": "Französisch-Guayana",
+    "alias": [ ]
+  },
+  "GUM": {
+    "name": "Guam",
+    "alias": [ ]
+  },
+  "GUY": {
+    "name": "Guyana",
+    "alias": [ ]
+  },
+  "HKG": {
+    "name": "Hongkong",
+    "alias": [ ]
+  },
+  "HMD": {
+    "name": "Heard und McDonaldinseln",
+    "alias": [ ]
+  },
+  "HND": {
+    "name": "Honduras",
+    "alias": [ ]
+  },
+  "HRV": {
+    "name": "Kroatien",
+    "alias": [ ]
+  },
+  "HTI": {
+    "name": "Haiti",
+    "alias": [ ]
+  },
+  "HUN": {
+    "name": "Ungarn",
+    "alias": [ ]
+  },
+  "IDN": {
+    "name": "Indonesien",
+    "alias": [ ]
+  },
+  "IMN": {
+    "name": "Isle of Man",
+    "alias": [ ]
+  },
+  "IND": {
+    "name": "Indien",
+    "alias": [ ]
+  },
+  "IOT": {
+    "name": "Britisches Territorium im Indischen Ozean",
+    "alias": [ ]
+  },
+  "IRL": {
+    "name": "Irland",
+    "alias": [ ]
+  },
+  "IRN": {
+    "name": "Iran",
+    "alias": [ ]
+  },
+  "IRQ": {
+    "name": "Irak",
+    "alias": [ ]
+  },
+  "ISL": {
+    "name": "Island",
+    "alias": [ ]
+  },
+  "ISR": {
+    "name": "Israel",
+    "alias": [ ]
+  },
+  "ITA": {
+    "name": "Italien",
+    "alias": [ ]
+  },
+  "JAM": {
+    "name": "Jamaika",
+    "alias": [ ]
+  },
+  "JEY": {
+    "name": "Jersey",
+    "alias": [ ]
+  },
+  "JOR": {
+    "name": "Jordanien",
+    "alias": [ ]
+  },
+  "JPN": {
+    "name": "Japan",
+    "alias": [ ]
+  },
+  "KAZ": {
+    "name": "Kasachstan",
+    "alias": [ ]
+  },
+  "KEN": {
+    "name": "Kenia",
+    "alias": [ ]
+  },
+  "KGZ": {
+    "name": "Kirgisistan",
+    "alias": [ ]
+  },
+  "KHM": {
+    "name": "Kambodscha",
+    "alias": [ ]
+  },
+  "KIR": {
+    "name": "Kiribati",
+    "alias": [ ]
+  },
+  "KNA": {
+    "name": "St. Kitts und Nevis",
+    "alias": [ ]
+  },
+  "KOR": {
+    "name": "Südkorea",
+    "alias": [ ]
+  },
+  "KWT": {
+    "name": "Kuwait",
+    "alias": [ ]
+  },
+  "LAO": {
+    "name": "Laos",
+    "alias": [ ]
+  },
+  "LBN": {
+    "name": "Libanon",
+    "alias": [ ]
+  },
+  "LBR": {
+    "name": "Liberia",
+    "alias": [ ]
+  },
+  "LBY": {
+    "name": "Libyen",
+    "alias": [ ]
+  },
+  "LCA": {
+    "name": "St. Lucia",
+    "alias": [ ]
+  },
+  "LIE": {
+    "name": "Liechtenstein",
+    "alias": [ ]
+  },
+  "LKA": {
+    "name": "Sri Lanka",
+    "alias": [ ]
+  },
+  "LSO": {
+    "name": "Lesotho",
+    "alias": [ ]
+  },
+  "LTU": {
+    "name": "Litauen",
+    "alias": [ ]
+  },
+  "LUX": {
+    "name": "Luxemburg",
+    "alias": [ ]
+  },
+  "LVA": {
+    "name": "Lettland",
+    "alias": [ ]
+  },
+  "MAC": {
+    "name": "Macau",
+    "alias": [ ]
+  },
+  "MAF": {
+    "name": "Saint-Martin",
+    "alias": [ ]
+  },
+  "MAR": {
+    "name": "Marokko",
+    "alias": [ ]
+  },
+  "MCO": {
+    "name": "Monaco",
+    "alias": [ ]
+  },
+  "MDA": {
+    "name": "Moldau",
+    "alias": [ ]
+  },
+  "MDG": {
+    "name": "Madagaskar",
+    "alias": [ ]
+  },
+  "MDV": {
+    "name": "Malediven",
+    "alias": [ ]
+  },
+  "MEX": {
+    "name": "Mexiko",
+    "alias": [ ]
+  },
+  "MHL": {
+    "name": "Marshallinseln",
+    "alias": [ ]
+  },
+  "MKD": {
+    "name": "Nordmazedonien",
+    "alias": [ ]
+  },
+  "MLI": {
+    "name": "Mali",
+    "alias": [ ]
+  },
+  "MLT": {
+    "name": "Malta",
+    "alias": [ ]
+  },
+  "MMR": {
+    "name": "Myanmar",
+    "alias": [ ]
+  },
+  "MNE": {
+    "name": "Montenegro",
+    "alias": [ ]
+  },
+  "MNG": {
+    "name": "Mongolei",
+    "alias": [ ]
+  },
+  "MNP": {
+    "name": "Nördliche Marianen",
+    "alias": [ ]
+  },
+  "MOZ": {
+    "name": "Mosambik",
+    "alias": [ ]
+  },
+  "MRT": {
+    "name": "Mauretanien",
+    "alias": [ ]
+  },
+  "MSR": {
+    "name": "Montserrat",
+    "alias": [ ]
+  },
+  "MTQ": {
+    "name": "Martinique",
+    "alias": [ ]
+  },
+  "MUS": {
+    "name": "Mauritius",
+    "alias": [ ]
+  },
+  "MWI": {
+    "name": "Malawi",
+    "alias": [ ]
+  },
+  "MYS": {
+    "name": "Malaysia",
+    "alias": [ ]
+  },
+  "MYT": {
+    "name": "Mayotte",
+    "alias": [ ]
+  },
+  "NAM": {
+    "name": "Namibia",
+    "alias": [ ]
+  },
+  "NCL": {
+    "name": "Neukaledonien",
+    "alias": [ ]
+  },
+  "NER": {
+    "name": "Niger",
+    "alias": [ ]
+  },
+  "NFK": {
+    "name": "Norfolkinsel",
+    "alias": [ ]
+  },
+  "NGA": {
+    "name": "Nigeria",
+    "alias": [ ]
+  },
+  "NIC": {
+    "name": "Nicaragua",
+    "alias": [ ]
+  },
+  "NIU": {
+    "name": "Niue",
+    "alias": [ ]
+  },
+  "NLD": {
+    "name": "Niederlande",
+    "alias": [ ]
+  },
+  "NOR": {
+    "name": "Norwegen",
+    "alias": [ ]
+  },
+  "NPL": {
+    "name": "Nepal",
+    "alias": [ ]
+  },
+  "NRU": {
+    "name": "Nauru",
+    "alias": [ ]
+  },
+  "NZL": {
+    "name": "Neuseeland",
+    "alias": [ ]
+  },
+  "OMN": {
+    "name": "Oman",
+    "alias": [ ]
+  },
+  "PAK": {
+    "name": "Pakistan",
+    "alias": [ ]
+  },
+  "PAN": {
+    "name": "Panama",
+    "alias": [ ]
+  },
+  "PCN": {
+    "name": "Pitcairninseln",
+    "alias": [ ]
+  },
+  "PER": {
+    "name": "Peru",
+    "alias": [ ]
+  },
+  "PHL": {
+    "name": "Philippinen",
+    "alias": [ ]
+  },
+  "PLW": {
+    "name": "Palau",
+    "alias": [ ]
+  },
+  "PNG": {
+    "name": "Papua-Neuguinea",
+    "alias": [ ]
+  },
+  "POL": {
+    "name": "Polen",
+    "alias": [ ]
+  },
+  "PRI": {
+    "name": "Puerto Rico",
+    "alias": [ ]
+  },
+  "PRK": {
+    "name": "Nordkorea",
+    "alias": [ ]
+  },
+  "PRT": {
+    "name": "Portugal",
+    "alias": [ ]
+  },
+  "PRY": {
+    "name": "Paraguay",
+    "alias": [ ]
+  },
+  "PSE": {
+    "name": "Palästina",
+    "alias": [ ]
+  },
+  "PYF": {
+    "name": "Französisch-Polynesien",
+    "alias": [ ]
+  },
+  "QAT": {
+    "name": "Katar",
+    "alias": [ ]
+  },
+  "REU": {
+    "name": "Réunion",
+    "alias": [ ]
+  },
+  "ROU": {
+    "name": "Rumänien",
+    "alias": [ ]
+  },
+  "RUS": {
+    "name": "Russland",
+    "alias": [ ]
+  },
+  "RWA": {
+    "name": "Ruanda",
+    "alias": [ ]
+  },
+  "SAU": {
+    "name": "Saudi-Arabien",
+    "alias": [ ]
+  },
+  "SDN": {
+    "name": "Sudan",
+    "alias": [ ]
+  },
+  "SEN": {
+    "name": "Senegal",
+    "alias": [ ]
+  },
+  "SGP": {
+    "name": "Singapur",
+    "alias": [ ]
+  },
+  "SGS": {
+    "name": "Südgeorgien und die Südlichen Sandwichinseln",
+    "alias": [ ]
+  },
+  "SHN": {
+    "name": "St. Helena, Ascension und Tristan da Cunha",
+    "alias": [ ]
+  },
+  "SJM": {
+    "name": "Spitzbergen und Jan Mayen",
+    "alias": [ ]
+  },
+  "SLB": {
+    "name": "Salomonen",
+    "alias": [ ]
+  },
+  "SLE": {
+    "name": "Sierra Leone",
+    "alias": [ ]
+  },
+  "SLV": {
+    "name": "El Salvador",
+    "alias": [ ]
+  },
+  "SMR": {
+    "name": "San Marino",
+    "alias": [ ]
+  },
+  "SOL": {
+    "name": "Somaliland",
+    "alias": [ ]
+  },
+  "SOM": {
+    "name": "Somalia",
+    "alias": [ ]
+  },
+  "SPM": {
+    "name": "Saint-Pierre und Miquelon",
+    "alias": [ ]
+  },
+  "SRB": {
+    "name": "Serbien",
+    "alias": [ ]
+  },
+  "SSD": {
+    "name": "Südsudan",
+    "alias": [ ]
+  },
+  "STP": {
+    "name": "São Tomé und Príncipe",
+    "alias": [ ]
+  },
+  "SUR": {
+    "name": "Suriname",
+    "alias": [ ]
+  },
+  "SVK": {
+    "name": "Slowakei",
+    "alias": [ ]
+  },
+  "SVN": {
+    "name": "Slowenien",
+    "alias": [ ]
+  },
+  "SWE": {
+    "name": "Schweden",
+    "alias": [ ]
+  },
+  "SWZ": {
+    "name": "Eswatini",
+    "alias": [ ]
+  },
+  "SXM": {
+    "name": "Sint Maarten",
+    "alias": [ ]
+  },
+  "SYC": {
+    "name": "Seychellen",
+    "alias": [ ]
+  },
+  "SYR": {
+    "name": "Syrien",
+    "alias": [ ]
+  },
+  "TCA": {
+    "name": "Turks- und Caicosinseln",
+    "alias": [ ]
+  },
+  "TCD": {
+    "name": "Tschad",
+    "alias": [ ]
+  },
+  "TGO": {
+    "name": "Togo",
+    "alias": [ ]
+  },
+  "THA": {
+    "name": "Thailand",
+    "alias": [ ]
+  },
+  "TJK": {
+    "name": "Tadschikistan",
+    "alias": [ ]
+  },
+  "TKL": {
+    "name": "Tokelau",
+    "alias": [ ]
+  },
+  "TKM": {
+    "name": "Turkmenistan",
+    "alias": [ ]
+  },
+  "TLS": {
+    "name": "Timor-Leste",
+    "alias": [ ]
+  },
+  "TON": {
+    "name": "Tonga",
+    "alias": [ ]
+  },
+  "TTO": {
+    "name": "Trinidad und Tobago",
+    "alias": [ ]
+  },
+  "TUN": {
+    "name": "Tunesien",
+    "alias": [ ]
+  },
+  "TUR": {
+    "name": "Türkei",
+    "alias": [ ]
+  },
+  "TUV": {
+    "name": "Tuvalu",
+    "alias": [ ]
+  },
+  "TWN": {
+    "name": "Taiwan",
+    "alias": [ ]
+  },
+  "TZA": {
+    "name": "Tansania",
+    "alias": [ ]
+  },
+  "UGA": {
+    "name": "Uganda",
+    "alias": [ ]
+  },
+  "UKR": {
+    "name": "Ukraine",
+    "alias": [ ]
+  },
+  "UMI": {
+    "name": "United States Minor Outlying Islands",
+    "alias": [ ]
+  },
+  "URY": {
+    "name": "Uruguay",
+    "alias": [ ]
+  },
+  "USA": {
+    "name": "Vereinigte Staaten",
+    "alias": [ ]
+  },
+  "UZB": {
+    "name": "Usbekistan",
+    "alias": [ ]
+  },
+  "VAT": {
+    "name": "Vatikanstadt",
+    "alias": [ ]
+  },
+  "VCT": {
+    "name": "St. Vincent und die Grenadinen",
+    "alias": [ ]
+  },
+  "VEN": {
+    "name": "Venezuela",
+    "alias": [ ]
+  },
+  "VGB": {
+    "name": "Britische Jungferninseln",
+    "alias": [ ]
+  },
+  "VIR": {
+    "name": "Amerikanische Jungferninseln",
+    "alias": [ ]
+  },
+  "VNM": {
+    "name": "Vietnam",
+    "alias": [ ]
+  },
+  "VUT": {
+    "name": "Vanuatu",
+    "alias": [ ]
+  },
+  "WLF": {
+    "name": "Wallis und Futuna",
+    "alias": [ ]
+  },
+  "WSM": {
+    "name": "Samoa",
+    "alias": [ ]
+  },
+  "XKX": {
+    "name": "Kosovo",
+    "alias": [ ]
+  },
+  "YEM": {
+    "name": "Jemen",
+    "alias": [ ]
+  },
+  "ZAF": {
+    "name": "Südafrika",
+    "alias": [ ]
+  },
+  "ZMB": {
+    "name": "Sambia",
+    "alias": [ ]
+  },
+  "ZWE": {
+    "name": "Simbabwe",
+    "alias": [ ]
+  }
+}

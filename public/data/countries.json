@@ -1,0 +1,1274 @@
+{
+  "ABW": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NLD"
+  },
+  "AFG": {
+    "disputed": false,
+    "neighbours": [ "CHN", "IRN", "PAK", "TJK", "TKM", "UZB" ],
+    "parent": null
+  },
+  "AGO": {
+    "disputed": false,
+    "neighbours": [ "COD", "COG", "NAM", "ZMB" ],
+    "parent": null
+  },
+  "AIA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "ALA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FIN"
+  },
+  "ALB": {
+    "disputed": false,
+    "neighbours": [ "GRC", "MKD", "MNE", "XKX" ],
+    "parent": null
+  },
+  "AND": {
+    "disputed": false,
+    "neighbours": [ "ESP", "FRA" ],
+    "parent": null
+  },
+  "ARE": {
+    "disputed": false,
+    "neighbours": [ "OMN", "SAU" ],
+    "parent": null
+  },
+  "ARG": {
+    "disputed": false,
+    "neighbours": [ "BOL", "BRA", "CHL", "PRY", "URY" ],
+    "parent": null
+  },
+  "ARM": {
+    "disputed": false,
+    "neighbours": [ "AZE", "GEO", "IRN", "TUR" ],
+    "parent": null
+  },
+  "ASM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "ATA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "ATF": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "ATG": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "AUS": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "AUT": {
+    "disputed": false,
+    "neighbours": [ "CHE", "CZE", "DEU", "HUN", "ITA", "LIE", "SVK", "SVN" ],
+    "parent": null
+  },
+  "AZE": {
+    "disputed": false,
+    "neighbours": [ "ARM", "GEO", "IRN", "RUS", "TUR" ],
+    "parent": null
+  },
+  "BDI": {
+    "disputed": false,
+    "neighbours": [ "COD", "RWA", "TZA" ],
+    "parent": null
+  },
+  "BEL": {
+    "disputed": false,
+    "neighbours": [ "DEU", "FRA", "LUX", "NLD" ],
+    "parent": null
+  },
+  "BEN": {
+    "disputed": false,
+    "neighbours": [ "BFA", "NER", "NGA", "TGO" ],
+    "parent": null
+  },
+  "BES": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NLD"
+  },
+  "BFA": {
+    "disputed": false,
+    "neighbours": [ "BEN", "CIV", "GHA", "MLI", "NER", "TGO" ],
+    "parent": null
+  },
+  "BGD": {
+    "disputed": false,
+    "neighbours": [ "IND", "MMR" ],
+    "parent": null
+  },
+  "BGR": {
+    "disputed": false,
+    "neighbours": [ "GRC", "MKD", "ROU", "SRB", "TUR" ],
+    "parent": null
+  },
+  "BHR": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "BHS": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "BIH": {
+    "disputed": false,
+    "neighbours": [ "HRV", "MNE", "SRB" ],
+    "parent": null
+  },
+  "BLM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "BLR": {
+    "disputed": false,
+    "neighbours": [ "LTU", "LVA", "POL", "RUS", "UKR" ],
+    "parent": null
+  },
+  "BLZ": {
+    "disputed": false,
+    "neighbours": [ "GTM", "MEX" ],
+    "parent": null
+  },
+  "BMU": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "BOL": {
+    "disputed": false,
+    "neighbours": [ "ARG", "BRA", "CHL", "PER", "PRY" ],
+    "parent": null
+  },
+  "BRA": {
+    "disputed": false,
+    "neighbours": [ "ARG", "BOL", "COL", "FRA", "GUF", "GUY", "PER", "PRY", "SUR", "URY", "VEN" ],
+    "parent": null
+  },
+  "BRB": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "BRN": {
+    "disputed": false,
+    "neighbours": [ "MYS" ],
+    "parent": null
+  },
+  "BTN": {
+    "disputed": false,
+    "neighbours": [ "CHN", "IND" ],
+    "parent": null
+  },
+  "BVT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NOR"
+  },
+  "BWA": {
+    "disputed": false,
+    "neighbours": [ "NAM", "ZAF", "ZMB", "ZWE" ],
+    "parent": null
+  },
+  "CAF": {
+    "disputed": false,
+    "neighbours": [ "CMR", "COD", "COG", "SDN", "SSD", "TCD" ],
+    "parent": null
+  },
+  "CAN": {
+    "disputed": false,
+    "neighbours": [ "USA" ],
+    "parent": null
+  },
+  "CCK": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "AUS"
+  },
+  "CHE": {
+    "disputed": false,
+    "neighbours": [ "AUT", "DEU", "FRA", "ITA", "LIE" ],
+    "parent": null
+  },
+  "CHL": {
+    "disputed": false,
+    "neighbours": [ "ARG", "BOL", "PER" ],
+    "parent": null
+  },
+  "CHN": {
+    "disputed": false,
+    "neighbours": [
+      "AFG",
+      "BTN",
+      "HKG",
+      "IND",
+      "KAZ",
+      "KGZ",
+      "LAO",
+      "MAC",
+      "MMR",
+      "MNG",
+      "NPL",
+      "PAK",
+      "PRK",
+      "RUS",
+      "TJK",
+      "VNM"
+    ],
+    "parent": null
+  },
+  "CIV": {
+    "disputed": false,
+    "neighbours": [ "BFA", "GHA", "GIN", "LBR", "MLI" ],
+    "parent": null
+  },
+  "CMR": {
+    "disputed": false,
+    "neighbours": [ "CAF", "COG", "GAB", "GNQ", "NGA", "TCD" ],
+    "parent": null
+  },
+  "COD": {
+    "disputed": false,
+    "neighbours": [ "AGO", "BDI", "CAF", "COG", "RWA", "SSD", "TZA", "UGA", "ZMB" ],
+    "parent": null
+  },
+  "COG": {
+    "disputed": false,
+    "neighbours": [ "AGO", "CAF", "CMR", "COD", "GAB" ],
+    "parent": null
+  },
+  "COK": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NZL"
+  },
+  "COL": {
+    "disputed": false,
+    "neighbours": [ "BRA", "ECU", "PAN", "PER", "VEN" ],
+    "parent": null
+  },
+  "COM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "CPV": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "CRI": {
+    "disputed": false,
+    "neighbours": [ "NIC", "PAN" ],
+    "parent": null
+  },
+  "CUB": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "CUW": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NLD"
+  },
+  "CXR": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "AUS"
+  },
+  "CYM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "CYP": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "CZE": {
+    "disputed": false,
+    "neighbours": [ "AUT", "DEU", "POL", "SVK" ],
+    "parent": null
+  },
+  "DEU": {
+    "disputed": false,
+    "neighbours": [ "AUT", "BEL", "CHE", "CZE", "DNK", "FRA", "LUX", "NLD", "POL" ],
+    "parent": null
+  },
+  "DJI": {
+    "disputed": false,
+    "neighbours": [ "ERI", "ETH", "SOL", "SOM" ],
+    "parent": null
+  },
+  "DMA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "DNK": {
+    "disputed": false,
+    "neighbours": [ "DEU" ],
+    "parent": null
+  },
+  "DOM": {
+    "disputed": false,
+    "neighbours": [ "HTI" ],
+    "parent": null
+  },
+  "DZA": {
+    "disputed": false,
+    "neighbours": [ "ESH", "LBY", "MAR", "MLI", "MRT", "NER", "TUN" ],
+    "parent": null
+  },
+  "ECU": {
+    "disputed": false,
+    "neighbours": [ "COL", "PER" ],
+    "parent": null
+  },
+  "EGY": {
+    "disputed": false,
+    "neighbours": [ "ISR", "LBY", "PSE", "SDN" ],
+    "parent": null
+  },
+  "ERI": {
+    "disputed": false,
+    "neighbours": [ "DJI", "ETH", "SDN" ],
+    "parent": null
+  },
+  "ESH": {
+    "disputed": true,
+    "neighbours": [ "DZA", "MAR", "MRT" ],
+    "parent": null
+  },
+  "ESP": {
+    "disputed": false,
+    "neighbours": [ "AND", "FRA", "GIB", "MAR", "PRT" ],
+    "parent": null
+  },
+  "EST": {
+    "disputed": false,
+    "neighbours": [ "LVA", "RUS" ],
+    "parent": null
+  },
+  "ETH": {
+    "disputed": false,
+    "neighbours": [ "DJI", "ERI", "KEN", "SDN", "SOL", "SOM", "SSD" ],
+    "parent": null
+  },
+  "FIN": {
+    "disputed": false,
+    "neighbours": [ "NOR", "RUS", "SWE" ],
+    "parent": null
+  },
+  "FJI": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "FLK": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "FRA": {
+    "disputed": false,
+    "neighbours": [ "AND", "BEL", "BRA", "CHE", "DEU", "ESP", "ITA", "LUX", "MCO", "SUR" ],
+    "parent": null
+  },
+  "FRO": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "DNK"
+  },
+  "FSM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "GAB": {
+    "disputed": false,
+    "neighbours": [ "CMR", "COG", "GNQ" ],
+    "parent": null
+  },
+  "GBR": {
+    "disputed": false,
+    "neighbours": [ "IRL" ],
+    "parent": null
+  },
+  "GEO": {
+    "disputed": false,
+    "neighbours": [ "ARM", "AZE", "RUS", "TUR" ],
+    "parent": null
+  },
+  "GGY": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "GHA": {
+    "disputed": false,
+    "neighbours": [ "BFA", "CIV", "TGO" ],
+    "parent": null
+  },
+  "GIB": {
+    "disputed": false,
+    "neighbours": [ "ESP" ],
+    "parent": "GBR"
+  },
+  "GIN": {
+    "disputed": false,
+    "neighbours": [ "CIV", "GNB", "LBR", "MLI", "SEN", "SLE" ],
+    "parent": null
+  },
+  "GLP": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "GMB": {
+    "disputed": false,
+    "neighbours": [ "SEN" ],
+    "parent": null
+  },
+  "GNB": {
+    "disputed": false,
+    "neighbours": [ "GIN", "SEN" ],
+    "parent": null
+  },
+  "GNQ": {
+    "disputed": false,
+    "neighbours": [ "CMR", "GAB" ],
+    "parent": null
+  },
+  "GRC": {
+    "disputed": false,
+    "neighbours": [ "ALB", "BGR", "MKD", "TUR" ],
+    "parent": null
+  },
+  "GRD": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "GRL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "DNK"
+  },
+  "GTM": {
+    "disputed": false,
+    "neighbours": [ "BLZ", "HND", "MEX", "SLV" ],
+    "parent": null
+  },
+  "GUF": {
+    "disputed": false,
+    "neighbours": [ "BRA", "SUR" ],
+    "parent": "FRA"
+  },
+  "GUM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "GUY": {
+    "disputed": false,
+    "neighbours": [ "BRA", "SUR", "VEN" ],
+    "parent": null
+  },
+  "HKG": {
+    "disputed": false,
+    "neighbours": [ "CHN" ],
+    "parent": "CHN"
+  },
+  "HMD": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "AUS"
+  },
+  "HND": {
+    "disputed": false,
+    "neighbours": [ "GTM", "NIC", "SLV" ],
+    "parent": null
+  },
+  "HRV": {
+    "disputed": false,
+    "neighbours": [ "BIH", "HUN", "MNE", "SRB", "SVN" ],
+    "parent": null
+  },
+  "HTI": {
+    "disputed": false,
+    "neighbours": [ "DOM" ],
+    "parent": null
+  },
+  "HUN": {
+    "disputed": false,
+    "neighbours": [ "AUT", "HRV", "ROU", "SRB", "SVK", "SVN", "UKR" ],
+    "parent": null
+  },
+  "IDN": {
+    "disputed": false,
+    "neighbours": [ "MYS", "PNG", "TLS" ],
+    "parent": null
+  },
+  "IMN": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "IND": {
+    "disputed": false,
+    "neighbours": [ "BGD", "BTN", "CHN", "MMR", "NPL", "PAK" ],
+    "parent": null
+  },
+  "IOT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "IRL": {
+    "disputed": false,
+    "neighbours": [ "GBR" ],
+    "parent": null
+  },
+  "IRN": {
+    "disputed": false,
+    "neighbours": [ "AFG", "ARM", "AZE", "IRQ", "PAK", "TKM", "TUR" ],
+    "parent": null
+  },
+  "IRQ": {
+    "disputed": false,
+    "neighbours": [ "IRN", "JOR", "KWT", "SAU", "SYR", "TUR" ],
+    "parent": null
+  },
+  "ISL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "ISR": {
+    "disputed": false,
+    "neighbours": [ "EGY", "JOR", "LBN", "PSE", "SYR" ],
+    "parent": null
+  },
+  "ITA": {
+    "disputed": false,
+    "neighbours": [ "AUT", "CHE", "FRA", "SMR", "SVN", "VAT" ],
+    "parent": null
+  },
+  "JAM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "JEY": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "JOR": {
+    "disputed": false,
+    "neighbours": [ "IRQ", "ISR", "PSE", "SAU", "SYR" ],
+    "parent": null
+  },
+  "JPN": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "KAZ": {
+    "disputed": false,
+    "neighbours": [ "CHN", "KGZ", "RUS", "TKM", "UZB" ],
+    "parent": null
+  },
+  "KEN": {
+    "disputed": false,
+    "neighbours": [ "ETH", "SOM", "SSD", "TZA", "UGA" ],
+    "parent": null
+  },
+  "KGZ": {
+    "disputed": false,
+    "neighbours": [ "CHN", "KAZ", "TJK", "UZB" ],
+    "parent": null
+  },
+  "KHM": {
+    "disputed": false,
+    "neighbours": [ "LAO", "THA", "VNM" ],
+    "parent": null
+  },
+  "KIR": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "KNA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "KOR": {
+    "disputed": false,
+    "neighbours": [ "PRK" ],
+    "parent": null
+  },
+  "KWT": {
+    "disputed": false,
+    "neighbours": [ "IRQ", "SAU" ],
+    "parent": null
+  },
+  "LAO": {
+    "disputed": false,
+    "neighbours": [ "CHN", "KHM", "MMR", "THA", "VNM" ],
+    "parent": null
+  },
+  "LBN": {
+    "disputed": false,
+    "neighbours": [ "ISR", "SYR" ],
+    "parent": null
+  },
+  "LBR": {
+    "disputed": false,
+    "neighbours": [ "CIV", "GIN", "SLE" ],
+    "parent": null
+  },
+  "LBY": {
+    "disputed": false,
+    "neighbours": [ "DZA", "EGY", "NER", "SDN", "TCD", "TUN" ],
+    "parent": null
+  },
+  "LCA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "LIE": {
+    "disputed": false,
+    "neighbours": [ "AUT", "CHE" ],
+    "parent": null
+  },
+  "LKA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "LSO": {
+    "disputed": false,
+    "neighbours": [ "ZAF" ],
+    "parent": null
+  },
+  "LTU": {
+    "disputed": false,
+    "neighbours": [ "BLR", "LVA", "POL", "RUS" ],
+    "parent": null
+  },
+  "LUX": {
+    "disputed": false,
+    "neighbours": [ "BEL", "DEU", "FRA" ],
+    "parent": null
+  },
+  "LVA": {
+    "disputed": false,
+    "neighbours": [ "BLR", "EST", "LTU", "RUS" ],
+    "parent": null
+  },
+  "MAC": {
+    "disputed": false,
+    "neighbours": [ "CHN" ],
+    "parent": "CHN"
+  },
+  "MAF": {
+    "disputed": false,
+    "neighbours": [ "SXM" ],
+    "parent": "FRA"
+  },
+  "MAR": {
+    "disputed": false,
+    "neighbours": [ "DZA", "ESH", "ESP" ],
+    "parent": null
+  },
+  "MCO": {
+    "disputed": false,
+    "neighbours": [ "FRA" ],
+    "parent": null
+  },
+  "MDA": {
+    "disputed": false,
+    "neighbours": [ "ROU", "UKR" ],
+    "parent": null
+  },
+  "MDG": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "MDV": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "MEX": {
+    "disputed": false,
+    "neighbours": [ "BLZ", "GTM", "USA" ],
+    "parent": null
+  },
+  "MHL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "MKD": {
+    "disputed": false,
+    "neighbours": [ "ALB", "BGR", "GRC", "SRB", "XKX" ],
+    "parent": null
+  },
+  "MLI": {
+    "disputed": false,
+    "neighbours": [ "BFA", "CIV", "DZA", "GIN", "MRT", "NER", "SEN" ],
+    "parent": null
+  },
+  "MLT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "MMR": {
+    "disputed": false,
+    "neighbours": [ "BGD", "CHN", "IND", "LAO", "THA" ],
+    "parent": null
+  },
+  "MNE": {
+    "disputed": false,
+    "neighbours": [ "ALB", "BIH", "HRV", "SRB", "XKX" ],
+    "parent": null
+  },
+  "MNG": {
+    "disputed": false,
+    "neighbours": [ "CHN", "RUS" ],
+    "parent": null
+  },
+  "MNP": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "MOZ": {
+    "disputed": false,
+    "neighbours": [ "MWI", "SWZ", "TZA", "ZAF", "ZMB", "ZWE" ],
+    "parent": null
+  },
+  "MRT": {
+    "disputed": false,
+    "neighbours": [ "DZA", "ESH", "MLI", "SEN" ],
+    "parent": null
+  },
+  "MSR": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "MTQ": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "MUS": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "MWI": {
+    "disputed": false,
+    "neighbours": [ "MOZ", "TZA", "ZMB" ],
+    "parent": null
+  },
+  "MYS": {
+    "disputed": false,
+    "neighbours": [ "BRN", "IDN", "SGP", "THA" ],
+    "parent": null
+  },
+  "MYT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "NAM": {
+    "disputed": false,
+    "neighbours": [ "AGO", "BWA", "ZAF", "ZMB" ],
+    "parent": null
+  },
+  "NCL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "NER": {
+    "disputed": false,
+    "neighbours": [ "BEN", "BFA", "DZA", "LBY", "MLI", "NGA", "TCD" ],
+    "parent": null
+  },
+  "NFK": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "AUS"
+  },
+  "NGA": {
+    "disputed": false,
+    "neighbours": [ "BEN", "CMR", "NER", "TCD" ],
+    "parent": null
+  },
+  "NIC": {
+    "disputed": false,
+    "neighbours": [ "CRI", "HND" ],
+    "parent": null
+  },
+  "NIU": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NZL"
+  },
+  "NLD": {
+    "disputed": false,
+    "neighbours": [ "BEL", "DEU" ],
+    "parent": null
+  },
+  "NOR": {
+    "disputed": false,
+    "neighbours": [ "FIN", "RUS", "SWE" ],
+    "parent": null
+  },
+  "NPL": {
+    "disputed": false,
+    "neighbours": [ "CHN", "IND" ],
+    "parent": null
+  },
+  "NRU": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "NZL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "OMN": {
+    "disputed": false,
+    "neighbours": [ "ARE", "SAU", "YEM" ],
+    "parent": null
+  },
+  "PAK": {
+    "disputed": false,
+    "neighbours": [ "AFG", "CHN", "IND", "IRN" ],
+    "parent": null
+  },
+  "PAN": {
+    "disputed": false,
+    "neighbours": [ "COL", "CRI" ],
+    "parent": null
+  },
+  "PCN": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "PER": {
+    "disputed": false,
+    "neighbours": [ "BOL", "BRA", "CHL", "COL", "ECU" ],
+    "parent": null
+  },
+  "PHL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "PLW": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "PNG": {
+    "disputed": false,
+    "neighbours": [ "IDN" ],
+    "parent": null
+  },
+  "POL": {
+    "disputed": false,
+    "neighbours": [ "BLR", "CZE", "DEU", "LTU", "RUS", "SVK", "UKR" ],
+    "parent": null
+  },
+  "PRI": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "PRK": {
+    "disputed": false,
+    "neighbours": [ "CHN", "KOR", "RUS" ],
+    "parent": null
+  },
+  "PRT": {
+    "disputed": false,
+    "neighbours": [ "ESP" ],
+    "parent": null
+  },
+  "PRY": {
+    "disputed": false,
+    "neighbours": [ "ARG", "BOL", "BRA" ],
+    "parent": null
+  },
+  "PSE": {
+    "disputed": true,
+    "neighbours": [ "EGY", "ISR", "JOR" ],
+    "parent": null
+  },
+  "PYF": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "QAT": {
+    "disputed": false,
+    "neighbours": [ "SAU" ],
+    "parent": null
+  },
+  "REU": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "ROU": {
+    "disputed": false,
+    "neighbours": [ "BGR", "HUN", "MDA", "SRB", "UKR" ],
+    "parent": null
+  },
+  "RUS": {
+    "disputed": false,
+    "neighbours": [ "AZE", "BLR", "CHN", "EST", "FIN", "GEO", "KAZ", "LTU", "LVA", "MNG", "NOR", "POL", "PRK", "UKR" ],
+    "parent": null
+  },
+  "RWA": {
+    "disputed": false,
+    "neighbours": [ "BDI", "COD", "TZA", "UGA" ],
+    "parent": null
+  },
+  "SAU": {
+    "disputed": false,
+    "neighbours": [ "ARE", "IRQ", "JOR", "KWT", "OMN", "QAT", "YEM" ],
+    "parent": null
+  },
+  "SDN": {
+    "disputed": false,
+    "neighbours": [ "CAF", "EGY", "ERI", "ETH", "LBY", "SSD", "TCD" ],
+    "parent": null
+  },
+  "SEN": {
+    "disputed": false,
+    "neighbours": [ "GIN", "GMB", "GNB", "MLI", "MRT" ],
+    "parent": null
+  },
+  "SGP": {
+    "disputed": false,
+    "neighbours": [ "MYS" ],
+    "parent": null
+  },
+  "SGS": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "SHN": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "SJM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NOR"
+  },
+  "SLB": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "SLE": {
+    "disputed": false,
+    "neighbours": [ "GIN", "LBR" ],
+    "parent": null
+  },
+  "SLV": {
+    "disputed": false,
+    "neighbours": [ "GTM", "HND" ],
+    "parent": null
+  },
+  "SMR": {
+    "disputed": false,
+    "neighbours": [ "ITA" ],
+    "parent": null
+  },
+  "SOL": {
+    "disputed": true,
+    "neighbours": [ "DJI", "ETH", "SOM" ],
+    "parent": null
+  },
+  "SOM": {
+    "disputed": false,
+    "neighbours": [ "DJI", "ETH", "KEN", "SOL" ],
+    "parent": null
+  },
+  "SPM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "SRB": {
+    "disputed": false,
+    "neighbours": [ "BGR", "BIH", "HRV", "HUN", "MKD", "MNE", "ROU", "XKX" ],
+    "parent": null
+  },
+  "SSD": {
+    "disputed": false,
+    "neighbours": [ "CAF", "COD", "ETH", "KEN", "SDN", "UGA" ],
+    "parent": null
+  },
+  "STP": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "SUR": {
+    "disputed": false,
+    "neighbours": [ "BRA", "FRA", "GUF", "GUY" ],
+    "parent": null
+  },
+  "SVK": {
+    "disputed": false,
+    "neighbours": [ "AUT", "CZE", "HUN", "POL", "UKR" ],
+    "parent": null
+  },
+  "SVN": {
+    "disputed": false,
+    "neighbours": [ "AUT", "HRV", "HUN", "ITA" ],
+    "parent": null
+  },
+  "SWE": {
+    "disputed": false,
+    "neighbours": [ "FIN", "NOR" ],
+    "parent": null
+  },
+  "SWZ": {
+    "disputed": false,
+    "neighbours": [ "MOZ", "ZAF" ],
+    "parent": null
+  },
+  "SXM": {
+    "disputed": false,
+    "neighbours": [ "MAF" ],
+    "parent": "NLD"
+  },
+  "SYC": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "SYR": {
+    "disputed": false,
+    "neighbours": [ "IRQ", "ISR", "JOR", "LBN", "TUR" ],
+    "parent": null
+  },
+  "TCA": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "TCD": {
+    "disputed": false,
+    "neighbours": [ "CAF", "CMR", "LBY", "NER", "NGA", "SDN" ],
+    "parent": null
+  },
+  "TGO": {
+    "disputed": false,
+    "neighbours": [ "BEN", "BFA", "GHA" ],
+    "parent": null
+  },
+  "THA": {
+    "disputed": false,
+    "neighbours": [ "KHM", "LAO", "MMR", "MYS" ],
+    "parent": null
+  },
+  "TJK": {
+    "disputed": false,
+    "neighbours": [ "AFG", "CHN", "KGZ", "UZB" ],
+    "parent": null
+  },
+  "TKL": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "NZL"
+  },
+  "TKM": {
+    "disputed": false,
+    "neighbours": [ "AFG", "IRN", "KAZ", "UZB" ],
+    "parent": null
+  },
+  "TLS": {
+    "disputed": false,
+    "neighbours": [ "IDN" ],
+    "parent": null
+  },
+  "TON": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "TTO": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "TUN": {
+    "disputed": false,
+    "neighbours": [ "DZA", "LBY" ],
+    "parent": null
+  },
+  "TUR": {
+    "disputed": false,
+    "neighbours": [ "ARM", "AZE", "BGR", "GEO", "GRC", "IRN", "IRQ", "SYR" ],
+    "parent": null
+  },
+  "TUV": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "TWN": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "TZA": {
+    "disputed": false,
+    "neighbours": [ "BDI", "COD", "KEN", "MOZ", "MWI", "RWA", "UGA", "ZMB" ],
+    "parent": null
+  },
+  "UGA": {
+    "disputed": false,
+    "neighbours": [ "COD", "KEN", "RWA", "SSD", "TZA" ],
+    "parent": null
+  },
+  "UKR": {
+    "disputed": false,
+    "neighbours": [ "BLR", "HUN", "MDA", "POL", "ROU", "RUS", "SVK" ],
+    "parent": null
+  },
+  "UMI": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "URY": {
+    "disputed": false,
+    "neighbours": [ "ARG", "BRA" ],
+    "parent": null
+  },
+  "USA": {
+    "disputed": false,
+    "neighbours": [ "CAN", "MEX" ],
+    "parent": null
+  },
+  "UZB": {
+    "disputed": false,
+    "neighbours": [ "AFG", "KAZ", "KGZ", "TJK", "TKM" ],
+    "parent": null
+  },
+  "VAT": {
+    "disputed": false,
+    "neighbours": [ "ITA" ],
+    "parent": null
+  },
+  "VCT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "VEN": {
+    "disputed": false,
+    "neighbours": [ "BRA", "COL", "GUY" ],
+    "parent": null
+  },
+  "VGB": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "GBR"
+  },
+  "VIR": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "USA"
+  },
+  "VNM": {
+    "disputed": false,
+    "neighbours": [ "CHN", "KHM", "LAO" ],
+    "parent": null
+  },
+  "VUT": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "WLF": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": "FRA"
+  },
+  "WSM": {
+    "disputed": false,
+    "neighbours": [ ],
+    "parent": null
+  },
+  "XKX": {
+    "disputed": false,
+    "neighbours": [ "ALB", "MKD", "MNE", "SRB" ],
+    "parent": null
+  },
+  "YEM": {
+    "disputed": false,
+    "neighbours": [ "OMN", "SAU" ],
+    "parent": null
+  },
+  "ZAF": {
+    "disputed": false,
+    "neighbours": [ "BWA", "LSO", "MOZ", "NAM", "SWZ", "ZWE" ],
+    "parent": null
+  },
+  "ZMB": {
+    "disputed": false,
+    "neighbours": [ "AGO", "BWA", "COD", "MOZ", "MWI", "NAM", "TZA", "ZWE" ],
+    "parent": null
+  },
+  "ZWE": {
+    "disputed": false,
+    "neighbours": [ "BWA", "MOZ", "ZAF", "ZMB" ],
+    "parent": null
+  }
+}
