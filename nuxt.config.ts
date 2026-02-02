@@ -11,23 +11,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      link: [
-        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
-        {
-          rel: 'preload',
-          href: '/fonts/inter/InterVariable.woff2',
-          as: 'font',
-          type: 'font/woff2',
-          crossorigin: 'anonymous',
-        },
-        {
-          rel: 'preload',
-          href: '/fonts/inter/InterVariable-Italic.woff2',
-          as: 'font',
-          type: 'font/woff2',
-          crossorigin: 'anonymous',
-        },
-      ],
+      link: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
       title: 'Terra Incognita',
       titleTemplate: '%s · Terra Incognita',
     },
