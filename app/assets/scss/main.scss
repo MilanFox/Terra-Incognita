@@ -32,7 +32,18 @@ html {
 body {
   margin: 0;
   font-size: 16px;
-  min-height: 100dvh;
   color: $colors-text-dark;
+}
+
+a {
+  color: $colors-blue-dark;
+  text-decoration: none;
+  font-weight: 700;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  @include focus-state()
 }
 
