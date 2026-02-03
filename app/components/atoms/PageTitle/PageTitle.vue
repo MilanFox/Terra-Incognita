@@ -1,10 +1,14 @@
 <template>
   <div class="page-title">
-    <IconPin class="page-title__icon" :color="color" />
+    <Breadcrumbs class="page-title__breadcrumbs" />
 
-    <h1 class="page-title__title">
-      {{ title }}
-    </h1>
+    <div class="page-title__heading">
+      <IconPin class="page-title__icon" :color="color" />
+
+      <h1 class="page-title__title">
+        {{ title }}
+      </h1>
+    </div>
   </div>
 </template>
 
@@ -17,9 +21,12 @@ defineProps<PageTitleProps>();
 <style lang="scss">
 .page-title {
   @include container();
-  display: flex;
-  gap: 16px;
-  align-items: center;
+
+  &__heading {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
 
   &__icon {
     height: 30px;

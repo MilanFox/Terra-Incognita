@@ -34,6 +34,10 @@
     }
   },
   "components": {
+    "breadcrumbs": {
+      "aria-label": "breadcrumb",
+      "home-label": "Home"
+    },
     "languagePicker": {
       "label": "Wähle eine Sprache",
       "langs": {
