@@ -47,11 +47,6 @@ useHead({ title: t('routeNames.labels') });
 
 <style lang="scss">
 .labels-page {
-
-  &__title {
-    @include container();
-  }
-
   &__intro {
     font-size: 18px;
   }

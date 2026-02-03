@@ -42,6 +42,7 @@ export default defineNuxtConfig({
 
   routeRules: {
     [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
+    '/api/sovereign-entities': { cache: { maxAge: 60 * 60 * 24 } },
   },
 
   compatibilityDate: '2024-04-03',
