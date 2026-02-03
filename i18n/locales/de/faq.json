@@ -1,0 +1,14 @@
+{
+  "faq": [
+    {
+      "title": "Geopolitische Einordnung",
+      "answer": [
+        "In dieser App werden politische Karten genutzt, um Länder, Regionen und Grenzen für Quiz- und Lernzwecke darzustellen. Mir ist bewusst, dass Karten nie vollkommen neutral sind: Je nachdem, wie Grenzen eingezeichnet oder Gebiete zugeordnet werden, fühlen sich Menschen schnell falsch dargestellt oder politisch missverstanden.",
+        "Deshalb habe ich mich bewusst für einen Ansatz entschieden, der nicht politische Ansprüche bewertet, sondern die aktuelle Realität vor Ort abbildet. Grundlage ist ein international verbreiteter Kartendatensatz, der Gebiete danach einordnet, wer sie tatsächlich verwaltet („de facto“) und nicht danach, wer sie rechtlich beansprucht („de jure“).",
+        "Mein Ziel ist es, eine praktische und konsistente Darstellung zu verwenden, die für ein Quizspiel funktioniert, ohne politische Positionen einzunehmen oder Konflikte zu bewerten.",
+        "Das führt dazu, dass manche Gebiete anders dargestellt sind, als es einzelne Staaten oder Organisationen offiziell sehen. Es werden also bestimmte Regionen als eigenständig geführt, wenn sie faktisch getrennt verwaltet werden (z.B. Somaliland oder Kaschmir), während andere umstrittene Gebiete einem Staat zugeordnet bleiben, wenn sie im Alltag von diesem kontrolliert werden (z.B. die Krim, oder Palästina). Solche Entscheidungen sollen keine Aussage darüber treffen, wem ein Gebiet „gehört“, sondern nur, wie die Situation aktuell funktioniert.",
+        "Kurz gesagt: Die Karte ist kein politisches Statement, sondern eine pragmatische Grundlage für ein Spiel. Mein Ziel ist es, geografisches Wissen spielerisch zu vermitteln, ohne politische Ansprüche zu unterstützen oder abzulehnen. Sollte sich die Realität ändern, werden zukünftige Karten entsprechend aktualisiert."
+      ]
+    }
+  ]
+}

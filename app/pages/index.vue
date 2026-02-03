@@ -30,6 +30,10 @@
           />
         </div>
       </ContentSection>
+
+      <ContentSection :title="$t('sections.faq')">
+        <FAQ />
+      </ContentSection>
     </div>
   </div>
 </template>

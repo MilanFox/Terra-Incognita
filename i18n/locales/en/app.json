@@ -16,6 +16,7 @@
     "subtitle": "Have fun testing your geography knowledge!"
   },
   "sections": {
-    "playAQuiz": "Play a Quiz"
+    "playAQuiz": "Play a Quiz",
+    "faq": "Frequently Asked Questions"
   }
 }
