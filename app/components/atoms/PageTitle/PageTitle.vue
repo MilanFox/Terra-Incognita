@@ -6,7 +6,7 @@
       <IconPin class="page-title__icon" :color="color" />
 
       <h1 class="page-title__title">
-        {{ title }}
+        {{ $t(`routeNames.${name}`) }}
       </h1>
     </div>
   </div>
@@ -16,6 +16,9 @@
 import type { PageTitleProps } from './PageTitle.types';
 
 defineProps<PageTitleProps>();
+
+const { path } = useRoute();
+const name = path.split('/').at(-1);
 </script>
 
 <style lang="scss">

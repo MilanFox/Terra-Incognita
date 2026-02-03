@@ -8,7 +8,6 @@
   },
   "pages": {
     "home": {
-      "title": "Home",
       "hero": {
         "title": "Welcome to Terra Incognita",
         "subtitle": "Have fun testing your geography knowledge!"
@@ -19,7 +18,6 @@
       }
     },
     "labels": {
-      "title": "Labels",
       "intro": "For better transparency, here is a list of all labels for countries accepted by the system. I use each country’s self-chosen full designation, but accept any alternative name from the name list for user inputs. For a better user experience, periods (\".\") are ignored by the system, and the spellings \"&\" and \"and\" are treated as synonyms. Inputs are not case-sensitive, so capitalization is not evaluated. For user inputs, the spelling \"ST. KITTS & NEVIS\" is therefore equivalent to the spelling \"St Kitts and Nevis\" and is not listed separately here.",
       "sections": {
         "intention": "Intention",
@@ -35,8 +33,7 @@
   },
   "components": {
     "breadcrumbs": {
-      "aria-label": "breadcrumb",
-      "home-label": "Home"
+      "aria-label": "breadcrumb"
     },
     "languagePicker": {
       "label": "Choose your language",
@@ -57,5 +54,10 @@
         ]
       }
     ]
+  },
+  "routeNames": {
+    "_": "Home",
+    "transparency": "Transparency",
+    "labels": "Labels"
   }
 }

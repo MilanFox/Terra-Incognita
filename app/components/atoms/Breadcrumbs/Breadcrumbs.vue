@@ -24,8 +24,7 @@ const breadcrumbs = computed(() => route
     const href = `/${parts.slice(1, i + 1).join('/')}`;
     const routeData = routes.find(r => r.path === href);
     const isExistingRoute = Boolean(routeData);
-    const routeName = cur || t('components.breadcrumbs.home-label');
-    const title = (routeName[0] as string).toUpperCase() + routeName.slice(1, routeName.length);
+    const title = cur ? t(`routeNames.${cur}`) : t(`routeNames._`);
     return { href, isExistingRoute, title };
   }));
 </script>
