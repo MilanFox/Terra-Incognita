@@ -4,7 +4,7 @@
 <template>
   <footer class="main-footer">
     <div class="main-footer__content">
-      <NuxtLink to="/transparency/labels"> {{ $t('pages.labels.title') }}</NuxtLink>
+      <NuxtLink to="/transparency/labels"> {{ $t('routeNames.labels') }}</NuxtLink>
 
       <NuxtLink to="https://github.com/MilanFox/Terra-Incognita"> Source</NuxtLink>
     </div>

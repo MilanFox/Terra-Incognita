@@ -1,6 +1,6 @@
 import { supabase } from '#server/utils/supabase';
 
-export default defineEventHandler(async () => {
+export default cachedEventHandler(async () => {
   const { data, error } = await supabase.rpc('get_labels');
 
   if (error) {
@@ -8,4 +8,7 @@ export default defineEventHandler(async () => {
   }
 
   return data;
+}, {
+  maxAge: 60 * 60 * 24 * 30,
+  name: 'labels',
 });

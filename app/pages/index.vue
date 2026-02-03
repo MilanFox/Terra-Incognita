@@ -44,7 +44,7 @@ import orangeMap from '@assets/images/cards/orange-map.webp';
 import greenHills from '@assets/images/cards/green-hills.webp';
 
 const { t } = useI18n();
-useHead({ title: t('pages.home.title') });
+useHead({ title: t('routeNames._') });
 </script>
 
 <style lang="scss">

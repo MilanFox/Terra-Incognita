@@ -19,7 +19,6 @@
       }
     },
     "labels": {
-      "title": "Labels",
       "intro": "Für eine bessere Transparenz ist hier eine Liste aller vom System akzeptierter Labels für Länder. Ich verwende die vom jeweiligen Land selbstgewählte vollständige Bezeichnung, akzeptiere aber jeden Alternativnamen aus der Namensliste bei User-Inputs. Für eine bessere User Experience werden Punkte (\".\") vom System ignoriert und die Schreibweisen \"&\" sowie \"und\" als Synonym angesehen. Die Eingaben sind nicht Case Sensitive, Groß- und Kleinschreibung wird also nicht gewertet. Für User Inputs ist also die Schreibweise \"ST. KITTS & NEVIS\" gleichbedeutend mit der Schreibweise \"St Kitts und Nevis\" und wird hier nicht extra aufgeführt.",
       "sections": {
         "intention": "Intention",
@@ -35,8 +34,7 @@
   },
   "components": {
     "breadcrumbs": {
-      "aria-label": "breadcrumb",
-      "home-label": "Home"
+      "aria-label": "breadcrumb"
     },
     "languagePicker": {
       "label": "Wähle eine Sprache",
@@ -57,5 +55,10 @@
         ]
       }
     ]
+  },
+  "routeNames": {
+    "_": "Home",
+    "transparency": "Transparenz",
+    "labels": "Labels"
   }
 }
