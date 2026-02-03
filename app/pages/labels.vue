@@ -1,6 +1,6 @@
 <template>
   <div class="labels-page">
-    <h1 class="labels-page__title">{{ $t('pages.labels.title') }}</h1>
+    <PageTitle :title="$t('pages.labels.title')" color="blue" />
 
     <ContentSection :title="$t('pages.labels.sections.intention')" class="labels-page__intro">
       <p>{{ $t('pages.labels.intro') }}</p>
@@ -37,6 +37,8 @@
 </template>
 
 <script setup lang="ts">
+import PageTitle from '@atoms/PageTitle/PageTitle.vue';
+
 const { data } = await useFetch('/api/labels');
 
 const { locale, t } = useI18n();
