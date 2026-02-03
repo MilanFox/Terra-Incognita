@@ -1,7 +1,11 @@
 <template>
-  <div class="language-picker" role="radiogroup" :aria-label="$t('languagePicker.label')">
+  <div class="language-picker" role="radiogroup" :aria-label="$t('components.languagePicker.label')">
     <label v-for="loc in availableLocales" :key="loc" :lang="loc" class="language-picker__option">
-      <component :is="flags[loc]" class="language-picker__flag" :aria-label="$t(`languagePicker.langs.${loc}`)" />
+      <component
+        :is="flags[loc]"
+        class="language-picker__flag"
+        :aria-label="$t(`components.languagePicker.langs.${loc}`)"
+      />
 
       <input v-model="chosenLocale" type="radio" :value="loc" class="language-picker__input" name="languagePicker" />
     </label>
@@ -30,8 +34,8 @@ const flags = { de: FlagDE, en: FlagEN };
     padding: 6px 10px;
     isolation: isolate;
 
-    &:has(input[type="radio"]:checked)::after {
-      content: "";
+    &:has(input[type='radio']:checked)::after {
+      content: '';
       position: absolute;
       background: $colors-grey-light;
       inset: 1px;

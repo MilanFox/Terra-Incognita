@@ -3,9 +3,9 @@
     <LogoFull class="hero__logo" aria-hidden="true" />
 
     <div class="hero__content">
-      <h1 class="hero__title headline--level-1">{{ $t('hero.title') }}</h1>
+      <h1 class="hero__title headline--level-1">{{ $t('pages.home.hero.title') }}</h1>
 
-      <p class="hero__subtitle headline--level-2">{{ $t('hero.subtitle') }}</p>
+      <p class="hero__subtitle headline--level-2">{{ $t('pages.home.hero.subtitle') }}</p>
 
       <div class="hero__links">
         <UIButton type="link" class="hero__link" color="blue" to="/">Placeholder 1</UIButton>
