@@ -10,5 +10,6 @@ export default cachedEventHandler(async () => {
   return data;
 }, {
   maxAge: 60 * 60 * 24 * 30,
+  staleMaxAge: 60 * 60 * 24,
   name: 'labels',
 });
