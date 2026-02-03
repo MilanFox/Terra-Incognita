@@ -47,7 +47,6 @@ useHead({ title: t('pages.labels.title') });
 
 <style lang="scss">
 .labels-page {
-  @include container();
 
   &__title {
     @include container();
