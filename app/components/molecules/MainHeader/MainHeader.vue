@@ -1,7 +1,12 @@
 <template>
   <header class="main-header">
     <div class="main-header__content">
-      <NuxtLink v-if="shouldShowLogoLink" to="/" class="main-header__logo" :aria-label="$t('header.a11y.logo-alt')">
+      <NuxtLink
+        v-if="shouldShowLogoLink"
+        to="/"
+        class="main-header__logo"
+        :aria-label="$t('layout.header.a11y.logo-alt')"
+      >
         <LogoMinimal class="main-header__logo-icon" aria-hidden="true" />
 
         <div class="main-header__logo-text" aria-hidden="true">Terra Incognita</div>

@@ -37,6 +37,7 @@ export default defineNuxtConfig({
     '@server': resolve(__dirname, './server'),
     '@layouts': resolve(__dirname, './app/layouts'),
     '@middleware': resolve(__dirname, './app/middleware'),
+    '@labels': resolve(__dirname, './i18n/locales'),
   },
 
   routeRules: {

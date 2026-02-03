@@ -3,7 +3,7 @@
     <Hero class="home__hero" />
 
     <div class="home__content">
-      <ContentSection :title="$t('sections.playAQuiz')">
+      <ContentSection :title="$t('pages.home.sections.playAQuiz')">
         <div class="home__cards">
           <Card
             :img="blueIsland"
@@ -30,6 +30,10 @@
           />
         </div>
       </ContentSection>
+
+      <ContentSection :title="$t('pages.home.sections.faq')">
+        <FAQ />
+      </ContentSection>
     </div>
   </div>
 </template>
@@ -38,6 +42,9 @@
 import blueIsland from '@assets/images/cards/blue-island.webp';
 import orangeMap from '@assets/images/cards/orange-map.webp';
 import greenHills from '@assets/images/cards/green-hills.webp';
+
+const { t } = useI18n();
+useHead({ title: t('pages.home.title') });
 </script>
 
 <style lang="scss">

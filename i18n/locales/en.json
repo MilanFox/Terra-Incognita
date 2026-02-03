@@ -1,21 +1,61 @@
 {
-  "languagePicker": {
-    "label": "Choose your language",
-    "langs": {
-      "en": "English",
-      "de": "Deutsch"
+  "layout": {
+    "header": {
+      "a11y": {
+        "logo-alt": "Terra Incognita - Homepage"
+      }
     }
   },
-  "header": {
-    "a11y": {
-      "logo-alt": "Terra Incognita - Homepage"
+  "pages": {
+    "home": {
+      "title": "Home",
+      "hero": {
+        "title": "Welcome to Terra Incognita",
+        "subtitle": "Have fun testing your geography knowledge!"
+      },
+      "sections": {
+        "playAQuiz": "Play a Quiz",
+        "faq": "Frequently Asked Questions"
+      }
+    },
+    "labels": {
+      "title": "Labels",
+      "intro": "For better transparency, here is a list of all labels for countries accepted by the system. I use each country’s self-chosen full designation, but accept any alternative name from the name list for user inputs. For a better user experience, periods (\".\") are ignored by the system, and the spellings \"&\" and \"and\" are treated as synonyms. Inputs are not case-sensitive, so capitalization is not evaluated. For user inputs, the spelling \"ST. KITTS & NEVIS\" is therefore equivalent to the spelling \"St Kitts and Nevis\" and is not listed separately here.",
+      "sections": {
+        "intention": "Intention",
+        "label-list": "List of labels"
+      },
+      "table": {
+        "title": {
+          "official": "Official Title",
+          "colloquial": "Colloquial names and common abbreviations"
+        }
+      }
     }
   },
-  "hero": {
-    "title": "Welcome to Terra Incognita",
-    "subtitle": "Have fun testing your geography knowledge!"
-  },
-  "sections": {
-    "playAQuiz": "Play a Quiz"
+  "components": {
+    "breadcrumbs": {
+      "aria-label": "breadcrumb",
+      "home-label": "Home"
+    },
+    "languagePicker": {
+      "label": "Choose your language",
+      "langs": {
+        "en": "English",
+        "de": "Deutsch"
+      }
+    },
+    "faq": [
+      {
+        "title": "Geopolitical Classification",
+        "answer": [
+          "This app uses political maps to display countries, regions, and borders for quiz and learning purposes. I am aware that maps are never completely neutral: depending on how borders are drawn or territories are assigned, people may feel misrepresented or politically misunderstood.",
+          "For this reason, I deliberately chose an approach that does not evaluate political claims but instead reflects the current reality on the ground. The basis is an internationally used map dataset that classifies territories according to who actually administers them (“de facto”) rather than who legally claims them (“de jure”).",
+          "My goal is to use a practical and consistent representation that works for a quiz game without taking political positions or judging conflicts.",
+          "As a result, some territories are shown differently from how individual states or organizations officially view them. Certain regions are therefore treated as separate when they are in fact administered independently (e.g., Somaliland or Kashmir), while other disputed areas remain assigned to a state if they are controlled by it in everyday practice (e.g., Crimea or Palestine). Such decisions are not meant to state who a territory 'belongs' to, but only to reflect how the situation currently functions.",
+          "In short: the map is not a political statement, but a pragmatic foundation for a game. My goal is to convey geographical knowledge in a playful way without supporting or rejecting political claims. Should realities change, future maps will be updated accordingly."
+        ]
+      }
+    ]
   }
 }

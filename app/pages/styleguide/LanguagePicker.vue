@@ -3,7 +3,7 @@
     <h1>Language Picker</h1>
 
     <Playground
-      :title="$t(`languagePicker.langs.${locale}`)"
+      :title="$t(`components.languagePicker.langs.${locale}`)"
       :component="LanguagePicker"
       :fields="{}"
       :defaults="{}"
