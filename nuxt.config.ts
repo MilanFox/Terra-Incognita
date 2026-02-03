@@ -3,7 +3,13 @@ import { routes } from './config/routes';
 import { resolve } from 'path';
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@pinia/nuxt', '@vueuse/nuxt', '@nuxtjs/i18n'],
+  modules: [
+    '@nuxt/eslint',
+    '@pinia/nuxt',
+    '@vueuse/nuxt',
+    '@nuxtjs/i18n',
+    '@nuxtjs/leaflet',
+  ],
 
   components: [{ path: './components', pathPrefix: false }],
 
