@@ -11,7 +11,9 @@
         <LMap
           ref="map"
           class="where-in-the-world-game__map"
-          :zoom="3"
+          :zoom="1"
+          :min-zoom="1"
+          :max-zoom="10"
           :center="[0, 0]"
           :use-global-leaflet="false"
           :max-bounds="[[-90, -180], [90, 180]]"
@@ -104,13 +106,15 @@ const mapOptions = {
     border-radius: 18px;
     display: flex;
     flex-direction: column;
-    border: 2px solid $colors-blue-light;
+    background-image: url($topology-map), linear-gradient(white 0%, white 100%);
+    border: 1px solid $colors-blue-light;
+    filter: drop-shadow(0 4px 0 rgba($colors-blue-light, 0.75));
   }
 
   &__map {
     flex: 1;
     width: 100%;
-    border: 1px solid white;
+    border: 1px solid $colors-blue-light;
     border-radius: 14px;
     overflow: hidden;
 
