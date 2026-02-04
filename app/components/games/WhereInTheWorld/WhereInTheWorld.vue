@@ -19,7 +19,7 @@
             v-if="data"
             :geojson="data"
             :options="mapOptions"
-            :options-style="() => BASE_STYLE"
+            :options-style="styleFunction"
           />
         </LMap>
       </div>
@@ -33,37 +33,48 @@ import 'leaflet/dist/leaflet.css';
 
 const map = ref();
 
-const LAND_COLOR = '#cfe6b8';
-const LAND_HOVER_COLOR = '#ffe29a';
-const BORDER_COLOR = '#9db8d0';
-
 const { data, pending, error } = useFetch('/api/sovereign-entities', { server: false });
 
+const LAND_GREY = '#c9ced3';
+const LAND_GREEN = '#9fd38a';
+const LAND_RED = '#e07a73';
+const LAND_HOVER = '#f6d88c';
+const BORDER_COLOR = '#ffffff';
+
+const varyColor = (hex: string, variance = 0.05) => {
+  const v = (Math.random() * 2 - 1) * variance;
+  const c = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.max(0, Math.round(((c >> 16) & 255) * (1 + v))));
+  const g = Math.min(255, Math.max(0, Math.round(((c >> 8) & 255) * (1 + v))));
+  const b = Math.min(255, Math.max(0, Math.round((c & 255) * (1 + v))));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+};
+
 const BASE_STYLE = {
-  weight: 1,
+  weight: 0.6,
   color: BORDER_COLOR,
-  opacity: 1,
-  fillColor: LAND_COLOR,
+  opacity: 0.9,
   fillOpacity: 1,
 };
 
-const HOVER_STYLE = {
-  weight: 1.5,
-  color: '#6f9bc3',
-  fillColor: LAND_HOVER_COLOR,
-};
+const styleFunction = () => ({
+  ...BASE_STYLE,
+  fillColor: varyColor(LAND_GREY),
+  className: 'country-feature',
+});
 
 const mapOptions = {
   onEachFeature: (feature, layer) => {
     const label = feature.properties.label?.name_en || feature.properties.sovereignt;
     layer.bindPopup(`<b>${label}</b>`);
 
-    layer.on('mouseover', (e) => {
-      e.target.setStyle(HOVER_STYLE);
-    });
-
-    layer.on('mouseout', (e) => {
-      e.target.setStyle(BASE_STYLE);
+    layer.on('add', () => {
+      const el = layer.getElement();
+      if (el) {
+        el.style.setProperty('--color-hover', `${varyColor(LAND_HOVER)}`);
+        el.style.setProperty('--color-red', `${varyColor(LAND_RED)}`);
+        el.style.setProperty('--color-green', `${varyColor(LAND_GREEN)}`);
+      }
     });
   },
 };
@@ -87,10 +98,9 @@ const mapOptions = {
   &__board {
     min-height: 640px;
     padding: 16px;
-    background: linear-gradient(to bottom, rgba($colors-blue-light, 0.2) 0%, transparent 35%, transparent 65%, rgba($colors-blue-light, 0.2) 100%), linear-gradient(to bottom, $colors-blue-bg 0%, $colors-blue-bg 100%);
+    background: linear-gradient(180deg, #f6fbff 0%, #eef6fb 100%);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
     border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08),
-    inset 0 0 0 2px #ffffff;
     display: flex;
     flex-direction: column;
   }
@@ -101,16 +111,13 @@ const mapOptions = {
     border: 1px solid white;
     border-radius: 14px;
     overflow: hidden;
+    background: linear-gradient(180deg, #eaf4fb 0%, #dfeef8 100%);
 
-    --grid-size: 25px;
-    --grid-granularity: 3;
-    --grid-thickness: 1px;
-    --grid-gap: 5px;
-    --grid-line-color: white;
-    --grid-color: var(--grid-line-color) 25%, transparent 0;
-
-    background: conic-gradient(at var(--grid-gap) var(--grid-thickness), var(--grid-color)) calc((var(--grid-size) / var(--grid-granularity) - var(--grid-gap) + var(--grid-thickness)) / 2) 0 / calc(var(--grid-size) / var(--grid-granularity)) var(--grid-size),
-    conic-gradient(from 180deg at var(--grid-thickness) var(--grid-gap), var(--grid-color)) 0 calc((var(--grid-size)/var(--grid-granularity) - var(--grid-gap) + var(--grid-thickness))/2)/ var(--grid-size) calc(var(--grid-size) / var(--grid-granularity));
+    :deep(.country-feature:hover) {
+      fill: var(--color-hover) !important;
+      stroke: #ffffff !important;
+      stroke-width: 1px !important;
+    }
 
     :deep(.leaflet-control-zoom) {
       border-radius: 12px;
@@ -139,6 +146,12 @@ const mapOptions = {
 
     :deep(.leaflet-control-attribution) {
       display: none;
+    }
+
+    :deep(.leaflet-popup-content-wrapper) {
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+      font-weight: 600;
     }
   }
 }
