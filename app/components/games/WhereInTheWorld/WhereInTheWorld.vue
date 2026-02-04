@@ -12,8 +12,10 @@
           ref="map"
           class="where-in-the-world-game__map"
           :zoom="3"
-          :center="[20, 0]"
+          :center="[0, 0]"
           :use-global-leaflet="false"
+          :max-bounds="[[-90, -180], [90, 180]]"
+          :max-bounds-viscosity="1.0"
         >
           <LGeoJson
             v-if="data"
@@ -35,7 +37,7 @@ const map = ref();
 
 const { data, pending, error } = useFetch('/api/sovereign-entities', { server: false });
 
-const LAND_GREY = '#c9ced3';
+const LAND_NEUTRAL = '#7e9dbc';
 const LAND_GREEN = '#9fd38a';
 const LAND_RED = '#e07a73';
 const LAND_HOVER = '#f6d88c';
@@ -59,7 +61,7 @@ const BASE_STYLE = {
 
 const styleFunction = () => ({
   ...BASE_STYLE,
-  fillColor: varyColor(LAND_GREY),
+  fillColor: varyColor(LAND_NEUTRAL),
   className: 'country-feature',
 });
 
@@ -98,11 +100,11 @@ const mapOptions = {
   &__board {
     min-height: 640px;
     padding: 16px;
-    background: linear-gradient(180deg, #f6fbff 0%, #eef6fb 100%);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
     border-radius: 18px;
     display: flex;
     flex-direction: column;
+    border: 2px solid $colors-blue-light;
   }
 
   &__map {
@@ -111,7 +113,11 @@ const mapOptions = {
     border: 1px solid white;
     border-radius: 14px;
     overflow: hidden;
-    background: linear-gradient(180deg, #eaf4fb 0%, #dfeef8 100%);
+
+    background-color: $colors-blue-bg;
+    background-image: url('@assets/images/backgrounds/water-texture.webp');
+    background-size: cover;
+    background-blend-mode: soft-light;
 
     :deep(.country-feature:hover) {
       fill: var(--color-hover) !important;
