@@ -56,10 +56,10 @@ export default defineNuxtConfig({
   routeRules: {
     /* Special Layouts */
     [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
+
     /* Endpoint Caching */
     '/api/sovereign-entities': cached,
     '/api/labels': cached,
-
   },
 
   compatibilityDate: '2024-04-03',
