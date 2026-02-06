@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { LMap, LGeoJson } from '@vue-leaflet/vue-leaflet';
 import 'leaflet/dist/leaflet.css';
+import type { Feature } from 'geojson';
 
 const map = ref();
 
@@ -68,12 +69,12 @@ const styleFunction = () => ({
 });
 
 const mapOptions = {
-  onEachFeature: (feature, layer) => {
-    const label = feature.properties.label?.name_en || feature.properties.sovereignt;
+  onEachFeature: (feature: Feature, layer: L.Polygon) => {
+    const label = feature.properties?.label?.name_en || feature.properties?.sovereignt;
     layer.bindPopup(`<b>${label}</b>`);
 
     layer.on('add', () => {
-      const el = layer.getElement();
+      const el = layer.getElement() as SVGElement | null;
       if (el) {
         el.style.setProperty('--color-hover', `${varyColor(LAND_HOVER)}`);
         el.style.setProperty('--color-red', `${varyColor(LAND_RED)}`);
