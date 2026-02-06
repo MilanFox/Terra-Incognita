@@ -55,9 +55,19 @@
       }
     ]
   },
+  "gameUI": {
+    "playNow": "Play Now"
+  },
+  "games": {
+    "where-in-the-world": {
+      "description": "Where in the world is Burundi? Try to find as many Countries as possible on a map."
+    }
+  },
   "routeNames": {
     "_": "Home",
     "transparency": "Transparency",
-    "labels": "Labels"
+    "labels": "Labels",
+    "games": "Games",
+    "where-in-the-world": "Where in the World?"
   }
 }

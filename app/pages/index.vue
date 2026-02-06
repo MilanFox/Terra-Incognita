@@ -5,34 +5,8 @@
     <div class="home__content">
       <ContentSection :title="$t('pages.home.sections.playAQuiz')">
         <div class="home__cards">
-          <Card
-            :img="blueIsland"
-            color="blue"
-            title="Lorem ipsum dolor sit amet"
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            :link="{ text: 'Placeholder Link', to: '/' }"
-          />
-
-          <Card
-            :img="orangeMap"
-            color="orange"
-            title="Lorem ipsum dolor sit amet"
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            :link="{ text: 'Placeholder Link', to: '/' }"
-          />
-
-          <Card
-            :img="greenHills"
-            color="green"
-            title="Lorem ipsum dolor sit amet"
-            description="Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            :link="{ text: 'Placeholder Link', to: '/' }"
-          />
+          <Card v-for="card in cards" :key="card.title" v-bind="card" />
         </div>
-      </ContentSection>
-
-      <ContentSection :title="$t('pages.home.sections.faq')">
-        <FAQ />
       </ContentSection>
     </div>
   </div>
@@ -42,9 +16,34 @@
 import blueIsland from '@assets/images/cards/blue-island.webp';
 import orangeMap from '@assets/images/cards/orange-map.webp';
 import greenHills from '@assets/images/cards/green-hills.webp';
+import type { CardProps } from '@molecules/Card/Card.types';
 
 const { t } = useI18n();
 useHead({ title: t('routeNames._') });
+
+const cards: ComputedRef<CardProps[]> = computed(() => [
+  {
+    img: blueIsland,
+    color: 'blue',
+    title: t('routeNames.where-in-the-world'),
+    description: t('games.where-in-the-world.description'),
+    link: { text: t('gameUI.playNow'), to: '/games/where-in-the-world' },
+  },
+  {
+    img: orangeMap,
+    color: 'orange',
+    title: 'Lorem ipsum dolor sit amet',
+    description: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+    link: { text: 'Placeholder Link', to: '/games/where-in-the-world' },
+  },
+  {
+    img: greenHills,
+    color: 'green',
+    title: 'Lorem ipsum dolor sit amet',
+    description: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+    link: { text: 'Placeholder Link', to: '/games/where-in-the-world' },
+  },
+]);
 </script>
 
 <style lang="scss">
