@@ -2,6 +2,13 @@
 import { routes } from './config/routes';
 import { resolve } from 'path';
 
+const maxAge = 60 * 60 * 24;
+
+const cached = {
+  cache: { maxAge },
+  headers: { 'cache-control': `public, max-age=${maxAge}` }
+};
+
 export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
@@ -47,8 +54,12 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    /* Special Layouts */
     [`${routes.STYLEGUIDE}/**`]: { appLayout: 'styleguide' },
-    '/api/sovereign-entities': { cache: { maxAge: 60 * 60 * 24 } },
+    /* Endpoint Caching */
+    '/api/sovereign-entities': cached,
+    '/api/labels': cached,
+
   },
 
   compatibilityDate: '2024-04-03',

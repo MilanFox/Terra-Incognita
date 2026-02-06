@@ -1,6 +1,6 @@
 import { supabase } from '#server/utils/supabase';
 
-export default cachedEventHandler(async () => {
+export default defineEventHandler(async () => {
   const { data, error } = await supabase.rpc('get_sovereign_entities');
 
   if (error) {
@@ -8,8 +8,4 @@ export default cachedEventHandler(async () => {
   }
 
   return data;
-}, {
-  maxAge: 60 * 60 * 24 * 30,
-  staleMaxAge: 60 * 60 * 24,
-  name: 'sovereign_entities',
 });
