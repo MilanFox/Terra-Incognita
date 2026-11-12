@@ -27,6 +27,35 @@ Borders drawn by who actually controls the land, not by who claims it. The singl
 **Region filter**:
 A restriction of a round to one part of the world, such as only Africa.
 
+**Place**:
+Anything a round can ask about: a sovereign state, a de facto state or a dependency.
+_Avoid_: Country, entity, territory
+
+**Pool**:
+The places a round can ask about: the tier, narrowed by any region filter and by what the mode can ask.
+
+**Round**:
+One playthrough of a mode, from setup to results.
+_Avoid_: Game, session, run
+
+**Deck**:
+The shuffled prompts of a round, each place asked at most once.
+
+**Prompt**:
+One question within a round, about one place.
+_Avoid_: Question, card
+
+**Variant**:
+The form a mode's prompts take for a whole round, such as by flag or by silhouette.
+
+**Easy mode**:
+A per-round switch that makes answering more forgiving, with extra attempts or multiple choice instead of typing.
+_Avoid_: Difficulty, level
+
+**End round**:
+Stopping a round before its deck is empty; prompts not yet reached count as missed.
+_Avoid_: Give up, quit
+
 **Daily challenge**:
 One round per calendar day that is the same for every player.
 
