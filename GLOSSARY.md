@@ -24,8 +24,12 @@ The de facto tier plus territories governed by another state.
 **De facto borders**:
 Borders drawn by who actually controls the land, not by who claims it. The single stance used for every tier.
 
+**Region**:
+One of six parts of the world: Africa, Asia, Europe, North America, South America, Oceania. Every place belongs to exactly one.
+_Avoid_: Continent
+
 **Region filter**:
-A restriction of a round to one part of the world, such as only Africa.
+A restriction of a round to one region, such as only Africa. A round is either whole world or one region.
 
 **Place**:
 Anything a round can ask about: a sovereign state, a de facto state or a dependency.
@@ -51,6 +55,9 @@ The form a mode's prompts take for a whole round, such as by flag or by silhouet
 **Easy mode**:
 A per-round switch that makes answering more forgiving, with extra attempts or multiple choice instead of typing.
 _Avoid_: Difficulty, level
+
+**Timed round**:
+A round with one countdown for the whole round; when it runs out the round ends as if ended early. Untimed rounds show no clock.
 
 **End round**:
 Stopping a round before its deck is empty; prompts not yet reached count as missed.
