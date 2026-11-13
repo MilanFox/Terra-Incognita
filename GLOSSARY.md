@@ -13,7 +13,7 @@ One of three cumulative sets of askable places: sovereign, de facto, dependencie
 _Avoid_: Difficulty, level
 
 **Sovereign tier**:
-The 197 widely recognised sovereign states.
+The 197 widely recognised sovereign states: the 193 UN members plus Vatican City, Palestine, Kosovo and Taiwan.
 
 **De facto tier**:
 The sovereign tier plus states that govern themselves without wide recognition, such as Somaliland.
@@ -23,6 +23,10 @@ The de facto tier plus territories governed by another state.
 
 **De facto borders**:
 Borders drawn by who actually controls the land, not by who claims it. The single stance used for every tier.
+
+**Unclaimed land**:
+Land on the map that belongs to no place and is never asked, such as Antarctica or Bir Tawil.
+_Avoid_: No man's land, terra nullius
 
 **Region**:
 One of six parts of the world: Africa, Asia, Europe, North America, South America, Oceania. Every place belongs to exactly one.
