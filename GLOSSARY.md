@@ -72,10 +72,15 @@ Stopping a round before its deck is empty; prompts not yet reached count as miss
 _Avoid_: Give up, quit
 
 **Daily challenge**:
-One round per calendar day that is the same for every player.
+One round of find on the map per Berlin calendar day, drawing the same places for every player, played once by name or as a hard daily.
+_Avoid_: Daily puzzle, challenge of the day
+
+**Hard daily**:
+The daily challenge played by flag instead of by name, chosen before the round starts.
+_Avoid_: Hard mode, level
 
 **Streak**:
-The count of consecutive days on which the daily challenge was completed.
+The count of consecutive days on which the daily challenge was completed, whatever the score.
 
 **Regular mode**:
 A mode that asks one place per prompt: find on the map, name on the map, name that country, name the capital. Only regular modes rate places.
