@@ -95,3 +95,7 @@ _Avoid_: Score, level, mastery
 **Personal best**:
 The best score, and fastest perfect time, for one exact setup of a mode.
 _Avoid_: Record, high score
+
+**Data version**:
+One numbered release of the place data: borders, names, capitals and flags. A new data version keeps every player's stats; a place whose id changes carries its stats with it.
+_Avoid_: Dataset version, map version
