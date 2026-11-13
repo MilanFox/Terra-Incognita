@@ -76,3 +76,17 @@ One round per calendar day that is the same for every player.
 
 **Streak**:
 The count of consecutive days on which the daily challenge was completed.
+
+**Regular mode**:
+A mode that asks one place per prompt: find on the map, name on the map, name that country, name the capital. Only regular modes rate places.
+
+**Special mode**:
+A mode that doesn't ask one place per prompt: fill the map, what's missing, Wayfinder.
+
+**Rating**:
+How well a player knows a place in a regular mode, judged on recent answers: no data, weak, shaky or solid.
+_Avoid_: Score, level, mastery
+
+**Personal best**:
+The best score, and fastest perfect time, for one exact setup of a mode.
+_Avoid_: Record, high score
