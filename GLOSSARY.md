@@ -9,7 +9,7 @@ One kind of game with its own rules, such as find on the map or fill the map.
 _Avoid_: Game type, quiz type
 
 **Tier**:
-One of three cumulative sets of askable places: sovereign, de facto, dependencies. Each tier contains the one before it.
+One of three cumulative sets of askable places: sovereign, de facto, dependencies. Each tier contains the one before it. A tier sets both which places are asked and how the map is drawn: the land of places outside the tier is drawn as part of their holder.
 _Avoid_: Difficulty, level
 
 **Sovereign tier**:
@@ -22,7 +22,11 @@ The sovereign tier plus states that govern themselves without wide recognition, 
 The de facto tier plus territories governed by another state.
 
 **De facto borders**:
-Borders drawn by who actually controls the land, not by who claims it. The single stance used for every tier.
+Borders drawn by who actually controls the land, not by who claims it.
+
+**Holder**:
+The place whose land takes in a place outside the tier: a dependency's sovereign state, or a de facto state's parent state.
+_Avoid_: Owner, parent
 
 **Microstate**:
 A place whose largest piece of land is too small to spot at whole-world view.
