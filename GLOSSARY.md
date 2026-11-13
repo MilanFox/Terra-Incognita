@@ -24,6 +24,10 @@ The de facto tier plus territories governed by another state.
 **De facto borders**:
 Borders drawn by who actually controls the land, not by who claims it. The single stance used for every tier.
 
+**Microstate**:
+A place whose largest piece of land is too small to spot at whole-world view.
+_Avoid_: Tiny country
+
 **Unclaimed land**:
 Land on the map that belongs to no place and is never asked, such as Antarctica or Bir Tawil.
 _Avoid_: No man's land, terra nullius
