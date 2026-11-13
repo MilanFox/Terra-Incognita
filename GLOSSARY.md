@@ -108,6 +108,10 @@ _Avoid_: Home piece, continent
 How well a player knows a place in a regular mode, judged on recent answers: no data, weak, shaky or solid.
 _Avoid_: Score, level, mastery
 
+**Aid**:
+A setting that changes how play looks or is operated, never what is asked or how it is scored. Aids apply to every round, the daily challenge included, and are not recorded.
+_Avoid_: Assist, cheat, accessibility mode
+
 **Personal best**:
 The best score, and fastest perfect time, for one exact setup of a mode.
 _Avoid_: Record, high score
