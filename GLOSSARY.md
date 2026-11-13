@@ -88,6 +88,18 @@ A mode that asks one place per prompt: find on the map, name on the map, name th
 **Special mode**:
 A mode that doesn't ask one place per prompt: fill the map, what's missing, Wayfinder.
 
+**Route**:
+In Wayfinder, a start place, a target place and the places named to link them over land borders.
+_Avoid_: Path, chain
+
+**Detour**:
+In Wayfinder, a place named beyond the length of the shortest route while the route is still unfinished. A round ends when its detours are spent.
+_Avoid_: Miss, life, mistake
+
+**Mainland**:
+The part of a place that Wayfinder counts: its main piece on Afro-Eurasia or the Americas. Overseas parts, exclaves and island landmasses don't count, so their borders don't either.
+_Avoid_: Home piece, continent
+
 **Rating**:
 How well a player knows a place in a regular mode, judged on recent answers: no data, weak, shaky or solid.
 _Avoid_: Score, level, mastery
