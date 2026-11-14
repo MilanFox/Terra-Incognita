@@ -55,7 +55,7 @@ One playthrough of a mode, from setup to results.
 _Avoid_: Game, session, run
 
 **Deck**:
-The shuffled prompts of a round, each place asked at most once.
+The shuffled prompts of a round, each place asked at most once. Learning rounds and Wayfinder have no deck.
 
 **Prompt**:
 One question within a round, about one place.
@@ -65,14 +65,14 @@ _Avoid_: Question, card
 The form a mode's prompts take for a whole round, such as by flag or by silhouette.
 
 **Easy mode**:
-A per-round switch that makes answering more forgiving, with extra attempts or multiple choice instead of typing.
+A per-round switch that makes a round more forgiving: extra attempts in tap modes, multiple choice instead of typing, the full map in Wayfinder.
 _Avoid_: Difficulty, level
 
 **Timed round**:
-A round with one countdown for the whole round; when it runs out the round ends as if ended early. Untimed rounds show no clock.
+A round with one countdown for the whole round; untimed rounds show no clock. When it runs out, a regular mode's round ends as if ended early, while a special mode's round counts as complete.
 
 **End round**:
-Stopping a round before its deck is empty; prompts not yet reached count as missed.
+Stopping a round before it ends by itself. Prompts not yet reached count as missed and the round does not count for personal bests; a learning round loses nothing.
 _Avoid_: Give up, quit
 
 **Learning round**:
@@ -117,7 +117,7 @@ A setting that changes how play looks or is operated, never what is asked or how
 _Avoid_: Assist, cheat, accessibility mode
 
 **Personal best**:
-The best score, and fastest perfect time, for one exact setup of a mode.
+The best score for one setup of a mode, with the fastest perfect time where a round can be perfect. Timed and untimed rounds share a best, except in what's missing.
 _Avoid_: Record, high score
 
 **Data version**:
