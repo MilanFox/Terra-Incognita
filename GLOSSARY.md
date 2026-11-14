@@ -75,6 +75,10 @@ A round with one countdown for the whole round; when it runs out the round ends 
 Stopping a round before its deck is empty; prompts not yet reached count as missed.
 _Avoid_: Give up, quit
 
+**Learning round**:
+A round of a regular mode that starts with the easiest places, brings misses back until they are answered right twice in a row, and runs until the player ends it.
+_Avoid_: Practice, training, session
+
 **Daily challenge**:
 One round of find on the map per Berlin calendar day, drawing the same places for every player, played once by name or as a hard daily.
 _Avoid_: Daily puzzle, challenge of the day
