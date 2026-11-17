@@ -18,6 +18,7 @@
     "prepare": "husky || true"
   },
   "dependencies": {
+    "@nuxtjs/i18n": "~10.6.0",
     "@pinia/nuxt": "^1.0.3",
     "nuxt": "4.6.4",
     "pinia": "^4.1.0",
