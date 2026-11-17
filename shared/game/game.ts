@@ -26,6 +26,7 @@ export interface RoundSetup {
   tier: Tier
   deckSize: DeckSize
   easy: boolean
+  timed: boolean
 }
 
 export interface Choice<Value> {
@@ -76,6 +77,7 @@ export const rightAnswerAdvanceMs = rightAnswerHoldMs + rightAnswerFadeMs;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
+const promptBudgetsMs: Record<Mode, number> = { find: 8000 };
 const setupStorageKey = 'ti:setup';
 const roundStorageKey = 'ti:round';
 
@@ -120,12 +122,12 @@ interface StoredSetups {
 
 const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier);
 
-const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
+const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
 
 const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
   const stored = value as Partial<RoundSetup> | null;
   return stored?.mode === mode && variantChoices.includes(stored.variant as Variant)
-    && typeof stored.easy === 'boolean'
+    && typeof stored.easy === 'boolean' && typeof stored.timed === 'boolean'
     && regionChoices.includes(stored.region as RegionChoice)
     && tiersInOrder.includes(stored.tier as Tier)
     && deckSizeChoices.includes(stored.deckSize as DeckSize);
@@ -318,9 +320,19 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     hiddenAt = null;
   };
 
-  const finish = () => {
+  const playedMs = () => {
     const now = clock();
-    elapsedMs = now - startedAt - backgroundMs - (hiddenAt === null ? 0 : now - hiddenAt);
+    return now - startedAt - backgroundMs - (hiddenAt === null ? 0 : now - hiddenAt);
+  };
+
+  const timeLimitMs = () => (setup.timed ? promptBudgetsMs[setup.mode] * deck.length : Infinity);
+
+  const isRoundInPlay = () => phase === 'prompt' || phase === 'verdict';
+
+  const timeLeftMs = () => (isRoundInPlay() && setup.timed ? Math.max(0, timeLimitMs() - playedMs()) : null);
+
+  const finish = () => {
+    elapsedMs = Math.min(playedMs(), timeLimitMs());
     const summary: RoundSummary = {
       date: startedAt,
       mode: setup.mode,
@@ -328,7 +340,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       region: setup.region,
       tier: setup.tier,
       deckSize: deck.length,
-      timed: false,
+      timed: setup.timed,
       easy: setup.easy,
       daily: false,
       learn: false,
@@ -367,15 +379,18 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     finish();
   };
 
+  const runOut = () => (answers.length < deck.length ? end() : finish());
+
   const send = (event: GameEvent) => {
-    const isInRound = phase === 'prompt' || phase === 'verdict';
+    const isInRound = isRoundInPlay();
     if (event.type === 'hide' || event.type === 'show') {
       if (event.type === 'hide') hide();
       else show();
       persistRound();
       return;
     }
-    if (isInRound && isConfirmingEnd) {
+    if (isInRound && timeLeftMs() === 0) runOut();
+    else if (isInRound && isConfirmingEnd) {
       if (event.type === 'keepPlaying') keepPlaying();
       else if (event.type === 'end') end();
       else return;
@@ -408,6 +423,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     },
     choicesFor,
     poolOf,
+    timeLeftMs,
     send,
   };
 };

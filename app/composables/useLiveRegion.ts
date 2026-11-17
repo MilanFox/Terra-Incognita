@@ -2,6 +2,7 @@ import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
 const flushDelayMs = 50;
+const announcedSecondsLeft = [60, 30, 10];
 
 export const useLiveRegion = () => {
   const message = ref('');
@@ -50,5 +51,15 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
       else if (current.setup.variant === 'flag') announce(t('round.findPrompt'));
       else announce(t('live.findName', { place: nameOf(current.placeId) }));
     }
+  });
+
+  const spokenTimeLeft = (seconds: number) => (seconds % 60 === 0
+    ? t('record.minutes', { count: seconds / 60 }, seconds / 60)
+    : t('record.seconds', { count: seconds }, seconds));
+
+  watch(() => game.timeLeftMs, (timeLeftMs, previousMs) => {
+    if (timeLeftMs === null || previousMs === null) return;
+    const crossedSeconds = announcedSecondsLeft.findLast(seconds => timeLeftMs <= seconds * 1000 && previousMs > seconds * 1000);
+    if (crossedSeconds) announce(t('live.timeLeft', { time: spokenTimeLeft(crossedSeconds) }));
   });
 };

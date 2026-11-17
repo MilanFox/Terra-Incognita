@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GameState } from '#shared/game/game';
+import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'results' }> }>();
@@ -25,16 +26,9 @@ const resultCells = computed(() => [
 
 const wrongCount = computed(() => props.state.answers.length - props.state.score);
 
-const elapsedTime = computed(() => {
-  const totalSeconds = Math.round(props.state.elapsedMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  const spokenSeconds = t('record.seconds', { count: seconds }, seconds);
-  return {
-    shown: `${minutes}:${String(seconds).padStart(2, '0')}`,
-    spoken: minutes ? `${t('record.minutes', { count: minutes }, minutes)} ${spokenSeconds}` : spokenSeconds,
-  };
-});
+const durationTextOf = useDurationText();
+
+const elapsedTime = computed(() => durationTextOf(Math.round(props.state.elapsedMs / 1000)));
 
 const newBestLine = computed(() => t('record.newBest', {
   region: t(`setup.regions.${props.state.setup.region}`),

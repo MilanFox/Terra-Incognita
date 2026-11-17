@@ -41,9 +41,10 @@
       "name": "Name",
       "both": "Flagge und Name"
     },
+    "timed": "Zeitlimit",
     "easy": "Einfacher Modus",
-    "easyOn": "An",
-    "easyOff": "Aus",
+    "on": "An",
+    "off": "Aus",
     "regions": {
       "world": "Welt",
       "Africa": "Afrika",
@@ -86,7 +87,8 @@
     "wrong": "Falsch",
     "youTapped": "Getippt: {place}",
     "next": "Weiter",
-    "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche"
+    "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche",
+    "clock": "Verbleibende Zeit"
   },
   "results": {
     "title": "Runde geschafft",
@@ -133,7 +135,8 @@
   "help": {
     "open": "Hilfe",
     "title": "So wird gespielt: {mode}",
-    "close": "Schließen"
+    "close": "Schließen",
+    "clockRuns": "Die Uhr läuft weiter, während du das liest."
   },
   "zoom": {
     "in": "Vergrößern",
@@ -145,6 +148,7 @@
     "selected": "Ausgewählt.",
     "right": "Richtig: {place}.",
     "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
-    "findName": "Finde auf der Karte: {place}"
+    "findName": "Finde auf der Karte: {place}",
+    "timeLeft": "{time} übrig."
   }
 }

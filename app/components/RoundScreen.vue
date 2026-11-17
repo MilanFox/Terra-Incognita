@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GameState, ProgressCell } from '#shared/game/game';
+import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
@@ -7,8 +8,11 @@ const emit = defineEmits<{ next: [], zoomIn: [], zoomOut: [] }>();
 
 const { locale } = useI18n();
 const game = useGameStore();
+const durationTextOf = useDurationText();
 
 const cellMarks: Record<ProgressCell, string> = { right: '✓', wrong: '✗', current: '', pending: '' };
+
+const clockText = computed(() => (game.timeLeftMs === null ? null : durationTextOf(Math.ceil(game.timeLeftMs / 1000))));
 
 const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
 
@@ -90,7 +94,22 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         <span aria-hidden="true">{{ state.score }}<small>/{{ state.deckSize }}</small></span>
       </div>
 
-      <HelpTile :mode="state.setup.mode" />
+      <div
+        v-if="clockText"
+        class="tile round-hud__clock"
+        role="timer"
+        aria-live="off"
+        :aria-label="$t('round.clock')"
+      >
+        <span aria-hidden="true">{{ clockText.shown }}</span>
+
+        <span class="visually-hidden">{{ clockText.spoken }}</span>
+      </div>
+
+      <HelpTile
+        :mode="state.setup.mode"
+        :is-timed="state.setup.timed"
+      />
 
       <button
         ref="closeTile"
@@ -304,7 +323,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
   gap: 8px;
 
   &__progress {
-    flex: 1 1 160px;
+    flex: 1 1 120px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -349,6 +368,19 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
       font-size: 14px;
       font-weight: 700;
     }
+  }
+
+  &__clock {
+    display: grid;
+    place-items: center;
+    min-width: 56px;
+    padding: 0 8px;
+    box-shadow: 0 3px 0 $color-ink;
+    font-family: $font-serif;
+    font-size: 20px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
   }
 }
 

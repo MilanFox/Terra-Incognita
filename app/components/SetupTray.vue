@@ -145,6 +145,22 @@ defineExpose({ element: tray });
         type="button"
         role="switch"
         class="tile setup-tray__switch"
+        :aria-checked="setup.timed"
+        @click="change({ timed: !setup.timed })"
+      >
+        <span>{{ $t('setup.timed') }}</span>
+
+        <span
+          class="setup-tray__switch-state"
+          :class="{ 'setup-tray__switch-state--on': setup.timed }"
+          aria-hidden="true"
+        >{{ setup.timed ? $t('setup.on') : $t('setup.off') }}</span>
+      </button>
+
+      <button
+        type="button"
+        role="switch"
+        class="tile setup-tray__switch"
         :aria-checked="setup.easy"
         @click="change({ easy: !setup.easy })"
       >
@@ -154,7 +170,7 @@ defineExpose({ element: tray });
           class="setup-tray__switch-state"
           :class="{ 'setup-tray__switch-state--on': setup.easy }"
           aria-hidden="true"
-        >{{ setup.easy ? $t('setup.easyOn') : $t('setup.easyOff') }}</span>
+        >{{ setup.easy ? $t('setup.on') : $t('setup.off') }}</span>
       </button>
     </div>
 

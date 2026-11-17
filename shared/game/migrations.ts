@@ -13,9 +13,7 @@ interface StoredMeta {
 const metaStorageKey = 'ti:meta';
 const placesStorageKey = 'ti:places';
 const roundStorageKey = 'ti:round';
-
-// Entry n upgrades schema n + 1 to n + 2.
-export const schemaMigrations: SchemaMigration[] = [];
+const setupStorageKey = 'ti:setup';
 
 const readJson = (storage: KeyValueStorage, key: string): unknown => {
   try {
@@ -25,6 +23,22 @@ const readJson = (storage: KeyValueStorage, key: string): unknown => {
     return null;
   }
 };
+
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const makeStoredSetupsUntimed: SchemaMigration = (storage) => {
+  const untimed = (setup: unknown) => (isObject(setup) ? { timed: false, ...setup } : setup);
+  const stored = readJson(storage, setupStorageKey);
+  if (isObject(stored) && isObject(stored.setups)) {
+    const setups = Object.fromEntries(Object.entries(stored.setups).map(([mode, setup]) => [mode, untimed(setup)]));
+    storage.setItem(setupStorageKey, JSON.stringify({ ...stored, setups }));
+  }
+  const round = readJson(storage, roundStorageKey);
+  if (isObject(round)) storage.setItem(roundStorageKey, JSON.stringify({ ...round, setup: untimed(round.setup) }));
+};
+
+// Entry n upgrades schema n + 1 to n + 2.
+export const schemaMigrations: SchemaMigration[] = [makeStoredSetupsUntimed];
 
 const readMeta = (storage: KeyValueStorage): StoredMeta | undefined => {
   const stored = readJson(storage, metaStorageKey) as Partial<StoredMeta> | null;

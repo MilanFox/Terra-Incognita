@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Mode } from '#shared/game/game';
 
-const props = defineProps<{ mode: Mode }>();
+const props = defineProps<{ mode: Mode, isTimed?: boolean }>();
 
 const isOpen = ref(false);
 const opener = useTemplateRef<HTMLButtonElement>('opener');
@@ -9,6 +9,7 @@ const heading = useTemplateRef<HTMLHeadingElement>('heading');
 const closeTile = useTemplateRef<HTMLButtonElement>('closeTile');
 const headingId = useId();
 const textId = useId();
+const clockLineId = useId();
 
 const open = async () => {
   isOpen.value = true;
@@ -56,7 +57,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         role="dialog"
         aria-modal="true"
         :aria-labelledby="headingId"
-        :aria-describedby="textId"
+        :aria-describedby="props.isTimed ? `${textId} ${clockLineId}` : textId"
         @keydown="handleKeydown"
       >
         <h2
@@ -73,6 +74,14 @@ const handleKeydown = (event: KeyboardEvent) => {
           class="help-dialog__text"
         >
           {{ $t(`modes.${props.mode}.help`) }}
+        </p>
+
+        <p
+          v-if="props.isTimed"
+          :id="clockLineId"
+          class="help-dialog__text"
+        >
+          {{ $t('help.clockRuns') }}
         </p>
 
         <button

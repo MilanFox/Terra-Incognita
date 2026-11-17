@@ -62,10 +62,10 @@ const resultsOf = (game: RoundGame) => {
 const sovereignIds = places.filter(({ tier }) => tier === 'sovereign').map(({ id }) => id);
 
 describe('first-time setup', () => {
-  it('is the whole world, sovereign tier, 10 prompts by flag and Easy mode off', () => {
+  it('is the whole world, sovereign tier, 10 prompts by flag, untimed and Easy mode off', () => {
     const game = startGame();
 
-    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
+    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
   });
 
   it('draws on a pool of the 197 sovereign places', () => {
@@ -334,12 +334,12 @@ describe('setup choices', () => {
 });
 
 describe('remembered setup', () => {
-  const europeanSetup = { mode: 'find', variant: 'name', region: 'Europe', tier: 'defacto', deckSize: 'all', easy: true } as const;
+  const europeanSetup = { mode: 'find', variant: 'name', region: 'Europe', tier: 'defacto', deckSize: 'all', easy: true, timed: true } as const;
 
   it('starts from the first-time setup with nothing stored', () => {
     const game = gameOver();
 
-    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
+    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
     expect(game.lastSetup()).toBeUndefined();
   });
 
@@ -361,7 +361,7 @@ describe('remembered setup', () => {
   it('falls back to the first-time setup when the stored one is damaged', () => {
     const storage = memoryStorage();
     storage.setItem('ti:setup', '{"lastMode":"find","setups":{"find":{"mode":"find","region":"Atlantis"}}}');
-    expect(gameOver(places, storage).setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
+    expect(gameOver(places, storage).setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
 
     storage.setItem('ti:setup', 'not json');
     expect(gameOver(places, storage).lastSetup()).toBeUndefined();
@@ -651,7 +651,7 @@ const recordingGame = (storage = memoryStorage(), placesInPlay = places) => {
 
 const storedJson = (storage: KeyValueStorage, key: string) => JSON.parse(storage.getItem(key) ?? 'null');
 
-const firstTimeSetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false };
+const firstTimeSetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false };
 
 const startRound = (game: RoundGame, setup: Partial<RoundSetup> = {}) => game.send({ type: 'start', setup: { ...firstTimeSetup, ...setup } });
 
@@ -904,6 +904,121 @@ describe('personal bests', () => {
   });
 });
 
+describe('timed rounds', () => {
+  const timedRound = (setup: Partial<RoundSetup> = {}, placesInPlay = places) => {
+    const { game, storage, wait } = recordingGame(memoryStorage(), placesInPlay);
+    startRound(game, { timed: true, ...setup });
+    const waitAndTick = (milliseconds: number) => {
+      wait(milliseconds);
+      game.send({ type: 'tick' });
+    };
+    return { game, storage, wait, waitAndTick };
+  };
+
+  it('end the round like End round when the clock runs out: logged timed and incomplete, never a best', () => {
+    const { game, storage, waitAndTick } = timedRound();
+    const answeredPlaceIds: string[] = [];
+    for (let prompt = 0; prompt < 3; prompt += 1) {
+      answeredPlaceIds.push(promptedPlaceId(game));
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'next' });
+    }
+
+    waitAndTick(79_999);
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 4 });
+    expect(game.timeLeftMs()).toBe(1);
+
+    waitAndTick(250);
+    const results = resultsOf(game);
+    expect(results).toMatchObject({ score: 3, isComplete: false, isNewBest: false, elapsedMs: 80_000 });
+    expect(results.missedPlaceIds).toHaveLength(7);
+    expect(game.timeLeftMs()).toBeNull();
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ timed: true, complete: false, score: 3, deckSize: 10, elapsedMs: 80_000 })]);
+    expect(storedJson(storage, 'ti:bests')).toBeNull();
+    expect(Object.keys(storedJson(storage, 'ti:places')['find:flag']).sort()).toEqual(answeredPlaceIds.sort());
+    expect(storage.getItem('ti:round')).toBeNull();
+  });
+
+  it('keep running while the End round confirm is up, and run out from it', () => {
+    const { game, waitAndTick } = timedRound();
+    waitAndTick(50_000);
+    game.send({ type: 'askEnd' });
+
+    waitAndTick(29_999);
+    expect(game.state).toMatchObject({ phase: 'prompt', isConfirmingEnd: true });
+    expect(game.timeLeftMs()).toBe(1);
+
+    waitAndTick(1);
+    expect(resultsOf(game)).toMatchObject({ score: 0, isComplete: false, answers: [] });
+    expect(resultsOf(game).missedPlaceIds).toHaveLength(10);
+  });
+
+  it('take no answer once the clock has run out', () => {
+    const { game, storage, wait } = timedRound();
+    const placeId = promptedPlaceId(game);
+
+    wait(80_000);
+    game.send({ type: 'tap', placeId });
+
+    expect(resultsOf(game)).toMatchObject({ score: 0, answers: [], isComplete: false });
+    expect(storedJson(storage, 'ti:places')).toBeNull();
+  });
+
+  it('finish complete when the clock runs out after the last prompt was answered', () => {
+    const { game, storage, waitAndTick } = timedRound();
+    for (let prompt = 1; prompt < 10; prompt += 1) {
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'next' });
+    }
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+
+    waitAndTick(80_000);
+
+    expect(resultsOf(game)).toMatchObject({ score: 9, isComplete: true, isNewBest: true, missedPlaceIds: [] });
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ timed: true, complete: true })]);
+  });
+
+  it('combine with Easy mode, and the round log records both', () => {
+    const { game, storage } = timedRound({ easy: true });
+    expect(game.state).toMatchObject({ phase: 'prompt', attemptsLeft: 3, setup: { timed: true, easy: true } });
+    expect(game.timeLeftMs()).toBe(80_000);
+
+    playThrough(game, 10);
+
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ timed: true, easy: true, complete: true, score: 10 })]);
+    expect(Object.keys(storedJson(storage, 'ti:bests'))).toEqual(['find:flag:world:sovereign:10:easy']);
+  });
+
+  it('share a personal best with untimed rounds of the same setup', () => {
+    const { game, storage } = recordingGame();
+
+    playRound(game, {}, 5);
+    playRound(game, { timed: true }, 7);
+    expect(resultsOf(game).isNewBest).toBe(true);
+    playRound(game, {}, 6);
+    expect(resultsOf(game).isNewBest).toBe(false);
+
+    expect(storedJson(storage, 'ti:bests')).toEqual({ 'find:flag:world:sovereign:10:normal': { score: 7, fastestPerfectMs: null } });
+    expect(storedJson(storage, 'ti:rounds').map(({ timed }: { timed: boolean }) => timed)).toEqual([false, true, false]);
+  });
+
+  it('last 8 s per prompt of the real deck', () => {
+    const fewSouthAmerica = ({ region, id }: Place) => region !== 'South America' || ['BRA', 'ARG', 'CHL', 'PER', 'COL', 'BOL', 'URY'].includes(id);
+
+    expect(timedRound().game.timeLeftMs()).toBe(80_000);
+    expect(timedRound({ deckSize: 'all' }).game.timeLeftMs()).toBe(1_576_000);
+    expect(timedRound({ region: 'South America' }, places.filter(fewSouthAmerica)).game.timeLeftMs()).toBe(56_000);
+  });
+
+  it('have no clock when untimed or outside a round', () => {
+    const { game } = recordingGame();
+    expect(game.timeLeftMs()).toBeNull();
+
+    startRound(game);
+    expect(game.timeLeftMs()).toBeNull();
+  });
+});
+
 describe('the tier drawn outside a round', () => {
   it('is sovereign until another tier is played, then the deepest tier played so far', () => {
     const { game, storage } = recordingGame();
@@ -989,7 +1104,7 @@ describe('storage migration on boot', () => {
 
   it('only stamps ti:meta on a first launch', () => {
     const { storage, read } = bootWith({}, { dataVersion: 4, idMoves: { 4: { AAA: 'BBB' } } });
-    expect(read('ti:meta')).toEqual({ schema: 1, dataVersion: 4 });
+    expect(read('ti:meta')).toEqual({ schema: 2, dataVersion: 4 });
     expect(storage.getItem('ti:places')).toBeNull();
   });
 
@@ -1005,7 +1120,7 @@ describe('storage migration on boot', () => {
       'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'AAA' } } },
     }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
     expect(read('ti:places')).toEqual({ 'find:flag': { BBB: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'BBB' } } });
-    expect(read('ti:meta')).toEqual({ schema: 1, dataVersion: 2 });
+    expect(read('ti:meta')).toEqual({ schema: 2, dataVersion: 2 });
   });
 
   it('merges records per mode and variant: counters summed, the longer recent kept', () => {
@@ -1124,13 +1239,28 @@ describe('storage migration on boot', () => {
     bootWith({}, { dataVersion: 1 }, { schemaMigrations });
     expect(order).toEqual([]);
   });
+
+  it('makes the remembered setups and the stored round from before timed rounds untimed', () => {
+    const setupBeforeTimed = { mode: 'find', variant: 'name', region: 'Europe', tier: 'defacto', deckSize: 'all', easy: true };
+    const roundBeforeTimed = { setup: { ...setupBeforeTimed, deckSize: 10 }, deck: ['FRA', 'DEU', 'ITA', 'ESP', 'PRT'], promptIndex: 0, answers: [], wrongTapPlaceIds: [], startedAt: 1, hiddenAt: null, backgroundMs: 0, dataVersion: shippedVersion.dataVersion };
+    const storage = memoryStorage();
+    storage.setItem('ti:meta', JSON.stringify({ schema: 1, dataVersion: shippedVersion.dataVersion }));
+    storage.setItem('ti:setup', JSON.stringify({ lastMode: 'find', setups: { find: setupBeforeTimed } }));
+    storage.setItem('ti:round', JSON.stringify(roundBeforeTimed));
+
+    const game = createGame({ places, version: shippedVersion, random: seededRandom(1), clock: () => 2, storage });
+
+    expect(game.setupFor('find')).toEqual({ ...setupBeforeTimed, timed: false });
+    expect(game.state).toMatchObject({ phase: 'prompt', placeId: 'FRA', setup: { deckSize: 10, timed: false } });
+    expect(JSON.parse(storage.getItem('ti:meta')!).schema).toBe(2);
+  });
 });
 
 describe('resuming an interrupted round', () => {
   let now = Date.UTC(2026, 10, 17);
   const clock = () => now;
   const boot = (storage: KeyValueStorage, version: DataVersion = shippedVersion) => createGame({ places, version, random: seededRandom(1), clock, storage });
-  const easySetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: true };
+  const easySetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: true, timed: false };
 
   it('returns to the same prompt with the answers so far after a relaunch', () => {
     const storage = memoryStorage();

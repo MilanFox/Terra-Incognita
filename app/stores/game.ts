@@ -5,6 +5,8 @@ import type { DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, 
 type Locale = 'en' | 'de';
 type PlaceNames = Record<string, Record<Locale, { name: string }>>;
 
+const clockTickMs = 250;
+
 const fetchJson = async <T>(url: string): Promise<T> => (await fetch(url)).json();
 
 export const useGameStore = defineStore('game', () => {
@@ -13,6 +15,7 @@ export const useGameStore = defineStore('game', () => {
   const isReady = ref(false);
   const lastSetup = shallowRef<RoundSetup>();
   const homeTier = ref<Tier>('sovereign');
+  const timeLeftMs = ref<number | null>(null);
   let game: Game | undefined;
 
   const load = async () => {
@@ -26,6 +29,7 @@ export const useGameStore = defineStore('game', () => {
     state.value = game.state;
     homeTier.value = deepestTierPlayed(localStorage);
     lastSetup.value = game.lastSetup();
+    timeLeftMs.value = game.timeLeftMs();
     isReady.value = true;
   };
 
@@ -35,7 +39,11 @@ export const useGameStore = defineStore('game', () => {
     if (game.state.phase === 'home') homeTier.value = deepestTierPlayed(localStorage);
     state.value = game.state;
     lastSetup.value = game.lastSetup();
+    timeLeftMs.value = game.timeLeftMs();
   };
+
+  const clockTicker = useIntervalFn(() => send({ type: 'tick' }), clockTickMs, { immediate: false });
+  watch(() => timeLeftMs.value !== null, isTimedRoundInPlay => (isTimedRoundInPlay ? clockTicker.resume() : clockTicker.pause()));
 
   useEventListener(document, 'visibilitychange', () => send({ type: document.hidden ? 'hide' : 'show' }));
   useEventListener(window, 'pagehide', () => send({ type: 'hide' }));
@@ -50,5 +58,5 @@ export const useGameStore = defineStore('game', () => {
 
   const nameOf = (placeId: string, locale: string) => names.value[placeId]?.[locale as Locale]?.name ?? placeId;
 
-  return { state, isReady, lastSetup, homeTier, load, send, play, setupFor, poolOf, choicesFor, nameOf };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, load, send, play, setupFor, poolOf, choicesFor, nameOf };
 });

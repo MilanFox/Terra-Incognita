@@ -41,9 +41,10 @@
       "name": "Name",
       "both": "Flag and name"
     },
+    "timed": "Timed",
     "easy": "Easy mode",
-    "easyOn": "On",
-    "easyOff": "Off",
+    "on": "On",
+    "off": "Off",
     "regions": {
       "world": "World",
       "Africa": "Africa",
@@ -86,7 +87,8 @@
     "wrong": "Wrong",
     "youTapped": "You tapped: {place}",
     "next": "Next",
-    "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left"
+    "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left",
+    "clock": "Time left"
   },
   "results": {
     "title": "Round complete",
@@ -133,7 +135,8 @@
   "help": {
     "open": "Help",
     "title": "How to play: {mode}",
-    "close": "Close"
+    "close": "Close",
+    "clockRuns": "The clock keeps running while you read this."
   },
   "zoom": {
     "in": "Zoom in",
@@ -145,6 +148,7 @@
     "selected": "Selected.",
     "right": "Right: {place}.",
     "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
-    "findName": "Find on the map: {place}"
+    "findName": "Find on the map: {place}",
+    "timeLeft": "{time} left."
   }
 }
