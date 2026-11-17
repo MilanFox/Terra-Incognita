@@ -14,6 +14,7 @@ import { load } from './steps/load.ts';
 import { mainlandsByTier } from './steps/mainland.ts';
 import { patch } from './steps/patch.ts';
 import { rule } from './steps/rule.ts';
+import { silhouetteSheet, writeSilhouetteSheet } from './steps/silhouettes.ts';
 import { simplify } from './steps/simplify.ts';
 import { speckPoints } from './steps/specks.ts';
 import { tierFacts } from './steps/tier-facts.ts';
@@ -76,3 +77,6 @@ if (lines.some(({ failures }) => failures.length)) {
 step('9 write');
 const shippedPlaces = places.map(place => ({ ...place, ease: ease.get(place.id), ...placeTierFacts.get(place.id) }));
 write({ maps, places: shippedPlaces, points, chainOutlines: chains.outlines, version: { ne: naturalEarth.release, counts: countByTier(places) } });
+
+step('10 write the silhouette contact sheet for review');
+writeSilhouetteSheet(silhouetteSheet(maps.dependencies, places, naturalEarth));

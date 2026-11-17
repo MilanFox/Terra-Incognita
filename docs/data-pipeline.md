@@ -20,6 +20,7 @@ npm run data:build          # offline and deterministic: rule, patch, simplify, 
 | `data/curated/` | the curated rulings (below) | yes |
 | `data/.cache/` | downloaded NE files | no (`.cache/` is gitignored) |
 | `public/data/` | the shipped files (below) | yes |
+| `data/.review/` | the silhouette contact sheet (below) | no (gitignored) |
 
 ### Sources
 
@@ -31,7 +32,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 
 | File | Shape |
 |---|---|
-| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places; for a dependency it must match NE's `SOVEREIGNT`, the six de facto holders are rulings), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `note` |
+| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places; for a dependency it must match NE's `SOVEREIGNT`, the six de facto holders are rulings), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `silhouette: false` (the owner's ruling that the silhouette is unreadable; see [Silhouette contact sheet](#silhouette-contact-sheet)), `note` |
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
@@ -47,7 +48,7 @@ All sorted by id.
 | File | Shape |
 |---|---|
 | `map-sovereign.geojson`, `map-defacto.geojson`, `map-dependencies.geojson` | one map per tier: polygons, one feature per place of the tier plus Unclaimed land, `{ id, unclaimed? }`; one feature per line. 200 / 206 / 248 features |
-| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `neighbours`, `mainlandNeighbours` and `microstate` each as `{ sovereign, defacto, dependencies }` |
+| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, silhouette, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `neighbours`, `mainlandNeighbours` and `microstate` each as `{ sovereign, defacto, dependencies }` |
 | `points.geojson` | one point per place (245), `{ id, speckZoom }`; one feature per line. The app filters them by tier |
 | `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): polygons, `{ id, tier, group? }`, sorted by id then group; one feature per line. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
 | `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value. One file covers all three maps |
@@ -66,7 +67,7 @@ In a tier's map, the land of each place outside the tier is part of the place it
 
 ## Build steps
 
-Step numbers follow the spec; step 6 doesn't compute island-chain outlines yet, and step 10 (silhouette sheet) is not built yet.
+Step numbers follow the spec; step 6 doesn't compute island-chain outlines yet, step 10 (silhouette sheet) is described under [Silhouette contact sheet](#silhouette-contact-sheet).
 
 1. **Load** (`steps/load.ts`): read both NE files from the cache and verify their sha256.
 2. **Rule** (`steps/rule.ts`): erase the breakaways from their host, apply `features.json`, split `IOA`. Each place keeps NE's QID and ISO code (`ISO_A2_EH` for countries, `ISO_A2` for breakaways; a split inherits neither) and the M49 fields of the feature its land comes from.
@@ -79,6 +80,16 @@ Step numbers follow the spec; step 6 doesn't compute island-chain outlines yet, 
 9. **Write** (`steps/write.ts`): write the shipped files sorted by id, and print their sizes.
 
 A broken reference in the curated files (a merge into a non-place, a carve whose `from` or `brkA3` doesn't exist, a split bbox that holds no part, a patch for an id without land) stops the build with an error at the step that meets it.
+
+10. **Silhouette sheet** (`steps/silhouettes.ts`): after the shipped files are written; see below.
+
+## Silhouette contact sheet
+
+The last build step writes `data/.review/silhouettes/index.html` (about 1 MB, gitignored, not shipped): one self-contained HTML file with all 245 silhouettes in a grid, each labelled with its id and NE name. Open it in a browser. Each silhouette is the place's own land from the dependencies map, so it is the same in every tier. It is drawn equirectangular (longitude scaled by the cosine of the middle latitude) and fitted to the place's own `bbox`, so sizes are not comparable between places; places across the antimeridian are drawn in one piece.
+
+The pipeline flags candidates, outlined in red with the reason under the label, by four heuristics (the spec gives no criteria): `tiny` (own land below 100 km²), `fragmented` (at least 8 pieces and the largest holds under 50% of the land), `elongated` (the bbox in the drawing is more than 5:1), `sparse` (land is under 2% of the bbox area, measured in km²; drawn nearly blank). Every piece is drawn with a minimum visible size (a 2.5 px stroke), so no cell looks empty. The build prints the flagged ids with their reasons. A flag only suggests; nothing is ruled unreadable by the build.
+
+The owner's review result goes into `data/curated/places.json`: `"silhouette": false` on each place ruled unreadable. `places.json` in `public/data/` carries `silhouette: boolean`, false only for those places, so today it is true everywhere. The app drops places with `silhouette: false` from the silhouette variant of Name that country.
 
 ## Build check
 

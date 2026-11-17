@@ -18,6 +18,7 @@ coverage/
 
 # Caches
 .cache/
+data/.review/
 .parcel-cache/
 .eslintcache
 .stylelintcache

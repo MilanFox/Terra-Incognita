@@ -9,6 +9,7 @@ export type CuratedPlace = {
   region?: string
   qid?: string
   iso2?: string
+  silhouette?: false
   note?: string
 };
 

@@ -26,6 +26,7 @@ export const join = (curated: Curated, sources: Map<string, PlaceSource>, facts:
       tier: entry.tier,
       holder: entry.holder,
       region: entry.region ?? m49Region(source),
+      silhouette: entry.silhouette !== false,
       bbox: facts.get(id)?.bbox,
     };
   });

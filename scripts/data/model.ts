@@ -61,6 +61,7 @@ export type Place = {
   tier: Tier
   holder: string | undefined
   region: string | undefined
+  silhouette: boolean
   bbox: Bbox | undefined
 };
 
