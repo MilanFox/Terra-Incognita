@@ -17,10 +17,13 @@
     "test:watch": "vitest",
     "data:fetch": "node scripts/data/fetch.ts",
     "data:build": "node scripts/data/build.ts",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "generate:pwa-assets": "pwa-assets-generator"
   },
   "dependencies": {
+    "@nuxtjs/i18n": "~10.6.0",
     "@pinia/nuxt": "^1.0.3",
+    "@vite-pwa/nuxt": "1.1.1",
     "nuxt": "4.6.4",
     "pinia": "^4.1.0",
     "vue": "^3.5.27",
@@ -30,6 +33,7 @@
     "@nuxt/eslint": "^1.13.0",
     "@nuxt/test-utils": "^4.0.3",
     "@types/node": "^26.6.6",
+    "@vite-pwa/assets-generator": "^1.0.4",
     "@vue/test-utils": "^2.4.11",
     "@vueuse/core": "^15.0.0",
     "@vueuse/nuxt": "^15.0.0",
