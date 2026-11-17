@@ -140,6 +140,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => map?.remove());
+
+defineExpose({ focus: () => map?.getCanvas().focus() });
 </script>
 
 <template>
@@ -153,5 +155,19 @@ onBeforeUnmount(() => map?.remove());
 .world-map {
   position: absolute;
   inset: 0;
+
+  :deep(.maplibregl-canvas):focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* The canvas paints over its own outline, so the ring sits on an overlay inside the map's edge. */
+  &:has(.maplibregl-canvas:focus-visible)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 2px $color-paper, inset 0 0 0 4px $color-ink, inset 0 0 0 6px $color-paper;
+  }
 }
 </style>

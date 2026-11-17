@@ -13,5 +13,31 @@
   },
   "map": {
     "label": "World map"
+  },
+  "home": {
+    "label": "Play"
+  },
+  "modes": {
+    "find": {
+      "name": "Landfall",
+      "subtitle": "Find on the map"
+    }
+  },
+  "round": {
+    "findPrompt": "Find on the map",
+    "progress": "Prompt {current} of {total}",
+    "score": "{score} right",
+    "right": "Right",
+    "wrong": "Wrong",
+    "youTapped": "You tapped: {place}",
+    "next": "Next"
+  },
+  "results": {
+    "title": "Round complete",
+    "score": "Score",
+    "scoreText": "{score} of {total} right",
+    "right": "{place}: right",
+    "wrong": "{place}: wrong",
+    "home": "Main menu"
   }
 }

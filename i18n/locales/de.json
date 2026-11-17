@@ -13,5 +13,31 @@
   },
   "map": {
     "label": "Weltkarte"
+  },
+  "home": {
+    "label": "Spielen"
+  },
+  "modes": {
+    "find": {
+      "name": "Landfall",
+      "subtitle": "Finde es auf der Karte"
+    }
+  },
+  "round": {
+    "findPrompt": "Finde auf der Karte",
+    "progress": "Frage {current} von {total}",
+    "score": "{score} richtig",
+    "right": "Richtig",
+    "wrong": "Falsch",
+    "youTapped": "Getippt: {place}",
+    "next": "Weiter"
+  },
+  "results": {
+    "title": "Runde geschafft",
+    "score": "Punkte",
+    "scoreText": "{score} von {total} richtig",
+    "right": "{place}: richtig",
+    "wrong": "{place}: falsch",
+    "home": "Hauptmenü"
   }
 }
