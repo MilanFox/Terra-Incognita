@@ -19,6 +19,10 @@
   "ARE": {
     "add": { "en": ["UAE"], "de": ["VAE"] }
   },
+  "ATG": {
+    "add": { "capitals": { "Q36262": { "en": ["Saint John's"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "AUS": {
     "drop": [
       { "lang": "en", "alias": "New Holland", "why": "historical name; also too close to Holland (NLD)" },
@@ -56,6 +60,10 @@
     "drop": [
       { "lang": "en", "capital": "Q3043", "alias": "The Garden City", "why": "nickname; collides with Singapore nickname" }
     ]
+  },
+  "BRA": {
+    "add": { "capitals": { "Q2844": { "en": ["Brasilia"], "de": ["Brasilia"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "CAF": {
     "drop": [
@@ -106,18 +114,24 @@
     ]
   },
   "CYN": {
-    "add": { "en": ["Northern Cyprus"], "de": ["Nordzypern"], "capitals": {"Q2762100": {"en": ["Lefkoşa"], "de": ["Lefkoşa"]}} }
+    "add": { "en": ["Northern Cyprus"], "de": ["Nordzypern"], "capitals": { "Q2762100": { "en": ["Lefkoşa"], "de": ["Lefkoşa"] } } }
   },
   "CYP": {
     "drop": [
       { "lang": "en", "capital": "Q3856", "alias": "Lefkosa", "why": "Turkish name of North Nicosia, not of Nicosia; moved to CYN" }
-    ]
+    ],
+    "add": { "capitals": { "Q3856": { "de": ["Nicosia"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "CZE": {
     "add": { "en": ["Czech Republic"], "de": ["Tschechien", "Tschechische Republik"] }
   },
   "DEU": {
     "add": { "de": ["BRD"] }
+  },
+  "DJI": {
+    "add": { "capitals": { "Q3604": { "en": ["Ǧībūtī"], "de": ["Ǧībūtī"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "FLK": {
     "add": { "en": ["Malvinas"], "de": ["Islas Malvinas"] },
@@ -133,6 +147,10 @@
   "GBR": {
     "add": { "en": ["UK", "Britain", "Great Britain"], "de": ["Großbritannien"] }
   },
+  "GGY": {
+    "add": { "capitals": { "Q174262": { "en": ["St. Peter Port"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "GMB": {
     "drop": [
       { "lang": "de", "capital": "Q3726", "alias": "Bathurst (alter Name bis 1973)", "why": "annotated duplicate" }
@@ -145,6 +163,10 @@
   },
   "GRC": {
     "add": { "en": ["Hellas", "Ellada"], "de": ["Hellas"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "GRD": {
+    "add": { "capitals": { "Q41547": { "de": ["Saint George's, Grenada"] } } },
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "GRL": {
@@ -161,12 +183,21 @@
       { "lang": "en", "alias": "I. Man", "why": "abbreviation; \"iman\" is 1 edit from Iran and Oman, so typos of both tied with Isle of Man" }
     ]
   },
+  "IND": {
+    "add": { "capitals": { "Q987": { "de": ["New Delhi"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "IOT": {
     "add": { "en": ["BIOT"] },
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "IRN": {
-    "add": { "en": ["Persia"], "de": ["Persien"] }
+    "add": { "en": ["Persia"], "de": ["Persien"], "capitals": { "Q3616": { "en": ["Tehrān"], "de": ["Tehrān"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "IRQ": {
+    "add": { "capitals": { "Q1530": { "de": ["Baghdad"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "ISR": {
     "drop": [
@@ -223,6 +254,10 @@
     "add": { "de": ["Saint Lucia"] },
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
+  "LVA": {
+    "add": { "capitals": { "Q1773": { "en": ["Rīga"], "de": ["Rīga"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "MDA": {
     "add": { "de": ["Moldawien"] }
   },
@@ -247,6 +282,10 @@
       { "lang": "en", "capital": "Q23564", "alias": "Capital of Montenegro", "why": "contains the country name: answers the capital question by typing the country" }
     ]
   },
+  "MNG": {
+    "add": { "capitals": { "Q23430": { "en": ["Ulan Bator"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "MNP": {
     "add": { "en": ["CNMI"] },
     "note": "moved to mul in Wikidata (reviewed in #10)"
@@ -257,7 +296,7 @@
     ]
   },
   "MYS": {
-    "add": { "capitals": {"Q1865": {"en": ["KL"], "de": ["KL"]}} }
+    "add": { "capitals": { "Q1865": { "en": ["KL"], "de": ["KL"] } } }
   },
   "NGA": {
     "drop": [
@@ -272,6 +311,10 @@
     "drop": [
       { "lang": "en", "capital": "Q585", "alias": "NOOSL", "why": "UN/LOCODE" }
     ]
+  },
+  "PAK": {
+    "add": { "capitals": { "Q1362": { "en": ["Islāmābād"], "de": ["Islāmābād"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "PHL": {
     "drop": [
@@ -305,6 +348,10 @@
       { "lang": "de", "capital": "Q1848", "alias": "Stadtmauer Von San Marino", "why": "the city wall, not the city" }
     ]
   },
+  "SOM": {
+    "add": { "capitals": { "Q2449": { "de": ["Mogadishu"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
   "SWZ": {
     "add": { "en": ["Swaziland"], "de": ["Swasiland"] },
     "drop": [
@@ -324,6 +371,10 @@
     "drop": [
       { "lang": "en", "capital": "Q3766", "alias": "Mint of Damascus", "why": "a mint, not the city" }
     ]
+  },
+  "TCD": {
+    "add": { "capitals": { "Q3659": { "en": ["Niǧāmīnā"], "de": ["Niǧāmīnā"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "TGO": {
     "drop": [

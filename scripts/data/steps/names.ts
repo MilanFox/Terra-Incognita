@@ -47,7 +47,7 @@ const machineCode = /^[A-Z]{2}-[A-Z0-9]{1,3}$|ISO 3166|^[A-Za-z]+\/[A-Za-z_]+$|^
 const nonLatinScript = /[^\p{Script=Latin}\p{Script=Common}\p{Script=Inherited}]/u;
 
 // CLDR is exempt from the short-code filter: it supplies "UK" and "US".
-const isFilteredOut = (text: string, source: string) =>
+export const isFilteredOut = (text: string, source: string) =>
   (source !== 'cldr' && shortCode.test(text)) || machineCode.test(text) || nonLatinScript.test(text);
 
 const entityId = (uri: string | undefined) => uri?.replace('http://www.wikidata.org/entity/', '');
@@ -85,7 +85,7 @@ const neNamesOf = (id: string, naturalEarth: NaturalEarth, curated: Curated): Pa
 };
 
 // The first text is the display name, if there is one; later texts are aliases, deduplicated case-insensitively.
-const collectTexts = () => {
+export const collectTexts = () => {
   let name = '';
   const aliases: string[] = [];
   const isKnown = (text: string) => [name, ...aliases].some(known => known.toLowerCase() === text.toLowerCase());

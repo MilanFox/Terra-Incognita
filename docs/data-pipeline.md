@@ -29,7 +29,7 @@ npm run data:build          # offline and deterministic: rule, patch, simplify, 
 
 Snapshots, committed in `data/sources/` because the sources drift; the build reads them and never the network:
 
-- `wikidata.json`: one SPARQL result, one binding per line, sorted. For every place QID (read from `public/data/places.json`, plus Abkhazia's flag item Q31354462): EN/DE/`mul` labels, EN/DE altLabels, P41 flags (no end date, not deprecated), P36 capitals (same filter) with their labels, altLabels and P625 coordinates. The four capitals D4 overrides (Ramallah, Tifariti, Jerusalem, Jamestown) are fetched whether or not P36 lists them. The capitals and flags are for later tickets; names use only the labels. Sent with the User-Agent `terra-incognita-data-pipeline`.
+- `wikidata.json`: one SPARQL result, one binding per line, sorted. For every place QID (read from `public/data/places.json`, plus Abkhazia's flag item Q31354462): EN/DE/`mul` labels, EN/DE altLabels, P41 flags (no end date, not deprecated), P36 capitals (same filter) with their labels, altLabels and P625 coordinates. The four capitals D4 overrides (Ramallah, Tifariti, Jerusalem, Jamestown) are fetched whether or not P36 lists them. Names use the place labels; the capitals feed `capitals` in the shipped files; flags are for a later ticket. Sent with the User-Agent `terra-incognita-data-pipeline`.
 - `cldr-en-territories.json`, `cldr-de-territories.json`: CLDR v49 territory names, including the `-alt-` forms, from the `cldr-json` tag `49.0.0`.
 - `mledoze-alias-subset.json`: the fields of mledoze/countries the aliases need, pinned to a commit. ODbL 1.0, so `names.json` is marked ODbL.
 - `fetched.json`: per source, the date of the fetch that last changed its snapshot (plus the CLDR version and the mledoze commit). A fetch that finds nothing new changes nothing.
@@ -40,10 +40,10 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 
 | File | Shape |
 |---|---|
-| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `note` |
+| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `capitals` (list of QIDs replacing the computed capitals; `[]` = no capital: `HMD`, `UMI`, `ATF`, `IOT`, `HKG`, `MAC`; `SHN` = Jamestown), `iso2` (supplies the ISO code of a split place), `note` |
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
-| `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, for the capitals ticket) and `drop` (list of `{ lang, alias, why }`, plus `capital` for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
+| `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, applied to that place's capital) and `drop` (list of `{ lang, alias, why }`, plus `capital`, a QID, for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
 
 Ids are NE's `ADM0_A3`. Carved breakaways use their NE `BRK_A3` (`B35` Abkhazia, `B36` Transnistria, `B37` South Ossetia); NE's `IOA` is split into `CXR` and `CCK`.
@@ -55,8 +55,8 @@ All sorted by id.
 | File | Shape |
 |---|---|
 | `map-dependencies.geojson` | polygons, one feature per place plus Unclaimed land: `{ id, unclaimed? }`; one feature per line |
-| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region }` |
-| `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: {} } }`, one place per line. `capitals` is the hook for the capitals ticket and is empty for now |
+| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, capitals }`; `capitals` is a list of QIDs, empty for a place outside Name the capital |
+| `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: { qid: { en: { name, aliases[] }, de: { name, aliases[] } } } } }`, one place per line |
 | `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value |
 
 ## Build steps
@@ -85,8 +85,14 @@ The build fails, and writes nothing, on:
 - a place without one of the six regions
 - a place without a Wikidata QID
 - a place without an EN or a DE name
+- a place with capitals none of which lies inside its geometry
+- a capital without an EN or a DE name
 
-It warns, and still writes, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop that matches nothing. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
+It warns, and still writes, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
+
+## Capitals
+
+A place's capitals are the P36 statements of its Wikidata item (no end date, not deprecated), or the curated `capitals` list where `places.json` has one. Each capital has EN and DE names (label in the language, else `mul`, else English) and aliases (the language's altLabels only, never `mul`, filtered like place aliases, then the alias file's capital drops and additions). Only capitals that lie inside the place's own land count (D4, G8): the P625 point is tested against the unsimplified dependencies land of that place, the same for every tier. That is why Palestine has Ramallah, Western Sahara Tifariti and Israel Jerusalem, and why East Jerusalem and Laayoune are left out. A place with no capital strictly inside falls back to the capitals within 10 km of its land, because NE's 1:10m coastline puts a few coastal and atoll capitals (Funafuti, Tarawa, Banjul) in the sea; each one is a warning. A place whose capitals are all farther out stops the build: rule it with `capitals` in `places.json`.
 
 ## Updating the name sources
 
