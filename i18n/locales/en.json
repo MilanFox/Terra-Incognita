@@ -12,7 +12,8 @@
     "status": "Loading the map"
   },
   "map": {
-    "label": "World map"
+    "label": "World map",
+    "playLabel": "Map. Arrow keys move between places, Enter selects"
   },
   "home": {
     "label": "Play"
@@ -133,5 +134,17 @@
     "open": "Help",
     "title": "How to play: {mode}",
     "close": "Close"
+  },
+  "zoom": {
+    "in": "Zoom in",
+    "out": "Zoom out"
+  },
+  "live": {
+    "place": "Place",
+    "placeFound": "Place, found",
+    "selected": "Selected.",
+    "right": "Right: {place}.",
+    "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
+    "findName": "Find on the map: {place}"
   }
 }

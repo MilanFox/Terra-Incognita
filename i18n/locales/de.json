@@ -12,7 +12,8 @@
     "status": "Karte wird geladen"
   },
   "map": {
-    "label": "Weltkarte"
+    "label": "Weltkarte",
+    "playLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe wählt aus"
   },
   "home": {
     "label": "Spielen"
@@ -133,5 +134,17 @@
     "open": "Hilfe",
     "title": "So wird gespielt: {mode}",
     "close": "Schließen"
+  },
+  "zoom": {
+    "in": "Vergrößern",
+    "out": "Verkleinern"
+  },
+  "live": {
+    "place": "Ort",
+    "placeFound": "Ort, gefunden",
+    "selected": "Ausgewählt.",
+    "right": "Richtig: {place}.",
+    "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
+    "findName": "Finde auf der Karte: {place}"
   }
 }
