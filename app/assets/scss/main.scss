@@ -73,3 +73,51 @@ button.tile {
   outline-offset: 2px;
   box-shadow: 0 0 0 2px $color-paper;
 }
+
+.tray-enter-active {
+  z-index: 2;
+  transition: transform 440ms cubic-bezier(0.2, 1.15, 0.4, 1);
+}
+
+.tray-leave-active {
+  z-index: 1;
+  transition: transform 300ms cubic-bezier(0.5, 0, 0.8, 0.4);
+}
+
+.tray-enter-from,
+.tray-leave-to {
+  transform: translateY(105%);
+}
+
+.drop-enter-active {
+  transition: transform 380ms cubic-bezier(0.2, 1.2, 0.4, 1) 120ms;
+}
+
+.drop-leave-active {
+  transition: opacity 150ms ease-out;
+}
+
+.drop-enter-from {
+  transform: translateY(-130%);
+}
+
+.drop-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tray-enter-active,
+  .tray-leave-active,
+  .drop-enter-active,
+  .drop-leave-active {
+    transition: opacity 120ms linear;
+  }
+
+  .tray-enter-from,
+  .tray-leave-to,
+  .drop-enter-from,
+  .drop-leave-to {
+    transform: none;
+    opacity: 0;
+  }
+}

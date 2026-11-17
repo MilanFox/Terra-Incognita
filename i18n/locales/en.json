@@ -17,6 +17,10 @@
   "home": {
     "label": "Play"
   },
+  "homeTray": {
+    "showAll": "Show all modes",
+    "showFewer": "Show fewer"
+  },
   "modes": {
     "find": {
       "name": "Landfall",

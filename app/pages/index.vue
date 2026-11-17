@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
+import { useHomeDrift } from '~/composables/useHomeDrift';
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -8,6 +9,10 @@ const homeSelectedPlaceId = ref<string | null>(null);
 const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
+
+const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
+const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home');
+const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
 const selectedPlaceId = computed(() => {
   const { state } = game;
@@ -42,25 +47,30 @@ onMounted(game.load);
 
 <template>
   <main class="home">
-    <template v-if="isStartupRevealed && game.isReady">
+    <Transition name="tray">
       <HomeTray
-        v-if="game.state.phase === 'home'"
+        v-if="isShellReady && game.state.phase === 'home'"
         ref="homeTray"
         @play="play"
+        @interact="stopDrift"
       />
+    </Transition>
 
+    <Transition name="drop">
       <RoundScreen
-        v-else-if="game.state.phase === 'prompt' || game.state.phase === 'verdict'"
+        v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict')"
         :state="game.state"
         @next="next"
       />
+    </Transition>
 
+    <Transition name="tray">
       <ResultsTray
-        v-else
+        v-if="isShellReady && game.state.phase === 'results'"
         :state="game.state"
         @leave="leave"
       />
-    </template>
+    </Transition>
 
     <WorldMap
       ref="worldMap"
