@@ -16,12 +16,15 @@ const m49Region = (source: PlaceSource | undefined): Region | undefined => {
   return regions.find(region => region === regionUn);
 };
 
+export const qidOf = (id: string, curated: Curated, sources: Map<string, PlaceSource>) =>
+  curated.places[id]?.qid ?? sources.get(id)?.qid;
+
 export const join = (curated: Curated, sources: Map<string, PlaceSource>, facts: Map<string, PlaceFacts>): Place[] =>
   Object.entries(curated.places).map(([id, entry]) => {
     const source = sources.get(id);
     return {
       id,
-      qid: entry.qid ?? source?.qid,
+      qid: qidOf(id, curated, sources),
       iso2: entry.iso2 ?? source?.iso2,
       tier: entry.tier,
       holder: entry.holder,

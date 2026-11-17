@@ -4,14 +4,18 @@ import { gzipSync } from 'node:zlib';
 import { byId, tiers } from '../model.ts';
 import { fromRepoRoot, shippedDir } from '../paths.ts';
 import { chainOutlinesText } from './chains.ts';
+import { namesText } from './names.ts';
 import { pointsText } from './specks.ts';
 import type { Land, Place, Tier } from '../model.ts';
 import type { ChainOutline } from './chains.ts';
 import type { TierMaps } from './dissolve.ts';
+import type { Names } from './names.ts';
 import type { SpeckPoint } from './specks.ts';
+import type { TierFacts } from './tier-facts.ts';
 
+export type ShippedPlace = Place & { flag: string | null, capitals: string[], ease: number } & TierFacts;
 export type Version = { ne: string, counts: Record<Tier, number> };
-export type Shipped = { maps: TierMaps, places: Place[], points: SpeckPoint[], chainOutlines: ChainOutline[], version: Version };
+export type Shipped = { maps: TierMaps, places: ShippedPlace[], points: SpeckPoint[], chainOutlines: ChainOutline[], names: Names, version: Version };
 
 const lineList = (items: unknown[]) => items.map(item => JSON.stringify(item)).join(',\n');
 
@@ -26,16 +30,17 @@ const mapText = (map: Land) => {
   return `{"type":"FeatureCollection","features":[\n${lineList(features)}\n]}\n`;
 };
 
-const placesText = (places: Place[]) => `[\n${lineList([...places].sort(byId))}\n]\n`;
+const placesText = (places: ShippedPlace[]) => `[\n${lineList([...places].sort(byId))}\n]\n`;
 
 const kilobytes = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
 
-export const write = ({ maps, places, points, chainOutlines, version }: Shipped) => {
+export const write = ({ maps, places, points, chainOutlines, names, version }: Shipped) => {
   const files = {
     ...Object.fromEntries(tiers.map(tier => [`map-${tier}.geojson`, mapText(maps[tier])])),
     'places.json': placesText(places),
     'points.geojson': pointsText(points),
     'chain-outlines.geojson': chainOutlinesText(chainOutlines),
+    'names.json': namesText(names),
     'version.json': `${JSON.stringify(version, null, 2)}\n`,
   };
   mkdirSync(shippedDir, { recursive: true });

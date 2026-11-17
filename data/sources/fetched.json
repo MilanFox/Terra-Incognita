@@ -1,0 +1,16 @@
+{
+  "cldr": {
+    "fetchedOn": "2026-11-17",
+    "version": "49"
+  },
+  "flags": {
+    "fetchedOn": "2026-11-17"
+  },
+  "mledoze": {
+    "fetchedOn": "2026-11-17",
+    "commit": "fa4f62182d19ff4f8b325cde6387c9cd9d80955a"
+  },
+  "wikidata": {
+    "fetchedOn": "2026-11-17"
+  }
+}

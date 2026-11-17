@@ -4,7 +4,7 @@ import { pieceAreaKm2 } from '../land-area.ts';
 import { byId, polygonsOf } from '../model.ts';
 import { fromRepoRoot, reviewDir } from '../paths.ts';
 import type { Bbox, Land, Place, Ring } from '../model.ts';
-import type { NaturalEarth } from './load.ts';
+import type { Names } from './names.ts';
 
 export type SilhouetteCandidate = { id: string, name: string, reasons: string[] };
 
@@ -18,19 +18,6 @@ const fragmentedPieceCount = 8;
 const fragmentedLargestShare = 0.5;
 const elongatedAspect = 5;
 const sparseLandShare = 0.02;
-
-const namesWithoutNeFeature: Record<string, string> = {
-  B35: 'Abkhazia',
-  B36: 'Transnistria',
-  B37: 'South Ossetia',
-  CCK: 'Cocos Islands',
-  CXR: 'Christmas Island',
-};
-
-const placeNames = (naturalEarth: NaturalEarth) => new Map([
-  ...Object.entries(namesWithoutNeFeature),
-  ...naturalEarth.countries.features.map(({ properties }): [string, string] => [properties.ADM0_A3, properties.ADMIN]),
-]);
 
 // Longitude measured east from the bbox's west edge, so a place across the antimeridian stays in one piece.
 const projector = ([west, south, east, north]: Bbox) => {
@@ -70,12 +57,11 @@ const reasonsFor = (pieceAreas: number[], { aspect, bboxAreaKm2 }: { aspect: num
   return reasons;
 };
 
-export const silhouetteSheet = (dependenciesMap: Land, places: Place[], naturalEarth: NaturalEarth) => {
-  const names = placeNames(naturalEarth);
+export const silhouetteSheet = (dependenciesMap: Land, places: Place[], names: Names) => {
   const geometryById = new Map(dependenciesMap.features.map(({ properties, geometry }) => [properties.id, geometry]));
   const candidates: SilhouetteCandidate[] = [];
   const cells = [...places].sort(byId).map(({ id, bbox }) => {
-    const name = names.get(id) ?? id;
+    const name = names[id]?.en.name ?? id;
     const polygons = polygonsOf(geometryById.get(id) ?? null);
     if (!bbox || !polygons.length) return `<figure class="flagged"><figcaption><b>${id}</b> ${escapeHtml(name)}<br>no land</figcaption></figure>`;
     const { project, aspect, bboxAreaKm2 } = projector(bbox);

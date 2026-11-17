@@ -5,8 +5,8 @@ import { curatedDir, fromRepoRoot } from './paths.ts';
 import { pairKey } from './steps/mainland.ts';
 import type { CheckLine } from './check.ts';
 import type { Tier } from './model.ts';
-import type { NaturalEarth } from './steps/load.ts';
 import type { DroppedBorder, NotMainland, TierMainlands } from './steps/mainland.ts';
+import type { Names } from './steps/names.ts';
 
 type ReviewedList = { review: string, pairs: Record<string, string> };
 export type DroppedBorderNotes = Record<Tier, Map<string, string>>;
@@ -18,10 +18,7 @@ const readReviewedList = (tier: Tier): ReviewedList | undefined => {
   return existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined;
 };
 
-const neNames = ({ countries, breakaway }: NaturalEarth) => new Map<string, string>([
-  ...breakaway.features.map(({ properties }): [string, string] => [properties.BRK_A3, String(properties.BRK_NAME)]),
-  ...countries.features.map(({ properties }): [string, string] => [properties.ADM0_A3, String(properties.NAME_LONG)]),
-]);
+const englishNames = (placeNames: Names) => new Map(Object.entries(placeNames).map(([id, { en }]) => [id, en.name]));
 
 const noteOf = ({ ids, reasons }: DroppedBorder, names: Map<string, string>) => {
   const nameOf = (id: string) => names.get(id) ?? id;
@@ -35,8 +32,8 @@ const noteOf = ({ ids, reasons }: DroppedBorder, names: Map<string, string>) => 
   return `${ids.map(nameOf).join(' – ')}: ${[...new Set(parts)].join('; ') || 'no reason found'}`;
 };
 
-export const droppedBorderNotes = (mainlands: Record<Tier, TierMainlands>, naturalEarth: NaturalEarth) => {
-  const names = neNames(naturalEarth);
+export const droppedBorderNotes = (mainlands: Record<Tier, TierMainlands>, placeNames: Names) => {
+  const names = englishNames(placeNames);
   return Object.fromEntries(tiers.map(tier => [
     tier,
     new Map(mainlands[tier].dropped.map(border => [pairKey(...border.ids), noteOf(border, names)])),

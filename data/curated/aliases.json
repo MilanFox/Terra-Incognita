@@ -1,0 +1,442 @@
+{
+  "AGO": {
+    "drop": [
+      { "lang": "en", "alias": "ʁɛpublika de an'ɡɔla", "why": "IPA transcription" }
+    ]
+  },
+  "ALB": {
+    "drop": [
+      { "lang": "en", "alias": "People's Socialist Republic of Albania", "why": "historical state, not the current country" },
+      { "lang": "en", "alias": "Republika Popullore e Shqiperise", "why": "historical state, not the current country" },
+      { "lang": "en", "alias": "Republika Popullore Socialiste e Shqiperise", "why": "historical state, not the current country" },
+      { "lang": "en", "alias": "People's Republic of Albania", "why": "historical state, not the current country" }
+    ]
+  },
+  "ALD": {
+    "add": { "de": ["Ahvenanmaa"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "ARE": {
+    "add": { "en": ["UAE"], "de": ["VAE"] }
+  },
+  "ATG": {
+    "add": { "capitals": { "Q36262": { "en": ["Saint John's"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "AUS": {
+    "drop": [
+      { "lang": "en", "alias": "New Holland", "why": "historical name; also too close to Holland (NLD)" },
+      { "lang": "en", "alias": "Nova Hollandia", "why": "historical name; also too close to Holland (NLD)" },
+      { "lang": "en", "alias": "New Hollandia", "why": "historical name; also too close to Holland (NLD)" },
+      { "lang": "en", "alias": "Stria", "why": "slang clipping; 1 edit from Syria, so \"sria\" tied Australia and Syria" }
+    ]
+  },
+  "AUT": {
+    "drop": [
+      { "lang": "de", "alias": "Zweite Republik", "why": "generic (Second Republic)" }
+    ]
+  },
+  "B37": {
+    "drop": [
+      { "lang": "de", "alias": "Georgisch-Südossetischer Konflikt", "why": "a conflict, not the place" },
+      { "lang": "en", "alias": "South Ossetian", "why": "demonym/adjective" }
+    ]
+  },
+  "BFA": {
+    "drop": [
+      { "lang": "en", "alias": "Republic of Upper Volta (-1984)", "why": "historical state, not the current country" }
+    ]
+  },
+  "BLM": {
+    "drop": [
+      { "lang": "de", "alias": "Schwedisch-Westindien", "why": "historical state, not the current country" },
+      { "lang": "de", "alias": "Carénage", "why": "harbour/settlement name, not the island" }
+    ]
+  },
+  "BLR": {
+    "add": { "de": ["Weißrussland"] }
+  },
+  "BLZ": {
+    "drop": [
+      { "lang": "en", "capital": "Q3043", "alias": "The Garden City", "why": "nickname; collides with Singapore nickname" }
+    ]
+  },
+  "BRA": {
+    "add": { "capitals": { "Q2844": { "en": ["Brasilia"], "de": ["Brasilia"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "CAF": {
+    "drop": [
+      { "lang": "en", "alias": "Central Africa", "why": "region, not the country" }
+    ]
+  },
+  "CCK": {
+    "add": { "de": ["Cocos Islands", "Keeling Islands"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "CHE": {
+    "drop": [
+      { "lang": "en", "alias": "Swiss", "why": "demonym/adjective" }
+    ]
+  },
+  "CIV": {
+    "add": { "en": ["Ivory Coast"], "de": ["Elfenbeinküste"] }
+  },
+  "COD": {
+    "add": { "en": ["DRC", "DR Congo", "Congo-Kinshasa", "Zaire"], "de": ["Kongo-Kinshasa", "Demokratische Republik Kongo"] },
+    "drop": [
+      { "lang": "de", "alias": "Kongo", "why": "bare name is deliberately ambiguous between the two Congos" }
+    ]
+  },
+  "COG": {
+    "add": { "en": ["Congo-Brazzaville", "Republic of Congo"], "de": ["Kongo-Brazzaville"] },
+    "drop": [
+      { "lang": "en", "alias": "Congo", "why": "bare name is deliberately ambiguous between the two Congos" },
+      { "lang": "de", "alias": "Kongo", "why": "bare name is deliberately ambiguous between the two Congos" },
+      { "lang": "de", "alias": "Französisch-Kongo", "why": "historical state, not the current country" },
+      { "lang": "de", "alias": "Departements der Republik Kongo", "why": "subdivisions, not the country" }
+    ]
+  },
+  "CPV": {
+    "add": { "en": ["Cape Verde"], "de": ["Kapverden"] },
+    "drop": [
+      { "lang": "de", "alias": "Kapverdisch", "why": "adjective" }
+    ]
+  },
+  "CRI": {
+    "drop": [
+      { "lang": "de", "alias": "„Schweiz Mittelamerikas“", "why": "nickname in quotes" }
+    ]
+  },
+  "CYM": {
+    "drop": [
+      { "lang": "en", "capital": "Q172996", "alias": "Georgetown", "why": "spelling of Guyana's capital; George Town is the name" }
+    ]
+  },
+  "CYN": {
+    "add": { "en": ["Northern Cyprus"], "de": ["Nordzypern"], "capitals": { "Q2762100": { "en": ["Lefkoşa"], "de": ["Lefkoşa"] } } }
+  },
+  "CYP": {
+    "drop": [
+      { "lang": "en", "capital": "Q3856", "alias": "Lefkosa", "why": "Turkish name of North Nicosia, not of Nicosia; moved to CYN" }
+    ],
+    "add": { "capitals": { "Q3856": { "de": ["Nicosia"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "CZE": {
+    "add": { "en": ["Czech Republic"], "de": ["Tschechien", "Tschechische Republik"] }
+  },
+  "DEU": {
+    "add": { "de": ["BRD"] }
+  },
+  "DJI": {
+    "add": { "capitals": { "Q3604": { "en": ["Ǧībūtī"], "de": ["Ǧībūtī"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "FLK": {
+    "add": { "en": ["Malvinas"], "de": ["Islas Malvinas"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "FRO": {
+    "add": { "en": ["Färöer", "Foroyar"], "de": ["Færøerne", "Føroyar"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)",
+    "drop": [
+      { "lang": "de", "alias": "Suðuroyar sýsla", "why": "a Faroese region, not the whole territory" }
+    ]
+  },
+  "GBR": {
+    "add": { "en": ["UK", "Britain", "Great Britain"], "de": ["Großbritannien"] }
+  },
+  "GGY": {
+    "add": { "capitals": { "Q174262": { "en": ["St. Peter Port"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "GMB": {
+    "drop": [
+      { "lang": "de", "capital": "Q3726", "alias": "Bathurst (alter Name bis 1973)", "why": "annotated duplicate" }
+    ]
+  },
+  "GNB": {
+    "drop": [
+      { "lang": "de", "alias": "Guiné-Bissau", "why": "Portuguese spelling in the German list; ties \"guinae\" between Guinea and Guinea-Bissau" }
+    ]
+  },
+  "GRC": {
+    "add": { "en": ["Hellas", "Ellada"], "de": ["Hellas"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "GRD": {
+    "add": { "capitals": { "Q41547": { "de": ["Saint George's, Grenada"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "GRL": {
+    "add": { "en": ["Kalaallit Nunaat"], "de": ["Kalaallit Nunaat"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "HKG": {
+    "add": { "de": ["Hong Kong"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "IMN": {
+    "drop": [
+      { "lang": "en", "alias": "Manx", "why": "demonym/adjective" },
+      { "lang": "en", "alias": "I. Man", "why": "abbreviation; \"iman\" is 1 edit from Iran and Oman, so typos of both tied with Isle of Man" }
+    ]
+  },
+  "IND": {
+    "add": { "capitals": { "Q987": { "de": ["New Delhi"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "IOT": {
+    "add": { "en": ["BIOT"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "IRN": {
+    "add": { "en": ["Persia"], "de": ["Persien"], "capitals": { "Q3616": { "en": ["Tehrān"], "de": ["Tehrān"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "IRQ": {
+    "add": { "capitals": { "Q1530": { "de": ["Baghdad"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "ISR": {
+    "drop": [
+      { "lang": "en", "capital": "Q1218", "alias": "Mint of Aelia Capitolina", "why": "a mint, not the city" }
+    ]
+  },
+  "ITA": {
+    "drop": [
+      { "lang": "en", "capital": "Q220", "alias": "Capital of the World", "why": "nickname, not a name" },
+      { "lang": "en", "capital": "Q220", "alias": "The Capital of the World", "why": "nickname, not a name" }
+    ]
+  },
+  "JAM": {
+    "drop": [
+      { "lang": "de", "capital": "Q34692", "alias": "Chaka Demus", "why": "a musician" },
+      { "lang": "en", "capital": "Q34692", "alias": "Kingston, Surrey", "why": "a different Kingston" }
+    ]
+  },
+  "JOR": {
+    "drop": [
+      { "lang": "en", "capital": "Q3805", "alias": "Mint of Philadelphia", "why": "a mint, not the city" },
+      { "lang": "en", "capital": "Q3805", "alias": "Philadelphia", "why": "ancient name; reads as the US city" }
+    ]
+  },
+  "KEN": {
+    "drop": [
+      { "lang": "en", "capital": "Q3870", "alias": "Kenya capital", "why": "contains the country name: answers the capital question by typing the country" },
+      { "lang": "en", "capital": "Q3870", "alias": "Kenya capital city", "why": "contains the country name: answers the capital question by typing the country" },
+      { "lang": "en", "capital": "Q3870", "alias": "Kenya's capital", "why": "contains the country name: answers the capital question by typing the country" },
+      { "lang": "en", "capital": "Q3870", "alias": "Kenyan capital", "why": "contains the country name: answers the capital question by typing the country" }
+    ]
+  },
+  "KNA": {
+    "add": { "en": ["St Kitts"], "de": ["St. Kitts"] }
+  },
+  "KOR": {
+    "add": { "de": ["Südkorea"] },
+    "drop": [
+      { "lang": "de", "alias": "Korea", "why": "bare \"Korea\" is deliberately not accepted for either Korea" },
+      { "lang": "en", "alias": "Silla", "why": "historical kingdom" },
+      { "lang": "en", "alias": "Choson", "why": "historical kingdom / North Korean self-name" }
+    ]
+  },
+  "KOS": {
+    "add": { "en": ["Kosova"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "LBR": {
+    "drop": [
+      { "lang": "en", "alias": "Liber", "why": "junk" }
+    ]
+  },
+  "LCA": {
+    "add": { "de": ["Saint Lucia"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "LVA": {
+    "add": { "capitals": { "Q1773": { "en": ["Rīga"], "de": ["Rīga"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "MDA": {
+    "add": { "de": ["Moldawien"] }
+  },
+  "MEX": {
+    "drop": [
+      { "lang": "en", "alias": "Mexicanos", "why": "demonym/adjective" }
+    ]
+  },
+  "MKD": {
+    "add": { "en": ["Macedonia"] }
+  },
+  "MLT": {
+    "drop": [
+      { "lang": "en", "capital": "Q23800", "alias": "Capital of Malta", "why": "contains the country name: answers the capital question by typing the country" }
+    ]
+  },
+  "MMR": {
+    "add": { "en": ["Burma"], "de": ["Birma", "Burma"] }
+  },
+  "MNE": {
+    "drop": [
+      { "lang": "en", "capital": "Q23564", "alias": "Capital of Montenegro", "why": "contains the country name: answers the capital question by typing the country" }
+    ]
+  },
+  "MNG": {
+    "add": { "capitals": { "Q23430": { "en": ["Ulan Bator"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "MNP": {
+    "add": { "en": ["CNMI"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "MRT": {
+    "drop": [
+      { "lang": "en", "capital": "Q3688", "alias": "Capital of Mauritania", "why": "contains the country name: answers the capital question by typing the country" }
+    ]
+  },
+  "MYS": {
+    "add": { "capitals": { "Q1865": { "en": ["KL"], "de": ["KL"] } } }
+  },
+  "NGA": {
+    "drop": [
+      { "lang": "de", "alias": "Nigerien", "why": "confusable with Niger (Nigerien = of Niger)" },
+      { "lang": "de", "alias": "Bundesrepublik Nigerien", "why": "confusable with Niger" }
+    ]
+  },
+  "NLD": {
+    "add": { "en": ["Holland"], "de": ["Holland"] }
+  },
+  "NOR": {
+    "drop": [
+      { "lang": "en", "capital": "Q585", "alias": "NOOSL", "why": "UN/LOCODE" }
+    ]
+  },
+  "PAK": {
+    "add": { "capitals": { "Q1362": { "en": ["Islāmābād"], "de": ["Islāmābād"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "PHL": {
+    "drop": [
+      { "lang": "en", "capital": "Q1461", "alias": "Queen City of the Pacific and others", "why": "junk" }
+    ]
+  },
+  "PRK": {
+    "add": { "de": ["Nordkorea"] }
+  },
+  "PRT": {
+    "drop": [
+      { "lang": "en", "alias": "Portuguesa", "why": "demonym/adjective" }
+    ]
+  },
+  "SAH": {
+    "add": { "en": ["Sahrawi Republic"] }
+  },
+  "SGP": {
+    "drop": [
+      { "lang": "en", "alias": "Garden City", "why": "nickname; collides with Belmopan nickname" },
+      { "lang": "en", "capital": "Q334", "alias": "Garden City", "why": "nickname; collides with Belmopan nickname" }
+    ]
+  },
+  "SGS": {
+    "add": { "de": ["South Georgia and the South Sandwich Islands"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "SMR": {
+    "drop": [
+      { "lang": "de", "capital": "Q1848", "alias": "Stadtmauer", "why": "the city wall, not the city" },
+      { "lang": "de", "capital": "Q1848", "alias": "Stadtmauer Von San Marino", "why": "the city wall, not the city" }
+    ]
+  },
+  "SOM": {
+    "add": { "capitals": { "Q2449": { "de": ["Mogadishu"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "SWZ": {
+    "add": { "en": ["Swaziland"], "de": ["Swasiland"] },
+    "drop": [
+      { "lang": "de", "alias": "Swasiland (bis 2018)", "why": "annotated duplicate" },
+      { "lang": "de", "alias": "Umbuso weSwatini (siSwati-Sprache)", "why": "annotated duplicate" }
+    ]
+  },
+  "SXM": {
+    "add": { "en": ["St. Maarten"], "de": ["St. Maarten"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)",
+    "drop": [
+      { "lang": "en", "alias": "Saint Martin", "why": "CLDR name of the French part (MAF); ambiguous" },
+      { "lang": "en", "alias": "St Martin", "why": "CLDR name of the French part (MAF); ambiguous" }
+    ]
+  },
+  "SYR": {
+    "drop": [
+      { "lang": "en", "capital": "Q3766", "alias": "Mint of Damascus", "why": "a mint, not the city" }
+    ]
+  },
+  "TCD": {
+    "add": { "capitals": { "Q3659": { "en": ["Niǧāmīnā"], "de": ["Niǧāmīnā"] } } },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "TGO": {
+    "drop": [
+      { "lang": "en", "alias": "Togolese", "why": "demonym/adjective" }
+    ]
+  },
+  "THA": {
+    "drop": [
+      { "lang": "en", "alias": "Prathet", "why": "just means \"country\"" },
+      { "lang": "en", "alias": "Thai", "why": "demonym/adjective" }
+    ]
+  },
+  "TLS": {
+    "add": { "en": ["East Timor"] }
+  },
+  "TUR": {
+    "add": { "en": ["Turkey"], "de": ["Türkei"] }
+  },
+  "UGA": {
+    "drop": [
+      { "lang": "en", "capital": "Q3894", "alias": "uganda's Capital city", "why": "contains the country name: answers the capital question by typing the country" }
+    ]
+  },
+  "USA": {
+    "add": { "en": ["USA", "US"] }
+  },
+  "VAT": {
+    "add": { "en": ["Vatican"] }
+  },
+  "VGB": {
+    "drop": [
+      { "lang": "en", "alias": "Virgin Islands", "why": "ambiguous with U.S. Virgin Islands" },
+      { "lang": "de", "alias": "Jungferninseln", "why": "ambiguous with Amerikanische Jungferninseln" }
+    ]
+  },
+  "VNM": {
+    "add": { "en": ["Việt Nam"] },
+    "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "WSM": {
+    "drop": [
+      { "lang": "en", "alias": "Malo Saʻoloto Tutoʻatasi o Sāmoa", "why": "Samoan official name; its unique prefix \"malo\" puts \"mal\" in a tie with Mali" }
+    ]
+  },
+  "ZAF": {
+    "drop": [
+      { "lang": "en", "capital": "Q5465", "alias": "Cape", "why": "generic fragment" },
+      { "lang": "en", "capital": "Q5465", "alias": "Kaap", "why": "generic fragment" },
+      { "lang": "en", "capital": "Q5465", "alias": "West side", "why": "generic fragment" },
+      { "lang": "de", "capital": "Q5465", "alias": "Kap", "why": "generic fragment" },
+      { "lang": "de", "capital": "Q5465", "alias": "Cape", "why": "generic fragment" },
+      { "lang": "de", "capital": "Q5465", "alias": "Kaap", "why": "generic fragment" }
+    ]
+  },
+  "ZWE": {
+    "drop": [
+      { "lang": "en", "alias": "Rhodesia", "why": "historical state, not the current country" },
+      { "lang": "en", "alias": "Southern Rhodesia", "why": "historical state, not the current country" },
+      { "lang": "en", "alias": "Zimbabwe Rhodesia", "why": "historical state, not the current country" },
+      { "lang": "de", "alias": "Rhodesien", "why": "historical state, not the current country" },
+      { "lang": "de", "alias": "Südrhodesien", "why": "historical state, not the current country" },
+      { "lang": "de", "alias": "Republik Rhodesien", "why": "historical state, not the current country" }
+    ]
+  }
+}

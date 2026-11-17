@@ -1,7 +1,15 @@
+import { fetchCldr } from './sources/cldr.ts';
+import { fetchFlags } from './sources/flags.ts';
+import { fetchMledoze } from './sources/mledoze.ts';
 import { fetchNaturalEarth } from './sources/natural-earth.ts';
+import { fetchWikidata } from './sources/wikidata.ts';
 
 const fetchers: Record<string, () => Promise<void>> = {
   ne: fetchNaturalEarth,
+  wikidata: fetchWikidata,
+  cldr: fetchCldr,
+  mledoze: fetchMledoze,
+  flags: fetchFlags,
 };
 
 const requested = process.argv.slice(2).map(argument => argument.replace(/^--/, ''));

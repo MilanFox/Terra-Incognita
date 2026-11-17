@@ -4,19 +4,21 @@ The place data the app ships is built from Natural Earth (NE) and the curated ru
 
 ```sh
 npm run data:fetch          # network: download the pinned sources (all scopes)
-npm run data:fetch -- --ne  # only Natural Earth
-npm run data:build          # offline and deterministic: rule, patch, simplify, dissolve per tier, check, write
+npm run data:fetch -- --ne  # only Natural Earth (also --wikidata, --cldr, --mledoze, --flags)
+npm run data:build          # offline and deterministic: rule, patch, simplify, dissolve per tier, compute, join, check, write
 ```
 
 ## Files
 
 | Path | What | In git |
 |---|---|---|
-| `scripts/data/fetch.ts` | fetch script, one fetcher per scope (`--ne`) | yes |
+| `scripts/data/fetch.ts` | fetch script, one fetcher per scope (`--ne`, `--wikidata`, `--cldr`, `--mledoze`, `--flags`) | yes |
 | `scripts/data/build.ts` | build script, runs the steps below in order | yes |
 | `scripts/data/steps/` | one module per build step | yes |
-| `scripts/data/check.ts`, `scripts/data/check-neighbours.ts`, `scripts/data/check-dropped-borders.ts` | the build check | yes |
+| `scripts/data/check.ts`, `scripts/data/check-*.ts` | the build check: the base lines in `check.ts`, one module each for neighbours, dropped borders, island chains, names, capitals and flags (their lines and warnings) | yes |
+| `shared/utils/normalise.ts` | D14's normalisation, shared with the answer matcher | yes |
 | `scripts/data/sources/natural-earth.ts` | the NE pin: release, file names, sha256 | yes |
+| `data/sources/` | committed snapshots of the sources that drift (below) | yes |
 | `data/curated/` | the curated rulings (below) | yes |
 | `data/.cache/` | downloaded NE files | no (`.cache/` is gitignored) |
 | `public/data/` | the shipped files (below) | yes |
@@ -26,15 +28,25 @@ npm run data:build          # offline and deterministic: rule, patch, simplify, 
 
 - NE v5.1.2 `ne_10m_admin_0_countries.geojson` (258 features, NE's default de facto view) and its breakaway layer `ne_10m_admin_0_disputed_areas.geojson`, downloaded from the release tag on GitHub. Both are sha256-checked when fetched and again when the build reads them, so a build always runs on the pinned release.
 
+Snapshots, committed in `data/sources/` because the sources drift; the build reads them and never the network:
+
+- `wikidata.json`: one SPARQL result, one binding per line, sorted. For every place QID (read from `public/data/places.json`, plus Abkhazia's flag item Q31354462): EN/DE/`mul` labels, EN/DE altLabels, P41 flags (no end date, not deprecated), P36 capitals (same filter) with their labels, altLabels and P625 coordinates. The four capitals D4 overrides (Ramallah, Tifariti, Jerusalem, Jamestown) are fetched whether or not P36 lists them. Names use the place labels; the capitals feed `capitals` in the shipped files; flags: see below. Sent with the User-Agent `terra-incognita-data-pipeline`.
+- `cldr-en-territories.json`, `cldr-de-territories.json`: CLDR v49 territory names, including the `-alt-` forms, from the `cldr-json` tag `49.0.0`.
+- `mledoze-alias-subset.json`: the fields of mledoze/countries the aliases need, pinned to a commit. ODbL 1.0, so `names.json` is marked ODbL.
+- `flags/<id>.svg`, `flags/licences.json`: per place with a flag, the Commons SVG as downloaded, and per id `{ file, license, artist, attributionRequired, licenseUrl }` from the Commons API (`LicenseShortName`, `Artist` with the HTML stripped, `AttributionRequired`, `LicenseUrl`). `npm run data:fetch -- --flags` reads the flag files from `wikidata.json` and the `flag` rulings in `data/curated/places.json`, fetches them one at a time with a pause (User-Agent `terra-incognita-data-pipeline`, retries on 429/5xx), writes each SVG with LF line endings (Commons serves some with CRLF or bare CR), drops snapshots of places that no longer have a flag and prints a `warn` line when a licence field of an existing flag changed.
+- `licences/`: the notice texts the build copies into `THIRD-PARTY-NOTICES.txt`, committed by hand: `unicode-license-v3.txt` (cldr-json tag `49.0.0`), `maplibre-gl-js-LICENSE.txt` (maplibre-gl-js tag `v6.19.0`; MapLibre GL JS arrives in milestone 2, bump the file with the dependency) and `mledoze-odbl-notice.txt`.
+- `fetched.json`: per source, the date of the fetch that last changed its snapshot (plus the CLDR version and the mledoze commit). A fetch that finds nothing new changes nothing.
+
 ### Curated files (`data/curated/`)
 
 Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 
 | File | Shape |
 |---|---|
-| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places; for a dependency it must match NE's `SOVEREIGNT`, the six de facto holders are rulings), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `silhouette: false` (the owner's ruling that the silhouette is unreadable; see [Silhouette contact sheet](#silhouette-contact-sheet)), `note` |
+| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places; for a dependency it must match NE's `SOVEREIGNT`, the six de facto holders are rulings), and only where needed `region` (overrides the M49 default), `flag` (`"<Commons file>"` where Wikidata's P41 is wrong or ambiguous: several flags without an end date, such as historical, civil, state or older variants; or `null` = flagless: `BLM`, `MAF`, `SPM`, `WLF`, `UMI`, `HMD`; every other place needs exactly one P41 flag, else the build fails), `capitals` (list of QIDs replacing the computed capitals; `[]` = no capital: `HMD`, `UMI`, `ATF`, `IOT`, `HKG`, `MAC`; `SHN` = Jamestown), `silhouette: false` (the owner's ruling that the silhouette is unreadable; see [Silhouette contact sheet](#silhouette-contact-sheet)), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `note` |
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
+| `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, applied to that place's capital) and `drop` (list of `{ lang, alias, why }`, plus `capital`, a QID, for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
 | `chains.json` | the island-chain overrides (see [Island chains](#island-chains)): `keep` and `drop` (id to note) and `groups` (id to a list of `{ name, bbox }`) |
 | `dropped-borders.<tier>.json` | one per tier, the reviewed dropped-border list (see [Dropped-border lists](#dropped-border-lists)): `review` (`pending` \| `accepted`) and `pairs`, keyed by the two ids sorted and joined with `-`, each with a note (names and reason) |
@@ -48,9 +60,13 @@ All sorted by id.
 | File | Shape |
 |---|---|
 | `map-sovereign.geojson`, `map-defacto.geojson`, `map-dependencies.geojson` | one map per tier: polygons, one feature per place of the tier plus Unclaimed land, `{ id, unclaimed? }`; one feature per line. 200 / 206 / 248 features |
-| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, silhouette, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `neighbours`, `mainlandNeighbours` and `microstate` each as `{ sovereign, defacto, dependencies }` |
+| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, silhouette, flag, capitals, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `flag` is `"<id>.svg"` or `null` for a flagless place; `capitals` is a list of QIDs, empty for a place outside Name the capital; `neighbours`, `mainlandNeighbours` and `microstate` each as `{ sovereign, defacto, dependencies }` |
 | `points.geojson` | one point per place (245), `{ id, speckZoom }`; one feature per line. The app filters them by tier |
 | `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): polygons, `{ id, tier, group? }`, sorted by id then group; one feature per line. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
+| `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: { qid: { en: { name, aliases[] }, de: { name, aliases[] } } } } }`, one place per line |
+| `flags/<id>.svg` | the Commons SVG with `<metadata>` and comments stripped and, where the root has none (116 of 239 do not), a `viewBox="0 0 <width> <height>"` taken from its pixel width and height; not minified |
+| `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). Nothing shows it yet (milestone 9) |
+| `THIRD-PARTY-NOTICES.txt` | Unicode License v3 (CLDR), MapLibre GL JS 6.19.0's licence in full, and the ODbL notice for mledoze/countries (`names.json` carries the matching `_license` entry) |
 | `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value. One file covers all three maps |
 
 In a tier's map, the land of each place outside the tier is part of the place its holder chain ends in (a place's holder, or the holder's holder, until one is in the tier): dependencies sit in their sovereign in the de facto and sovereign maps, and de facto places in their parent state in the sovereign map. Ids are the same in every map; Unclaimed land and the merges in `features.json` are the same in every map. Only the holders are dissolved again, so every other feature is byte-identical across the three maps.
@@ -67,17 +83,20 @@ In a tier's map, the land of each place outside the tier is part of the place it
 
 ## Build steps
 
-Step numbers follow the spec; step 6 doesn't compute island-chain outlines yet, step 10 (silhouette sheet) is described under [Silhouette contact sheet](#silhouette-contact-sheet).
+Step numbers follow the spec; step 10 (silhouette sheet) is described under [Silhouette contact sheet](#silhouette-contact-sheet).
 
 1. **Load** (`steps/load.ts`): read both NE files from the cache and verify their sha256.
 2. **Rule** (`steps/rule.ts`): erase the breakaways from their host, apply `features.json`, split `IOA`. Each place keeps NE's QID and ISO code (`ISO_A2_EH` for countries, `ISO_A2` for breakaways; a split inherits neither) and the M49 fields of the feature its land comes from.
 3. **Patch** (`steps/patch.ts`): apply `patches/` (Vatican City and the matching hole in Italy), before simplifying, so the patch is simplified like everything else.
 4. **Simplify** (`steps/simplify.ts`): explode each place into islands, simplify 14% with `keep-shapes`, dissolve per id, precision 0.001. Without the explode step only one ring per place survives. The result is the dependencies map.
 5. **Dissolve** (`steps/dissolve.ts`): for the sovereign and de facto maps, relabel each place outside the tier with the end of its holder chain (from `places.json`) and dissolve the holders, precision 0.001. A broken chain leaves the land under its own id, and the check fails on it.
-6. **Compute** (`steps/compute.ts`): each place's `bbox` from the dependencies map. Then (`steps/borders.ts`, `steps/tier-facts.ts`) per tier: the pieces of land in the tier's map and which pieces share a border segment, with the Macao–China gap bridged; `neighbours` and `microstate` from them. `steps/specks.ts`: the speck point and `speckZoom` from the dependencies map. `steps/ease.ts`: the ease rank. `steps/chains.ts`: per tier, the island chains and their outlines (see [Island chains](#island-chains)). `steps/mainland.ts`: per tier, each place's mainland and `mainlandNeighbours`; the build prints each tier's dropped borders.
+6. **Compute** (`steps/compute.ts`): each place's `bbox` from the dependencies map. Then (`steps/borders.ts`, `steps/tier-facts.ts`) per tier: the pieces of land in the tier's map and which pieces share a border segment, with the Macao–China gap bridged; `neighbours` and `microstate` from them. `steps/specks.ts`: the speck point and `speckZoom` from the dependencies map. `steps/ease.ts`: the ease rank. `steps/chains.ts`: per tier, the island chains and their outlines (see [Island chains](#island-chains)). `steps/mainland.ts`: per tier, each place's mainland and `mainlandNeighbours`. `steps/capitals.ts`: the capitals that lie inside each place's own land (see [Capitals](#capitals)).
 7. **Join** (`steps/join.ts`): tier and holder from `places.json`, `bbox` from step 6; QID, ISO code and region from the curated override, else from NE. The default region comes from NE's UN M49 fields: North America = Northern America + Central America + Caribbean; NE's "Seven seas (open ocean)" gives no region, so those places carry an override.
-8. **Check** (`check.ts`): see below. A failure stops the build before anything is written.
-9. **Write** (`steps/write.ts`): write the shipped files sorted by id, and print their sizes.
+   - **Names** (`steps/names.ts`): the display name is CLDR's for the place's ISO code, else NE's `NAME_EN` / `NAME_DE` (the breakaway layer's for carved breakaways). Aliases are added in this order and deduplicated case-insensitively: CLDR alt forms, Wikidata label, `mul` label and EN/DE altLabels, mledoze (`name.common`, `name.official`, `altSpellings`; for DE the German translation), NE's name, and `add` from `aliases.json`. Everything but the name and the hand additions is filtered: short codes ("DE", "deu"; CLDR is exempt, which keeps "UK"), machine strings (ISO 3166-2 codes, time-zone ids, strings without letters), non-Latin script, then the `drop` list. Wikidata's `mul` altLabels are not used: they mix languages and were not reviewed. The 23 reviewed aliases that Wikidata moved to `mul` after #10 (Hellas, Malvinas, Føroyar, ...) are hand additions in `aliases.json`.
+   - **Capitals** (`steps/capitals.ts`): the EN and DE names and aliases of the capitals kept in step 6 (see [Capitals](#capitals)).
+   - **Flags** (`steps/flags.ts`): a place's flag is its `flag` ruling in `places.json`, else its single P41 flag. The snapshot SVG is copied with line endings normalised to LF, `<metadata>` and comments removed and a `viewBox` added from `width`/`height` when missing; a file that still has none (other units, no size) fails the check. The credits are the flags with `attributionRequired`.
+8. **Check** (`check.ts`, `check-*.ts`): the build prints each tier's dropped borders, then the check lines; see below. A failure stops the build before anything is written.
+9. **Write** (`steps/write.ts`, and `steps/flags.ts` for the flags, credits and notices): write the shipped files sorted by id, and print their sizes.
 
 A broken reference in the curated files (a merge into a non-place, a carve whose `from` or `brkA3` doesn't exist, a split bbox that holds no part, a patch for an id without land) stops the build with an error at the step that meets it.
 
@@ -85,7 +104,7 @@ A broken reference in the curated files (a merge into a non-place, a carve whose
 
 ## Silhouette contact sheet
 
-The last build step writes `data/.review/silhouettes/index.html` (about 1 MB, gitignored, not shipped): one self-contained HTML file with all 245 silhouettes in a grid, each labelled with its id and NE name. Open it in a browser. Each silhouette is the place's own land from the dependencies map, so it is the same in every tier. It is drawn equirectangular (longitude scaled by the cosine of the middle latitude) and fitted to the place's own `bbox`, so sizes are not comparable between places; places across the antimeridian are drawn in one piece.
+The last build step writes `data/.review/silhouettes/index.html` (about 1 MB, gitignored, not shipped): one self-contained HTML file with all 245 silhouettes in a grid, each labelled with its id and EN name. Open it in a browser. Each silhouette is the place's own land from the dependencies map, so it is the same in every tier. It is drawn equirectangular (longitude scaled by the cosine of the middle latitude) and fitted to the place's own `bbox`, so sizes are not comparable between places; places across the antimeridian are drawn in one piece.
 
 The pipeline flags candidates, outlined in red with the reason under the label, by four heuristics (the spec gives no criteria): `tiny` (own land below 100 km²), `fragmented` (at least 8 pieces and the largest holds under 50% of the land), `elongated` (the bbox in the drawing is more than 5:1), `sparse` (land is under 2% of the bbox area, measured in km²; drawn nearly blank). Every piece is drawn with a minimum visible size (a 2.5 px stroke), so no cell looks empty. The build prints the flagged ids with their reasons. A flag only suggests; nothing is ruled unreadable by the build.
 
@@ -106,14 +125,18 @@ The build fails, and writes nothing, on:
 - a holder chain that does not end in a place of the tier, checked for every place outside each tier: no holder, a holder that is not a place, or a loop
 - asymmetric neighbours: in some tier a place lists another that doesn't list it back (this also catches a neighbour outside the tier, whose list there is empty)
 - a tier's dropped borders differing from `data/curated/dropped-borders.<tier>.json`, whether or not that list is reviewed yet; a missing file counts as empty. Per tier, `+` marks a pair the build drops that the list lacks, `-` a listed pair the build no longer drops
-
 - an island chain check (see [Island chains](#island-chains)): any of the 12 prototype sovereign chains missing, a tier's chains differing from the expected 16 / 0 / 15, Kiribati or St Helena not outlined in their groups, outlines overlapping outside the two accepted pairs, or a `keep` / `drop` that no longer applies
+- a place without an EN or a DE name
+- a place with capitals none of which lies inside its geometry
+- a capital without an EN or a DE name
+- a place that is not flagless without a flag SVG (no or several unruled P41 flags, a missing snapshot or licence entry, a snapshot of another file than the ruling names)
+- a flag SVG without a `viewBox`, or of 2 MiB or more
 
-It warns, without failing, on a dropped-border list whose `review` is not `accepted`.
+It warns, and still writes, on a dropped-border list whose `review` is not `accepted`, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. A new attribution-required flag, or a changed licence of one, compared with the previous `credits.json`, is a warning too (no warning when that file doesn't exist yet). Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
 
 ## Dropped-border lists
 
-A dropped border is a pair of neighbours that are not mainland neighbours. The build prints each tier's list under step 6, generated from the final geometry: the pair, the NE names (`NAME_LONG`), and the reason it finds for each side whose land at the border isn't mainland:
+A dropped border is a pair of neighbours that are not mainland neighbours. The build prints each tier's list at the start of step 8, before the check lines, generated from the final geometry: the pair, the EN names from the names step, and the reason it finds for each side whose land at the border isn't mainland:
 
 - **island landmass**: the border lies on a landmass that is neither block (Ireland, Hispaniola, Borneo, Saint Martin). Land of another place merged in for the tier is named in brackets.
 - **overseas part of X**: X's land at the border lies on the other block from X's mainland (French Guiana), or it is dependency land, named in brackets (Gibraltar).
@@ -141,6 +164,18 @@ Current chains per tier (sovereign / de facto / dependencies): 16 / 0 / 15, and 
 - Dependencies: TCA PCN PYF VIR AIA VGB CYM SHN GGY IOT COK WLF SGS ASM MNP.
 
 The `tier` of an outline is its place's tier. A tier's play uses the outlines of every place in it, as with `points.geojson`.
+
+## Capitals
+
+A place's capitals are the P36 statements of its Wikidata item (no end date, not deprecated), or the curated `capitals` list where `places.json` has one. Each capital has EN and DE names (label in the language, else `mul`, else English) and aliases (the language's altLabels only, never `mul`, filtered like place aliases, then the alias file's capital drops and additions). Only capitals that lie inside the place's own land count (D4, G8): in step 6, the P625 point is tested against the unsimplified dependencies land of that place, the same for every tier. That is why Palestine has Ramallah, Western Sahara Tifariti and Israel Jerusalem, and why East Jerusalem and Laayoune are left out. A place with no capital strictly inside falls back to the capitals within 10 km of its land, because NE's 1:10m coastline puts a few coastal and atoll capitals (Funafuti, Tarawa, Banjul) in the sea; each one is printed as an `info` line. A place whose capitals are all farther out stops the build: rule it with `capitals` in `places.json`.
+
+## Updating the name sources
+
+`npm run data:fetch -- --wikidata` (or `--cldr`, `--mledoze`), then `npm run data:build`. Read the warnings and the diff of `data/sources/` and `public/data/names.json`: new aliases from Wikidata arrive unreviewed. Bump `cldrVersion` in `scripts/data/sources/cldr.ts` or `mledozeCommit` in `scripts/data/sources/mledoze.ts` to move those pins.
+
+## Updating the flags
+
+`npm run data:fetch -- --flags`, then `npm run data:build`. Read the `warn` lines of both (licence changes, new attribution-required files) and the diff of `data/sources/flags/` and `public/data/credits.json`. A flag that needs attribution is shown in the footer once milestone 9 lands; check its `Artist` text. A Commons SVG without a `viewBox` fails the build: pick another file with `flag` in `data/curated/places.json`. A new P41 flag on Wikidata that makes a place ambiguous also fails it: rule its `flag` there.
 
 ## Updating Natural Earth
 
