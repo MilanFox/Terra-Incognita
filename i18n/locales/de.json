@@ -30,10 +30,19 @@
     "optionName": "{name}, {places}",
     "unavailableOptionName": "{name}, {places}, nicht verfügbar",
     "groups": {
+      "variant": "Fragen nach",
       "region": "Region",
       "tier": "Stufe",
       "deckSize": "Orte pro Runde"
     },
+    "variants": {
+      "flag": "Flagge",
+      "name": "Name",
+      "both": "Flagge und Name"
+    },
+    "easy": "Einfacher Modus",
+    "easyOn": "An",
+    "easyOff": "Aus",
     "regions": {
       "world": "Welt",
       "Africa": "Afrika",
@@ -74,7 +83,8 @@
     "right": "Richtig",
     "wrong": "Falsch",
     "youTapped": "Getippt: {place}",
-    "next": "Weiter"
+    "next": "Weiter",
+    "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche"
   },
   "results": {
     "title": "Runde geschafft",

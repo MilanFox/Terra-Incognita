@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeckSize, Mode, RegionChoice, RoundSetup, Tier } from '#shared/game/game';
+import type { DeckSize, Mode, RegionChoice, RoundSetup, Tier, Variant } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ setup: RoundSetup }>();
@@ -18,6 +18,11 @@ const countText = (count: number) => t('setup.places', { count }, count);
 
 const accessibleName = (name: string, count: number, isAvailable: boolean) =>
   t(isAvailable ? 'setup.optionName' : 'setup.unavailableOptionName', { name, places: countText(count) });
+
+const variantOptions = computed(() => choices.value.variants.map(({ value, count, isAvailable }) => {
+  const label = t(`setup.variants.${value}`);
+  return { value, label, detail: String(count), accessibleName: accessibleName(label, count, isAvailable), isAvailable };
+}));
 
 const regionOptions = computed(() => choices.value.regions.map(({ value, count, isAvailable }) => {
   const label = t(`setup.regions.${value}`);
@@ -107,6 +112,13 @@ defineExpose({ element: tray });
 
     <div class="setup-tray__rows">
       <RadioTiles
+        :label="$t('setup.groups.variant')"
+        :options="variantOptions"
+        :model-value="setup.variant"
+        @update:model-value="change({ variant: $event as Variant })"
+      />
+
+      <RadioTiles
         :label="$t('setup.groups.region')"
         :options="regionOptions"
         :model-value="setup.region"
@@ -126,6 +138,22 @@ defineExpose({ element: tray });
         :model-value="setup.deckSize"
         @update:model-value="change({ deckSize: $event as DeckSize })"
       />
+
+      <button
+        type="button"
+        role="switch"
+        class="tile setup-tray__switch"
+        :aria-checked="setup.easy"
+        @click="change({ easy: !setup.easy })"
+      >
+        <span>{{ $t('setup.easy') }}</span>
+
+        <span
+          class="setup-tray__switch-state"
+          :class="{ 'setup-tray__switch-state--on': setup.easy }"
+          aria-hidden="true"
+        >{{ setup.easy ? $t('setup.easyOn') : $t('setup.easyOff') }}</span>
+      </button>
     </div>
 
     <div class="setup-tray__play">
@@ -185,6 +213,31 @@ defineExpose({ element: tray });
   &__rows {
     display: grid;
     gap: 12px;
+  }
+
+  &__switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 52px;
+    padding: 0 16px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  &__switch-state {
+    min-width: 52px;
+    padding: 4px 10px;
+    border: 2px solid $color-ink;
+    border-radius: 4px;
+    background: $color-sand;
+    font-size: 14px;
+    text-align: center;
+
+    &--on {
+      background: $color-green;
+      color: $color-paper;
+    }
   }
 
   &__play {

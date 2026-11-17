@@ -30,10 +30,19 @@
     "optionName": "{name}, {places}",
     "unavailableOptionName": "{name}, {places}, unavailable",
     "groups": {
+      "variant": "Ask by",
       "region": "Region",
       "tier": "Tier",
       "deckSize": "Places per round"
     },
+    "variants": {
+      "flag": "Flag",
+      "name": "Name",
+      "both": "Flag and name"
+    },
+    "easy": "Easy mode",
+    "easyOn": "On",
+    "easyOff": "Off",
     "regions": {
       "world": "World",
       "Africa": "Africa",
@@ -74,7 +83,8 @@
     "right": "Right",
     "wrong": "Wrong",
     "youTapped": "You tapped: {place}",
-    "next": "Next"
+    "next": "Next",
+    "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left"
   },
   "results": {
     "title": "Round complete",

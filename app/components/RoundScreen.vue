@@ -12,6 +12,10 @@ const cellMarks: Record<ProgressCell, string> = { right: '✓', wrong: '✗', cu
 
 const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
 
+const isNameShown = computed(() => props.state.setup.variant !== 'flag' || props.state.phase === 'verdict');
+const isFlagShown = computed(() => props.state.setup.variant !== 'name');
+const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
+
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 </script>
 
@@ -47,10 +51,34 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
       :style="{ '--fade': fade }"
     >
       <p class="kicker prompt-card__kicker">
-        {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : $t('round.findPrompt') }}
+        {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : isRetrying ? $t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft) : $t('round.findPrompt') }}
       </p>
 
-      <p class="prompt-card__place">{{ placeName(state.placeId) }}</p>
+      <img
+        v-if="isFlagShown"
+        :src="`/data/flags/${state.placeId}.svg`"
+        alt=""
+        class="prompt-card__flag"
+      />
+
+      <p
+        v-if="isNameShown"
+        class="prompt-card__place"
+      >
+        {{ placeName(state.placeId) }}
+      </p>
+
+      <i18n-t
+        v-if="state.phase === 'prompt' && isRetrying"
+        keypath="round.youTapped"
+        tag="p"
+        class="prompt-card__tapped"
+        scope="global"
+      >
+        <template #place>
+          <s>{{ placeName(state.wrongTapPlaceIds.at(-1)!) }}</s>
+        </template>
+      </i18n-t>
 
       <template v-if="state.phase === 'verdict'">
         <i18n-t
@@ -187,6 +215,16 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     font-weight: 900;
     line-height: 1.02;
     letter-spacing: -0.01em;
+  }
+
+  &__flag {
+    justify-self: start;
+    width: auto;
+    max-width: 100%;
+    height: 72px;
+    object-fit: contain;
+    margin-block: 4px;
+    border: 1.5px solid $color-ink;
   }
 
   &__tapped {

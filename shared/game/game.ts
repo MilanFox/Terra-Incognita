@@ -2,6 +2,7 @@ export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
 export type Mode = 'find';
 
+export type Variant = 'flag' | 'name' | 'both';
 export type DeckSize = 10 | 'all';
 export type RegionChoice = Region | 'world';
 
@@ -10,14 +11,16 @@ export interface Place {
   tier: Tier
   region: Region
   holder?: string
+  flag: string | null
 }
 
 export interface RoundSetup {
   mode: Mode
-  variant: 'name'
+  variant: Variant
   region: RegionChoice
   tier: Tier
   deckSize: DeckSize
+  easy: boolean
 }
 
 export interface Choice<Value> {
@@ -27,6 +30,7 @@ export interface Choice<Value> {
 }
 
 export interface SetupChoices {
+  variants: Choice<Variant>[]
   regions: Choice<RegionChoice>[]
   tiers: Choice<Tier>[]
   deckSizes: Choice<DeckSize>[]
@@ -54,6 +58,7 @@ export const rightAnswerFadeMs = 300;
 export const rightAnswerAdvanceMs = rightAnswerHoldMs + rightAnswerFadeMs;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
+const easyAttempts = 3;
 const setupStorageKey = 'ti:setup';
 
 export type Outcome = 'right' | 'wrong';
@@ -70,6 +75,8 @@ interface RoundInPlay {
   deckSize: number
   promptNumber: number
   placeId: string
+  attemptsLeft: number
+  wrongTapPlaceIds: string[]
   score: number
   progress: ProgressCell[]
 }
@@ -85,6 +92,7 @@ type Phase = GameState['phase'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
+const variantChoices: Variant[] = ['flag', 'name', 'both'];
 
 interface StoredSetups {
   lastMode: Mode
@@ -93,11 +101,12 @@ interface StoredSetups {
 
 const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier);
 
-const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
+const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
 
 const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
   const stored = value as Partial<RoundSetup> | null;
-  return stored?.mode === mode && stored.variant === 'name'
+  return stored?.mode === mode && variantChoices.includes(stored.variant as Variant)
+    && typeof stored.easy === 'boolean'
     && regionChoices.includes(stored.region as RegionChoice)
     && tiersInOrder.includes(stored.tier as Tier)
     && deckSizeChoices.includes(stored.deckSize as DeckSize);
@@ -122,10 +131,12 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   let answers: Answer[] = [];
   let promptIndex = 0;
   let answeredAt = 0;
+  let wrongTapPlaceIds: string[] = [];
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
+    .filter(place => poolSetup.variant === 'name' || place.flag !== null)
     .map(({ id }) => id);
 
   const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
@@ -135,6 +146,7 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const choicesFor = (chosen: RoundSetup): SetupChoices => {
     const poolSize = poolSizeOf(chosen);
     return {
+      variants: variantChoices.map(variant => choiceOf(variant, poolSizeOf({ ...chosen, variant }))),
       regions: regionChoices.map(region => choiceOf(region, poolSizeOf({ ...chosen, region }))),
       tiers: tiersInOrder.map(tier => choiceOf(tier, poolSizeOf({ ...chosen, tier }))),
       deckSizes: deckSizeChoices.map(deckSize => choiceOf(deckSize, deckSize === 'all' ? poolSize : Math.min(deckSize, poolSize))),
@@ -169,12 +181,14 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
     return tapped.id;
   };
 
+  const attemptsAllowed = () => (setup.easy ? easyAttempts : 1);
+
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
     if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers] };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
-    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, score, progress };
+    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
@@ -184,6 +198,7 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
     setup = roundSetup;
     deck = shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize);
     answers = [];
+    wrongTapPlaceIds = [];
     promptIndex = 0;
     phase = 'prompt';
     rememberSetup(roundSetup);
@@ -192,6 +207,10 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const answer = (tappedPlaceId: string) => {
     const placeId = deck[promptIndex]!;
     const answeredPlaceId = answeredAs(tappedPlaceId);
+    if (answeredPlaceId !== placeId && wrongTapPlaceIds.length + 1 < attemptsAllowed()) {
+      wrongTapPlaceIds = [...wrongTapPlaceIds, answeredPlaceId];
+      return;
+    }
     answers = [...answers, { placeId, tappedPlaceId: answeredPlaceId, outcome: answeredPlaceId === placeId ? 'right' : 'wrong' }];
     answeredAt = clock();
     phase = 'verdict';
@@ -202,6 +221,7 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const advance = () => {
     if (promptIndex + 1 < deck.length) {
       promptIndex += 1;
+      wrongTapPlaceIds = [];
       phase = 'prompt';
     }
     else {

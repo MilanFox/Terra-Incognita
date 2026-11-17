@@ -60,10 +60,10 @@ const resultsOf = (game: RoundGame) => {
 const sovereignIds = places.filter(({ tier }) => tier === 'sovereign').map(({ id }) => id);
 
 describe('first-time setup', () => {
-  it('is the whole world, sovereign tier and 10 prompts by name', () => {
+  it('is the whole world, sovereign tier, 10 prompts by flag and Easy mode off', () => {
     const game = startGame();
 
-    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
+    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
   });
 
   it('draws on a pool of the 197 sovereign places', () => {
@@ -248,7 +248,7 @@ describe('scoring', () => {
 
 const gameOver = (placesInPlay = places, storage = memoryStorage()) => createGame({ places: placesInPlay, random: seededRandom(3), clock: () => Date.UTC(2026, 10, 17), storage });
 
-const setupOf = (game: ReturnType<typeof gameOver>, changes: Partial<RoundSetup>): RoundSetup => ({ ...game.setupFor('find'), ...changes });
+const setupOf = (game: ReturnType<typeof gameOver>, changes: Partial<RoundSetup>): RoundSetup => ({ ...game.setupFor('find'), variant: 'name', ...changes });
 
 describe('the pool', () => {
   it('grows by tier: 197 sovereign, 203 with de facto, 245 with dependencies', () => {
@@ -332,12 +332,12 @@ describe('setup choices', () => {
 });
 
 describe('remembered setup', () => {
-  const europeanSetup = { mode: 'find', variant: 'name', region: 'Europe', tier: 'defacto', deckSize: 'all' } as const;
+  const europeanSetup = { mode: 'find', variant: 'name', region: 'Europe', tier: 'defacto', deckSize: 'all', easy: true } as const;
 
   it('starts from the first-time setup with nothing stored', () => {
     const game = gameOver();
 
-    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
+    expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
     expect(game.lastSetup()).toBeUndefined();
   });
 
@@ -359,7 +359,7 @@ describe('remembered setup', () => {
   it('falls back to the first-time setup when the stored one is damaged', () => {
     const storage = memoryStorage();
     storage.setItem('ti:setup', '{"lastMode":"find","setups":{"find":{"mode":"find","region":"Atlantis"}}}');
-    expect(gameOver(places, storage).setupFor('find')).toEqual({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
+    expect(gameOver(places, storage).setupFor('find')).toEqual({ mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false });
 
     storage.setItem('ti:setup', 'not json');
     expect(gameOver(places, storage).lastSetup()).toBeUndefined();
@@ -408,5 +408,101 @@ describe('merged land', () => {
 
     game.send({ type: 'tap', placeId: 'DNK' });
     expect(game.state).toMatchObject({ answer: { placeId: 'GRL', tappedPlaceId: 'DNK', outcome: 'wrong' } });
+  });
+});
+
+describe('variants', () => {
+  const flaglessIds = places.filter(({ flag }) => flag === null).map(({ id }) => id);
+  const variantsWithFlags = ['flag', 'both'] as const;
+
+  it('leave flagless places out of the flag variants in every tier, and keep them in by name', () => {
+    const game = gameOver();
+    const sizes = (variant: RoundSetup['variant']) => (['sovereign', 'defacto', 'dependencies'] as const)
+      .map(tier => game.poolOf(setupOf(game, { variant, tier })).length);
+
+    expect(flaglessIds).toHaveLength(6);
+    expect(sizes('name')).toEqual([197, 203, 245]);
+    for (const variant of variantsWithFlags) {
+      expect(sizes(variant)).toEqual([197, 203, 239]);
+      expect(game.poolOf(setupOf(game, { variant, tier: 'dependencies' }))).not.toContain('WLF');
+      expect(flaglessIds.every(id => !game.poolOf(setupOf(game, { variant, tier: 'dependencies' })).includes(id))).toBe(true);
+    }
+    expect(game.poolOf(setupOf(game, { tier: 'dependencies' }))).toContain('WLF');
+  });
+
+  it('show the real count in the choices', () => {
+    const game = gameOver();
+    const dependenciesByFlag = setupOf(game, { variant: 'flag', tier: 'dependencies', deckSize: 'all' });
+
+    expect(game.choicesFor(dependenciesByFlag).playCount).toBe(239);
+    expect(game.choicesFor(dependenciesByFlag).variants).toEqual([
+      { value: 'flag', count: 239, isAvailable: true },
+      { value: 'name', count: 245, isAvailable: true },
+      { value: 'both', count: 239, isAvailable: true },
+    ]);
+  });
+
+  it('never mix within a round: every prompt of the round carries the round\'s variant', () => {
+    const game = gameOver();
+    game.send({ type: 'start', setup: setupOf(game, { variant: 'both', tier: 'dependencies', deckSize: 'all' }) });
+    const askedPlaceIds: string[] = [];
+    while (game.state.phase === 'prompt') {
+      expect(game.state.setup.variant).toBe('both');
+      askedPlaceIds.push(game.state.placeId);
+      game.send({ type: 'tap', placeId: game.state.placeId });
+      game.send({ type: 'next' });
+    }
+
+    expect(askedPlaceIds).toHaveLength(239);
+    expect(askedPlaceIds.some(id => flaglessIds.includes(id))).toBe(false);
+    expect(resultsOf(game).setup.variant).toBe('both');
+  });
+});
+
+describe('Easy mode', () => {
+  const startEasy = (easy: boolean) => {
+    const game = gameOver();
+    game.send({ type: 'start', setup: setupOf(game, { easy }) });
+    return game;
+  };
+
+  it('is off by default and marks the round as easy when on', () => {
+    expect(gameOver().setupFor('find').easy).toBe(false);
+    expect(startEasy(true).state).toMatchObject({ phase: 'prompt', setup: { easy: true } });
+    expect(startEasy(false).state).toMatchObject({ phase: 'prompt', setup: { easy: false }, attemptsLeft: 1 });
+  });
+
+  it('allows three attempts per prompt: two wrong taps stay on the prompt, the third wrong tap answers', () => {
+    const game = startEasy(true);
+    const placeId = promptedPlaceId(game);
+    const wrongPlaceId = someOtherPlaceId(placeId);
+
+    game.send({ type: 'tap', placeId: wrongPlaceId });
+    expect(game.state).toMatchObject({ phase: 'prompt', attemptsLeft: 2, wrongTapPlaceIds: [wrongPlaceId], promptNumber: 1 });
+    game.send({ type: 'tap', placeId: wrongPlaceId });
+    expect(game.state).toMatchObject({ phase: 'prompt', attemptsLeft: 1, score: 0 });
+    game.send({ type: 'tap', placeId: wrongPlaceId });
+
+    expect(game.state).toMatchObject({ phase: 'verdict', score: 0, answer: { placeId, tappedPlaceId: wrongPlaceId, outcome: 'wrong' } });
+  });
+
+  it('counts a right tap on a later attempt as right, and gives the next prompt three fresh attempts', () => {
+    const game = startEasy(true);
+    const placeId = promptedPlaceId(game);
+
+    game.send({ type: 'tap', placeId: someOtherPlaceId(placeId) });
+    game.send({ type: 'tap', placeId });
+    expect(game.state).toMatchObject({ phase: 'verdict', score: 1, answer: { outcome: 'right' } });
+
+    game.send({ type: 'next' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2, attemptsLeft: 3, wrongTapPlaceIds: [] });
+  });
+
+  it('gives one attempt with Easy mode off', () => {
+    const game = startEasy(false);
+
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+
+    expect(game.state).toMatchObject({ phase: 'verdict', answer: { outcome: 'wrong' } });
   });
 });
