@@ -3,6 +3,7 @@ import { checkCapitals } from './check-capitals.ts';
 import { chainChecks } from './check-chains.ts';
 import { droppedBorderNotes, droppedBordersMatch, printDroppedBorders } from './check-dropped-borders.ts';
 import { checkFlags } from './check-flags.ts';
+import { geometryChanged, idChecks } from './check-versions.ts';
 import { checkNames } from './check-names.ts';
 import { neighboursAreSymmetric } from './check-neighbours.ts';
 import { readCurated } from './curated.ts';
@@ -24,10 +25,14 @@ import { silhouetteSheet, writeSilhouetteSheet } from './steps/silhouettes.ts';
 import { simplify } from './steps/simplify.ts';
 import { speckPoints } from './steps/specks.ts';
 import { tierFacts } from './steps/tier-facts.ts';
+import { readIdChanges, readPreviousOutput, readSourceStamps, writeVersion } from './steps/version.ts';
 import { write } from './steps/write.ts';
 import type { ShippedPlace } from './steps/write.ts';
 
 const step = (name: string) => console.log(name);
+
+const previousOutput = readPreviousOutput();
+const idChanges = readIdChanges();
 
 step('1 load Natural Earth from the cache');
 const naturalEarth = load();
@@ -92,12 +97,13 @@ const namesCheck = checkNames(names, places.map(({ id }) => id), unusedDrops);
 const capitalsCheck = checkCapitals({ candidates, capitals, coastal, ...capitalJoin });
 const flagsCheck = checkFlags(flagJoin, flagSources);
 lines.push(...namesCheck.lines, ...capitalsCheck.lines, ...flagsCheck.lines);
+lines.push(...idChecks(previousOutput, places.map(({ id }) => id), idChanges));
 for (const { label, failures } of lines) {
   console.log(`  ${failures.length ? 'FAIL' : 'ok  '}  ${label}`);
   for (const failure of failures) console.log(`          ${failure}`);
 }
 for (const info of capitalsCheck.infos) console.log(`  info  ${info}`);
-const warnings = [...droppedBordersCheck.warnings, ...namesCheck.warnings, ...capitalsCheck.warnings, ...flagsCheck.warnings];
+const warnings = [...droppedBordersCheck.warnings, ...namesCheck.warnings, ...capitalsCheck.warnings, ...flagsCheck.warnings, ...geometryChanged(previousOutput, maps)];
 for (const warning of warnings) console.log(`  warn  ${warning}`);
 if (lines.some(({ failures }) => failures.length)) {
   console.error('The check failed: nothing was written.');
@@ -114,8 +120,9 @@ const shippedPlaces = places.map(({ bbox, ...place }): ShippedPlace => ({
   ease: ease.get(place.id)!,
   ...placeTierFacts.get(place.id)!,
 }));
-write({ maps, places: shippedPlaces, points, chainOutlines: chains.outlines, names, version: { ne: naturalEarth.release, counts: countByTier(places) } });
+write({ maps, places: shippedPlaces, points, chainOutlines: chains.outlines, names });
 writeFlagFiles(flagJoin);
+writeVersion(previousOutput, { ne: naturalEarth.release, counts: countByTier(places), sources: readSourceStamps(), ...idChanges });
 
 step('10 write the silhouette contact sheet for review');
 writeSilhouetteSheet(silhouetteSheet(maps.dependencies, places, names));

@@ -1,8 +1,17 @@
 {
+  "dataVersion": 1,
   "ne": "5.1.2",
+  "builtAt": "2026-11-17",
   "counts": {
     "sovereign": 197,
     "defacto": 6,
     "dependencies": 42
-  }
+  },
+  "sources": {
+    "cldr": "49",
+    "wikidataDate": "2026-11-17",
+    "flagsDate": "2026-11-17"
+  },
+  "idMoves": {},
+  "removed": {}
 }

@@ -49,6 +49,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 | `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, applied to that place's capital) and `drop` (list of `{ lang, alias, why }`, plus `capital`, a QID, for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
 | `chains.json` | the island-chain overrides (see [Island chains](#island-chains)): `keep` and `drop` (id to note) and `groups` (id to a list of `{ name, bbox }`) |
+| `id-changes.json` | `{ idMoves: { "<version>": { old: new } }, removed: { "<version>": [id] } }`, copied whole into `version.json` (see [Data versions](#data-versions)) |
 | `dropped-borders.<tier>.json` | one per tier, the reviewed dropped-border list (see [Dropped-border lists](#dropped-border-lists)): `review` (`pending` \| `accepted`) and `pairs`, keyed by the two ids sorted and joined with `-`, each with a note (names and reason) |
 
 Ids are NE's `ADM0_A3`. Carved breakaways use their NE `BRK_A3` (`B35` Abkhazia, `B36` Transnistria, `B37` South Ossetia); NE's `IOA` is split into `CXR` and `CCK`.
@@ -67,7 +68,7 @@ All sorted by id.
 | `flags/<id>.svg` | the Commons SVG with `<metadata>` and comments stripped and, where the root has none (116 of 239 do not), a `viewBox="0 0 <width> <height>"` taken from its pixel width and height; not minified |
 | `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). Nothing shows it yet (milestone 9) |
 | `THIRD-PARTY-NOTICES.txt` | Unicode License v3 (CLDR), MapLibre GL JS 6.19.0's licence in full, and the ODbL notice for mledoze/countries (`names.json` carries the matching `_license` entry) |
-| `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value. One file covers all three maps |
+| `version.json` | `{ dataVersion, ne, builtAt, counts, sources: { cldr, wikidataDate, flagsDate }, idMoves, removed }`; counts are places per `tier` value. One file covers all three maps. See [Data versions](#data-versions) |
 
 In a tier's map, the land of each place outside the tier is part of the place its holder chain ends in (a place's holder, or the holder's holder, until one is in the tier): dependencies sit in their sovereign in the de facto and sovereign maps, and de facto places in their parent state in the sovereign map. Ids are the same in every map; Unclaimed land and the merges in `features.json` are the same in every map. Only the holders are dissolved again, so every other feature is byte-identical across the three maps.
 
@@ -131,8 +132,25 @@ The build fails, and writes nothing, on:
 - a capital without an EN or a DE name
 - a place that is not flagless without a flag SVG (no or several unruled P41 flags, a missing snapshot or licence entry, a snapshot of another file than the ruling names)
 - a flag SVG without a `viewBox`, or of 2 MiB or more
+- an id of the previous `places.json` (the one on disk) that is neither present, nor a key of this version's `idMoves`, nor in this version's `removed`
+- an `idMoves` target of this version that is not a place
 
-It warns, and still writes, on a dropped-border list whose `review` is not `accepted`, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. A new attribution-required flag, or a changed licence of one, compared with the previous `credits.json`, is a warning too (no warning when that file doesn't exist yet). Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
+It warns, and still writes, on geometry that changed since the last version (any `map-<tier>.geojson` differing from the one on disk), on a dropped-border list whose `review` is not `accepted`, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. A new attribution-required flag, or a changed licence of one, compared with the previous `credits.json`, is a warning too (no warning when that file doesn't exist yet). Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
+
+## Data versions
+
+`dataVersion` in `public/data/version.json` is an incrementing integer, never bumped by hand. Step 9 writes `version.json` last: if any other shipped file (the maps, places, points, chain outlines, names, flags, credits, notices) or any `version.json` field besides `dataVersion` and `builtAt` differs from what is on disk, `dataVersion` is the old value plus 1 and `builtAt` is today's date; otherwise both stay, so a rebuild with no change is byte-identical. "Committed files" means the shipped files on disk that the build overwrites, not `git show HEAD:`: rebuilding after a revert therefore bumps again (a change and its revert are two versions) unless the files were restored first. The first build with these fields starts at 1.
+
+`sources` is read from `data/sources/fetched.json`: the CLDR version and the dates of the Wikidata and flags snapshots. Those dates move only when that source's snapshot content changed, so a fetch that finds nothing new changes nothing.
+
+Triggers, same flow each time: NE release (bump the pin, fetch, build), source drift (fetch, build), curated edit (build). The build fails on anything unruled; rule it, rebuild, review the diff, commit, deploy.
+
+An id that disappears must be ruled in `data/curated/id-changes.json`, under the version the build is about to produce (the current `dataVersion` + 1, which the check names in its line):
+
+- moved or merged: `idMoves["<version>"]["OLD"] = "NEW"` (several olds may share one new; a split lists each old id once, with the id that keeps the player's history)
+- gone for good: add the id to `removed["<version>"]`
+
+Targets must exist. The app applies `idMoves` in order for each version a player is missing (D17); `removed` records are kept but hidden. Adding an entry is itself a change of output, so it lands in the same bump. The whole file is copied into `version.json`, so the history stays shipped.
 
 ## Dropped-border lists
 
@@ -180,3 +198,17 @@ A place's capitals are the P36 statements of its Wikidata item (no end date, not
 ## Updating Natural Earth
 
 Bump `naturalEarthRelease` and both sha256 values in `scripts/data/sources/natural-earth.ts`, run `npm run data:fetch -- --ne`, then `npm run data:build`. The build fails on anything unruled; rule it in `data/curated/`, rebuild, and review the diff of `public/data/`.
+
+## Drift workflow
+
+`.github/workflows/data-drift.yml` re-fetches the sources that drift. It runs on the 1st of every month at 06:00 UTC and on demand (Actions → Data drift → Run workflow).
+
+It fetches Natural Earth from the pin (a cache of `data/.cache`, not a bump), then Wikidata, CLDR and the flags, then runs `npm run data:build`. The flags fetch takes 12 to 25 minutes. Natural Earth bumps stay manual (see above).
+
+- **Nothing changed and the check passed**: no branch, no PR.
+- **Anything changed, or the check failed**: the changes are committed to the fixed branch `data-drift` (force-pushed) and a PR to `main` is opened. If a drift PR is already open, its branch and body are updated instead of opening a second one. A failed check writes nothing in `public/data/`, so such a PR carries only the snapshot changes, and the run is marked failed.
+- **PR body**: diff summary, the `version.json` diff, the full check output with its `warn` and `info` lines, and a checklist including "rulings changed → update About the map copy".
+
+To review, read the warnings and the diff of `data/sources/` and `public/data/`. If the build failed, check out `data-drift`, rule what is unruled in `data/curated/` (plus `idMoves` / `removed`), run `npm run data:build`, and push to the branch. Then merge by hand. Nothing merges automatically. Checks do not start on the PR by themselves, because pushes made with `GITHUB_TOKEN` do not trigger workflows; push an extra commit if you want them.
+
+One-time repo setting: Settings → Actions → General → Workflow permissions → enable "Allow GitHub Actions to create and approve pull requests". Without it the PR step fails after the push.
