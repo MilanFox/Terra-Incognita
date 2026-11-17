@@ -1,0 +1,112 @@
+name: Data drift
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: data-drift
+  cancel-in-progress: false
+
+env:
+  DRIFT_BRANCH: data-drift
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/cache@v4
+        with:
+          path: data/.cache
+          key: natural-earth-${{ hashFiles('scripts/data/sources/natural-earth.ts') }}
+
+      - name: Fetch Natural Earth from the pin
+        run: npm run data:fetch -- --ne
+
+      - name: Fetch drifting sources
+        run: npm run data:fetch -- --wikidata --cldr --flags
+
+      - name: Build
+        run: |
+          set +e
+          npm run data:build 2>&1 | tee "$RUNNER_TEMP/build-output.txt"
+          if [ "${PIPESTATUS[0]}" -eq 0 ]; then echo 0 > "$RUNNER_TEMP/build-status"; else echo 1 > "$RUNNER_TEMP/build-status"; fi
+
+      - name: Open or update the drift PR
+        run: |
+          set -euo pipefail
+          build_failed=$(cat "$RUNNER_TEMP/build-status")
+          git add -A
+          if git diff --cached --quiet && [ "$build_failed" -eq 0 ]; then
+            echo "Nothing changed and the check passed: no PR."
+            exit 0
+          fi
+
+          if [ "$build_failed" -eq 1 ]; then
+            headline='**The build check failed and nothing was written.** The snapshot changes below are the sources as fetched.'
+          else
+            headline='The build check passed.'
+          fi
+
+          {
+            echo "$headline"
+            echo
+            echo '## Diff summary'
+            echo '```'
+            git diff --cached --stat=100 | head -c 12000
+            echo '```'
+            echo
+            echo '## Data version'
+            echo '```diff'
+            git diff --cached -U0 -- public/data/version.json | head -c 3000
+            echo '```'
+            echo
+            echo '## Check output and warnings'
+            echo '```'
+            tail -c 30000 "$RUNNER_TEMP/build-output.txt"
+            echo '```'
+            echo
+            echo '## Checklist'
+            echo '- [ ] Warnings read (names, geometry, licences, attribution)'
+            echo '- [ ] Diff of `data/sources/` and `public/data/` reviewed'
+            echo '- [ ] Anything unruled is ruled in `data/curated/` (plus `idMoves` / `removed`) and the build is green'
+            echo '- [ ] rulings changed → update About the map copy'
+            echo
+            echo "Opened by the Data drift workflow, run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Never merged automatically."
+          } > "$RUNNER_TEMP/pr-body.md"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$DRIFT_BRANCH"
+          git commit --allow-empty -m 'Data drift: refetched sources and rebuilt data'
+          git push --force origin "$DRIFT_BRANCH"
+
+          open_pr_number=$(gh pr list --head "$DRIFT_BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open_pr_number" ]; then
+            gh pr edit "$open_pr_number" --body-file "$RUNNER_TEMP/pr-body.md"
+          else
+            gh pr create --base "${GITHUB_REF_NAME}" --head "$DRIFT_BRANCH" \
+              --title 'Data drift' --body-file "$RUNNER_TEMP/pr-body.md"
+          fi
+
+          if [ "$build_failed" -eq 1 ]; then
+            echo 'The build check failed; see the PR.'
+            exit 1
+          fi
