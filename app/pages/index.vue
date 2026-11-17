@@ -9,7 +9,6 @@ import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegio
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
-const homeSelectedPlaceId = ref<string | null>(null);
 const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
@@ -37,8 +36,6 @@ const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !setupDraft.value);
 const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
-const selectedPlaceId = computed(() => game.state.phase === 'home' ? homeSelectedPlaceId.value : null);
-
 const shownTier = computed(() => setupDraft.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
 const poolPlaceIds = computed(() => setupDraft.value ? game.poolOf(setupDraft.value) : null);
 const frameRegion = computed(() => setupDraft.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
@@ -64,11 +61,9 @@ const isMapInert = computed(() => !!setupDraft.value || isSettingsOpen.value || 
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
-  else if (placeId) homeSelectedPlaceId.value = placeId;
 };
 
 const openSetup = (mode: Mode) => {
-  homeSelectedPlaceId.value = null;
   setupDraft.value = game.setupFor(mode);
 };
 
@@ -79,7 +74,6 @@ const closeSetup = async () => {
 };
 
 const play = async (setup: RoundSetup | undefined) => {
-  homeSelectedPlaceId.value = null;
   setupDraft.value = null;
   if (setup) game.play(setup);
   await nextTick();
@@ -175,7 +169,6 @@ onMounted(game.load);
     <WorldMap
       v-if="game.isReady"
       ref="worldMap"
-      :selected-place-id="selectedPlaceId"
       :verdict="verdict"
       :result-places="resultPlaces"
       :fade="answerFade"
