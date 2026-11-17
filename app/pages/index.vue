@@ -5,6 +5,7 @@ import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
 import { usePlayFeedback } from '~/composables/usePlayFeedback';
+import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -21,6 +22,16 @@ const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.el
 const isSettingsOpen = ref(false);
 
 usePlayFeedback(() => game.state);
+
+const { message: liveMessage, announce } = useLiveRegion();
+useRoundAnnouncements(() => game.state, announce);
+
+const foundPlaceIds = ref<string[]>([]);
+watch(() => game.state, (state) => {
+  if (state.phase === 'verdict' && state.answer.outcome === 'right') foundPlaceIds.value.push(state.answer.placeId);
+  else if (state.phase === 'home' || state.phase === 'results') foundPlaceIds.value = [];
+});
+const isRoundPlay = computed(() => game.state.phase === 'prompt' || game.state.phase === 'verdict');
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !setupDraft.value);
@@ -135,7 +146,11 @@ onMounted(game.load);
         v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict')"
         :state="game.state"
         :fade="answerFade"
+        :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+        :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
         @next="next"
+        @zoom-in="worldMap?.zoomIn()"
+        @zoom-out="worldMap?.zoomOut()"
       />
     </Transition>
 
@@ -168,9 +183,21 @@ onMounted(game.load);
       :frame-region="frameRegion"
       :frame-inset="frameInset"
       :inert="isMapInert"
+      :is-round-play="isRoundPlay"
+      :found-place-ids="foundPlaceIds"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
+      @announce="announce"
     />
+
+    <div
+      class="visually-hidden"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{ liveMessage }}
+    </div>
 
     <StartupLoader
       :is-map-drawn="isMapDrawn"

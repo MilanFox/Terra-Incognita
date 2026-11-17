@@ -159,11 +159,12 @@ onMounted(() => title.value?.focus());
 <style scoped lang="scss">
 .settings-tray {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   max-width: 520px;
   max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px);
   margin-inline: auto;
-  overflow-y: auto;
+  overflow: hidden auto;
 
   &__top {
     display: flex;
@@ -179,6 +180,7 @@ onMounted(() => title.value?.focus());
 
   &__title {
     margin: 0;
+    overflow-wrap: anywhere;
     font-family: $font-serif;
     font-size: 32px;
     font-weight: 900;
@@ -194,6 +196,8 @@ onMounted(() => title.value?.focus());
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     min-height: 56px;
     padding: 0 16px;
     font-size: 18px;
@@ -228,7 +232,7 @@ onMounted(() => title.value?.focus());
 
   &__languages {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
     gap: 12px;
   }
 

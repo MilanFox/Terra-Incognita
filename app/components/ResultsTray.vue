@@ -149,15 +149,17 @@ defineExpose({ element: tray });
 <style scoped lang="scss">
 .results-tray {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   max-width: 520px;
   max-height: calc(100% - env(safe-area-inset-top, 0px) - 72px);
   margin-inline: auto;
-  overflow-y: auto;
+  overflow: hidden auto;
   overscroll-behavior: contain;
 
   &__title {
     margin: 0;
+    overflow-wrap: anywhere;
     font-family: $font-serif;
     font-size: 32px;
     font-weight: 900;
@@ -167,7 +169,7 @@ defineExpose({ element: tray });
 
   &__stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
     gap: 8px;
   }
 
@@ -209,6 +211,7 @@ defineExpose({ element: tray });
     margin: 0;
     color: $color-muted;
     font-size: 14px;
+    overflow-wrap: anywhere;
   }
 
   &__actions {

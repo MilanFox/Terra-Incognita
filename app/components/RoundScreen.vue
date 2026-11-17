@@ -2,8 +2,8 @@
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number }>();
-const emit = defineEmits<{ next: [] }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const emit = defineEmits<{ next: [], zoomIn: [], zoomOut: [] }>();
 
 const { locale } = useI18n();
 const game = useGameStore();
@@ -224,6 +224,57 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         </div>
       </div>
     </div>
+
+    <div
+      class="zoom-tiles"
+      :inert="isConfirming"
+    >
+      <button
+        type="button"
+        class="tile zoom-tile"
+        :aria-label="$t('zoom.in')"
+        :aria-disabled="isAtMaxZoom || undefined"
+        @click="!isAtMaxZoom && emit('zoomIn')"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 5v14M5 12h14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.8"
+            stroke-linecap="square"
+          />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="tile zoom-tile"
+        :aria-label="$t('zoom.out')"
+        :aria-disabled="isAtMinZoom || undefined"
+        @click="!isAtMinZoom && emit('zoomOut')"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+        >
+          <path
+            d="M5 12h14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.8"
+            stroke-linecap="square"
+          />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -233,7 +284,13 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
   z-index: 1;
   inset: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 10px) auto calc(env(safe-area-inset-left, 0px) + 10px);
   display: grid;
+  align-content: start;
   gap: 14px;
+  max-height: calc(100% - env(safe-area-inset-top, 0px) - 10px);
+  padding-bottom: 6px;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 10px;
   pointer-events: none;
 
   .tile {
@@ -243,10 +300,11 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 
 .round-hud {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 
   &__progress {
-    flex: 1;
+    flex: 1 1 160px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -261,6 +319,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     place-items: center;
     flex: none;
     width: 44px;
+    min-height: 44px;
     padding: 0;
 
     &:active {
@@ -384,6 +443,26 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     font-family: $font-serif;
     font-size: 19px;
     font-weight: 800;
+  }
+}
+
+.zoom-tiles {
+  display: grid;
+  gap: 8px;
+  justify-self: end;
+}
+
+.zoom-tile {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+
+  &[aria-disabled='true'] {
+    border-style: dashed;
+    background: $color-paper;
+    box-shadow: none;
+    color: $color-muted;
   }
 }
 

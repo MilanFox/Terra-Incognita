@@ -187,11 +187,14 @@ defineExpose({ element: tray });
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
   }
 
   &__title {
+    min-width: 0;
     margin: 0;
+    overflow-wrap: anywhere;
     font-family: $font-serif;
     font-size: 26px;
     font-weight: 900;
@@ -201,6 +204,7 @@ defineExpose({ element: tray });
 
   &__actions {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 8px;
   }

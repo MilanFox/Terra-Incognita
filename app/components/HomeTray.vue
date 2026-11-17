@@ -349,7 +349,7 @@ defineExpose({
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
     gap: 12px;
     margin-top: 18px;
   }
@@ -375,7 +375,7 @@ defineExpose({
   text-align: left;
 
   &.play-again-tile {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     width: 100%;
     min-height: 0;
@@ -404,6 +404,7 @@ defineExpose({
   &__text {
     display: grid;
     gap: 4px;
+    min-width: 0;
   }
 
   &__name {
@@ -411,6 +412,7 @@ defineExpose({
     font-size: 22px;
     font-weight: 800;
     line-height: 1;
+    overflow-wrap: anywhere;
   }
 
   &__subtitle {

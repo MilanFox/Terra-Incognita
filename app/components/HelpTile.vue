@@ -114,7 +114,10 @@ const handleKeydown = (event: KeyboardEvent) => {
   display: grid;
   gap: 12px;
   width: min(100%, 420px);
+  max-height: 100%;
   padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: $color-paper;
 
   &__title {

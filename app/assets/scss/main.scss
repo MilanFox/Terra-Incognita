@@ -4,6 +4,16 @@
   box-sizing: border-box;
 }
 
+html {
+  font-size: 100%;
+}
+
+@supports (font: -apple-system-body) {
+  html {
+    font: -apple-system-body;
+  }
+}
+
 body {
   margin: 0;
   font-family: $font-sans;
