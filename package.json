@@ -12,9 +12,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit && tsc --noEmit -p scripts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "data:fetch": "node scripts/data/fetch.ts",
+    "data:build": "node scripts/data/build.ts",
     "prepare": "husky || true"
   },
   "dependencies": {
@@ -34,6 +36,7 @@
     "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "lint-staged": "^17.1.0",
+    "mapshaper": "0.8.4",
     "postcss-pxtorem": "^6.1.0",
     "sass": "^1.97.3",
     "typescript": "^6.0.3",

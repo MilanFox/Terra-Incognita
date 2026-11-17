@@ -1,0 +1,7 @@
+{
+  "B35": { "from": "GEO", "source": "breakaway", "brkA3": "B35", "note": "Abkhazia" },
+  "B36": { "from": "MDA", "source": "breakaway", "brkA3": "B36", "note": "Transnistria" },
+  "B37": { "from": "GEO", "source": "breakaway", "brkA3": "B37", "note": "South Ossetia" },
+  "CCK": { "from": "IOA", "source": "split", "bbox": [96.5, -12.5, 97.2, -11.5], "note": "Cocos (Keeling) Islands" },
+  "CXR": { "from": "IOA", "source": "split", "bbox": [105.3, -10.8, 106, -10.2], "note": "Christmas Island" }
+}

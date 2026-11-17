@@ -73,4 +73,16 @@ export default withNuxt([
       '@stylistic/semi': ['error', 'always'],
     },
   },
+  {
+    files: ['scripts/**'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      'no-unused-vars': 'off',
+    },
+  },
 ]);

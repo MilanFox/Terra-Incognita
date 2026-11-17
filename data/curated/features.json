@@ -1,0 +1,19 @@
+{
+  "ATA": { "action": "unclaimed", "note": "Antarctica" },
+  "ATC": { "action": "merge", "into": "AUS", "note": "Ashmore and Cartier Islands; no own ISO 3166-1 code" },
+  "BJN": { "action": "drop", "note": "Bajo Nuevo Bank" },
+  "BRI": { "action": "merge", "into": "BRA", "note": "Brazilian Island" },
+  "BRT": { "action": "unclaimed", "note": "Bir Tawil" },
+  "CLP": { "action": "merge", "into": "FRA", "note": "Clipperton; no own ISO 3166-1 code" },
+  "CNM": { "action": "merge", "into": "CYP", "note": "Cyprus UN buffer zone" },
+  "CSI": { "action": "merge", "into": "AUS", "note": "Coral Sea Islands; no own ISO 3166-1 code" },
+  "ESB": { "action": "merge", "into": "CYP", "note": "Dhekelia" },
+  "KAB": { "action": "merge", "into": "KAZ", "note": "Baikonur; lease = host" },
+  "KAS": { "action": "merge", "into": "IND", "note": "Siachen Glacier" },
+  "PGA": { "action": "drop", "note": "Spratly Islands; NE mislabels the feature as Wake Island (NAME_EN, QID Q43296)" },
+  "SCR": { "action": "drop", "note": "Scarborough Reef" },
+  "SER": { "action": "drop", "note": "Serranilla Bank" },
+  "SPI": { "action": "unclaimed", "note": "Southern Patagonian Ice Field" },
+  "USG": { "action": "merge", "into": "CUB", "note": "Guantánamo; lease = host" },
+  "WSB": { "action": "merge", "into": "CYP", "note": "Akrotiri" }
+}
