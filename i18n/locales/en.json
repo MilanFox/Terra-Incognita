@@ -7,5 +7,11 @@
     "message": "A new version is available.",
     "reload": "Reload",
     "dismiss": "Later"
+  },
+  "loader": {
+    "status": "Loading the map"
+  },
+  "map": {
+    "label": "World map"
   }
 }

@@ -7,5 +7,11 @@
     "message": "Eine neue Version ist verfügbar.",
     "reload": "Neu laden",
     "dismiss": "Später"
+  },
+  "loader": {
+    "status": "Karte wird geladen"
+  },
+  "map": {
+    "label": "Weltkarte"
   }
 }

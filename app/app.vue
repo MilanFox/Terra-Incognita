@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useStartupRevealed } from '~/composables/useStartupRevealed';
+
 const { t, locale } = useI18n();
+const isStartupRevealed = useStartupRevealed();
 
 useHead({
   htmlAttrs: { lang: locale },
@@ -12,5 +15,5 @@ useHead({
 
   <NuxtPage />
 
-  <UpdateToast />
+  <UpdateToast v-if="isStartupRevealed" />
 </template>

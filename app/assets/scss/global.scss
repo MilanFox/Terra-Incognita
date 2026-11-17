@@ -10,6 +10,9 @@ Only use it for variables and light-weight stuff.
 $color-primary: #2563eb;
 $color-text: #111827;
 $color-surface: #ffffff;
+$color-paper: #faf8f3;
+$color-ink: #141414;
+$color-mustard: #f2c14e;
 
 $spacing-xs: 4px;
 $spacing-sm: 8px;
@@ -20,6 +23,8 @@ $spacing-xl: 64px;
 $font-size-sm: 14px;
 $font-size-md: 16px;
 $font-size-lg: 20px;
+
+$font-serif: ui-serif, 'New York', Georgia, serif;
 
 /* Breakpoints — mobile-first, use via respond(). */
 
