@@ -17,6 +17,10 @@
   "home": {
     "label": "Spielen"
   },
+  "homeTray": {
+    "showAll": "Alle Modi zeigen",
+    "showFewer": "Weniger anzeigen"
+  },
   "modes": {
     "find": {
       "name": "Landfall",

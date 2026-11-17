@@ -217,7 +217,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => map?.remove());
 
-defineExpose({ focus: () => map?.getCanvas().focus() });
+defineExpose({ focus: () => map?.getCanvas().focus(), getMap: () => map });
 </script>
 
 <template>
