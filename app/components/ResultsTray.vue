@@ -1,25 +1,71 @@
 <script setup lang="ts">
-import type { GameState, Outcome } from '#shared/game/game';
+import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-defineProps<{ state: Extract<GameState, { phase: 'results' }> }>();
-const emit = defineEmits<{ leave: [] }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'results' }> }>();
+const emit = defineEmits<{ playAgain: [], changeSetup: [], leave: [] }>();
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const game = useGameStore();
 
 const titleId = useId();
+const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 
-const cellMarks: Record<Outcome, string> = { right: '✓', wrong: '✗' };
+type ResultOutcome = 'right' | 'wrong' | 'missed';
 
-onMounted(() => title.value?.focus());
+const cellMarks: Record<ResultOutcome, string> = { right: '✓', wrong: '✗', missed: '–' };
+
+const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
+
+const resultCells = computed(() => [
+  ...props.state.answers.map(({ placeId, outcome }) => ({ placeId, outcome: outcome as ResultOutcome })),
+  ...props.state.missedPlaceIds.map(placeId => ({ placeId, outcome: 'missed' as ResultOutcome })),
+]);
+
+const wrongCount = computed(() => props.state.answers.length - props.state.score);
+
+const statTiles = computed(() => [
+  { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) },
+  { label: t('results.wrongCount'), value: String(wrongCount.value) },
+  { label: t('results.unreachedCount'), value: String(props.state.missedPlaceIds.length) },
+]);
+
+const unreachedNames = computed(() => props.state.missedPlaceIds.map(placeName).join(', '));
+
+const focusableTiles = () => [...tray.value!.querySelectorAll<HTMLElement>('button')];
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    emit('leave');
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const tiles = focusableTiles();
+  const first = tiles[0]!;
+  const last = tiles.at(-1)!;
+  const active = document.activeElement;
+  const isLeaving = event.shiftKey ? active === first || active === title.value : active === last;
+  if (!tray.value!.contains(active) || isLeaving) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+};
+
+onMounted(() => title.value?.focus({ preventScroll: true }));
+
+defineExpose({ element: tray });
 </script>
 
 <template>
   <section
+    ref="tray"
     class="tray results-tray"
+    role="dialog"
+    aria-modal="true"
     :aria-labelledby="titleId"
+    @keydown="handleKeydown"
   >
     <h2
       :id="titleId"
@@ -27,50 +73,88 @@ onMounted(() => title.value?.focus());
       class="results-tray__title"
       tabindex="-1"
     >
-      {{ $t('results.title') }}
+      {{ state.isComplete ? $t('results.title') : $t('results.titleEnded') }}
     </h2>
 
-    <div class="tile results-tray__score">
-      <span
-        class="results-tray__score-value"
-        aria-hidden="true"
-      >{{ state.score }}<small>/{{ state.deckSize }}</small></span>
+    <div class="results-tray__stats">
+      <div
+        v-for="(stat, index) in statTiles"
+        :key="stat.label"
+        class="tile results-tray__stat"
+        :style="{ '--index': index }"
+      >
+        <span
+          class="results-tray__stat-value"
+          :aria-hidden="stat.text ? true : undefined"
+        >{{ stat.value }}<small v-if="stat.total">/{{ stat.total }}</small></span>
 
-      <span class="visually-hidden">{{ $t('results.scoreText', { score: state.score, total: state.deckSize }) }}</span>
+        <span
+          v-if="stat.text"
+          class="visually-hidden"
+        >{{ stat.text }}</span>
 
-      <span
-        class="kicker results-tray__score-label"
-        aria-hidden="true"
-      >{{ $t('results.score') }}</span>
+        <span class="kicker results-tray__stat-label">{{ stat.label }}</span>
+      </div>
     </div>
 
     <ol class="results-tray__cells">
       <li
-        v-for="answer in state.answers"
-        :key="answer.placeId"
+        v-for="(cell, index) in resultCells"
+        :key="cell.placeId"
         class="result-cell"
-        :class="`result-cell--${answer.outcome}`"
+        :class="`result-cell--${cell.outcome}`"
+        :style="{ '--index': index }"
       >
-        <span aria-hidden="true">{{ cellMarks[answer.outcome] }}</span>
+        <span aria-hidden="true">{{ cellMarks[cell.outcome] }}</span>
 
-        <span class="visually-hidden">{{ $t(`results.${answer.outcome}`, { place: game.nameOf(answer.placeId, locale) }) }}</span>
+        <span class="visually-hidden">{{ $t(`results.${cell.outcome}`, { place: placeName(cell.placeId) }) }}</span>
       </li>
     </ol>
 
-    <button
-      type="button"
-      class="tile results-tray__home"
-      @click="emit('leave')"
+    <p
+      v-if="state.missedPlaceIds.length"
+      class="results-tray__unreached"
     >
-      {{ $t('results.home') }}
-    </button>
+      {{ $t('results.unreachedList', { places: unreachedNames }) }}
+    </p>
+
+    <div class="results-tray__actions">
+      <button
+        type="button"
+        class="tile results-tray__play-again"
+        @click="emit('playAgain')"
+      >
+        {{ $t('results.playAgain') }}
+      </button>
+
+      <button
+        type="button"
+        class="tile results-tray__secondary"
+        @click="emit('changeSetup')"
+      >
+        {{ $t('results.changeSetup') }}
+      </button>
+
+      <button
+        type="button"
+        class="tile results-tray__secondary"
+        @click="emit('leave')"
+      >
+        {{ $t('results.home') }}
+      </button>
+    </div>
   </section>
 </template>
 
 <style scoped lang="scss">
 .results-tray {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  max-width: 520px;
+  max-height: calc(100% - env(safe-area-inset-top, 0px) - 72px);
+  margin-inline: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   &__title {
     margin: 0;
@@ -81,15 +165,22 @@ onMounted(() => title.value?.focus());
     letter-spacing: -0.01em;
   }
 
-  &__score {
-    justify-self: start;
+  &__stats {
     display: grid;
-    gap: 4px;
-    padding: 10px 14px 8px;
-    box-shadow: 0 3px 0 $color-ink;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 
-  &__score-value {
+  &__stat {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px 8px;
+    box-shadow: 0 3px 0 $color-ink;
+    animation: stat-in 360ms cubic-bezier(0.2, 1.15, 0.4, 1) backwards;
+    animation-delay: calc(280ms + var(--index) * 90ms);
+  }
+
+  &__stat-value {
     font-family: $font-serif;
     font-size: 28px;
     font-weight: 900;
@@ -100,7 +191,7 @@ onMounted(() => title.value?.focus());
     }
   }
 
-  &__score-label {
+  &__stat-label {
     color: $color-muted;
     font-size: 11px;
   }
@@ -114,11 +205,28 @@ onMounted(() => title.value?.focus());
     list-style: none;
   }
 
-  &__home {
-    min-height: 56px;
+  &__unreached {
+    margin: 0;
+    color: $color-muted;
+    font-size: 14px;
+  }
+
+  &__actions {
+    display: grid;
+    gap: 8px;
+  }
+
+  &__play-again,
+  &__secondary {
+    min-height: 52px;
     font-family: $font-serif;
     font-size: 20px;
     font-weight: 800;
+  }
+
+  &__play-again {
+    background: $color-green;
+    color: $color-surface;
   }
 }
 
@@ -132,6 +240,8 @@ onMounted(() => title.value?.focus());
   color: $color-surface;
   font-size: 16px;
   font-weight: 800;
+  animation: cell-flip 320ms ease-out backwards;
+  animation-delay: calc(520ms + var(--index) * 40ms);
 
   &--right {
     background: $color-green;
@@ -139,6 +249,29 @@ onMounted(() => title.value?.focus());
 
   &--wrong {
     background: $color-brick;
+  }
+
+  &--missed {
+    background: $color-sand;
+    color: $color-ink;
+  }
+}
+
+@keyframes stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes cell-flip {
+  from { transform: rotateX(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .results-tray__stat,
+  .result-cell {
+    animation: none;
   }
 }
 </style>

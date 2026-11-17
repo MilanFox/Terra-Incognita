@@ -15,6 +15,53 @@ const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && pr
 const isNameShown = computed(() => props.state.setup.variant !== 'flag' || props.state.phase === 'verdict');
 const isFlagShown = computed(() => props.state.setup.variant !== 'name');
 const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
+const flipOutMs = 140;
+const flipInMs = 160;
+const prefersReducedMotion = usePreferredReducedMotion();
+const isConfirming = computed(() => props.state.isConfirmingEnd);
+const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
+const flipPhase = ref<'out' | 'in' | null>(null);
+const keepPlayingTile = useTemplateRef<HTMLButtonElement>('keepPlayingTile');
+const closeTile = useTemplateRef<HTMLButtonElement>('closeTile');
+const endLineId = useId();
+let flipTimer: ReturnType<typeof setTimeout> | undefined;
+
+const showFace = async (face: 'card' | 'end') => {
+  shownFace.value = face;
+  await nextTick();
+  if (face === 'end') keepPlayingTile.value?.focus();
+};
+
+watch(isConfirming, (confirming) => {
+  const face = confirming ? 'end' : 'card';
+  clearTimeout(flipTimer);
+  if (prefersReducedMotion.value === 'reduce') {
+    showFace(face);
+    return;
+  }
+  flipPhase.value = 'out';
+  flipTimer = setTimeout(() => {
+    showFace(face);
+    flipPhase.value = 'in';
+    flipTimer = setTimeout(() => flipPhase.value = null, flipInMs);
+  }, flipOutMs);
+});
+
+const askEnd = () => game.send({ type: 'askEnd' });
+
+const keepPlaying = async () => {
+  game.send({ type: 'keepPlaying' });
+  await nextTick();
+  closeTile.value?.focus();
+};
+
+useEventListener(document, 'keydown', (event) => {
+  if (event.key !== 'Escape' || !isConfirming.value) return;
+  event.preventDefault();
+  keepPlaying();
+});
+
+onBeforeUnmount(() => clearTimeout(flipTimer));
 
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 </script>
@@ -42,66 +89,140 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
       >
         <span aria-hidden="true">{{ state.score }}<small>/{{ state.deckSize }}</small></span>
       </div>
+
+      <HelpTile :mode="state.setup.mode" />
+
+      <button
+        ref="closeTile"
+        type="button"
+        class="tile round-hud__end"
+        :class="isConfirming && 'round-hud__end--active'"
+        :aria-label="$t('endRound.open')"
+        @click="isConfirming ? keepPlaying() : askEnd()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 6l12 12M18 6L6 18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="square"
+          />
+        </svg>
+      </button>
     </div>
 
     <div
-      :key="state.promptNumber"
-      class="tile prompt-card"
-      :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving']"
-      :style="{ '--fade': fade }"
+      class="card-flip"
+      :class="flipPhase && `card-flip--${flipPhase}`"
     >
-      <p class="kicker prompt-card__kicker">
-        {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : isRetrying ? $t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft) : $t('round.findPrompt') }}
-      </p>
-
-      <img
-        v-if="isFlagShown"
-        :src="`/data/flags/${state.placeId}.svg`"
-        alt=""
-        class="prompt-card__flag"
-      />
-
-      <p
-        v-if="isNameShown"
-        class="prompt-card__place"
+      <div
+        v-show="shownFace === 'card'"
+        :key="state.promptNumber"
+        class="tile prompt-card"
+        :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving']"
+        :style="{ '--fade': fade }"
       >
-        {{ placeName(state.placeId) }}
-      </p>
+        <p class="kicker prompt-card__kicker">
+          {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : isRetrying ? $t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft) : $t('round.findPrompt') }}
+        </p>
 
-      <i18n-t
-        v-if="state.phase === 'prompt' && isRetrying"
-        keypath="round.youTapped"
-        tag="p"
-        class="prompt-card__tapped"
-        scope="global"
-      >
-        <template #place>
-          <s>{{ placeName(state.wrongTapPlaceIds.at(-1)!) }}</s>
-        </template>
-      </i18n-t>
+        <img
+          v-if="isFlagShown"
+          :src="`/data/flags/${state.placeId}.svg`"
+          alt=""
+          class="prompt-card__flag"
+        />
 
-      <template v-if="state.phase === 'verdict'">
+        <p
+          v-if="isNameShown"
+          class="prompt-card__place"
+        >
+          {{ placeName(state.placeId) }}
+        </p>
+
         <i18n-t
-          v-if="state.answer.outcome === 'wrong'"
+          v-if="state.phase === 'prompt' && isRetrying"
           keypath="round.youTapped"
           tag="p"
           class="prompt-card__tapped"
           scope="global"
         >
           <template #place>
-            <s>{{ placeName(state.answer.tappedPlaceId) }}</s>
+            <s>{{ placeName(state.wrongTapPlaceIds.at(-1)!) }}</s>
           </template>
         </i18n-t>
 
-        <button
-          v-if="state.answer.outcome === 'wrong'"
-          type="button"
-          class="tile prompt-card__next"
-          @click="emit('next')"
+        <template v-if="state.phase === 'verdict'">
+          <i18n-t
+            v-if="state.answer.outcome === 'wrong'"
+            keypath="round.youTapped"
+            tag="p"
+            class="prompt-card__tapped"
+            scope="global"
+          >
+            <template #place>
+              <s>{{ placeName(state.answer.tappedPlaceId) }}</s>
+            </template>
+          </i18n-t>
+
+          <button
+            v-if="state.answer.outcome === 'wrong'"
+            type="button"
+            class="tile prompt-card__next"
+            @click="emit('next')"
+          >
+            {{ $t('round.next') }}
+          </button>
+        </template>
+      </div>
+
+      <div
+        v-if="shownFace === 'end'"
+        class="tile end-card"
+        role="alertdialog"
+        aria-modal="true"
+        :aria-labelledby="`${endLineId}-title`"
+        :aria-describedby="endLineId"
+      >
+        <h2
+          :id="`${endLineId}-title`"
+          class="end-card__title"
         >
-          {{ $t('round.next') }}
-        </button>
-      </template>
+          {{ $t('endRound.title') }}
+        </h2>
+
+        <p
+          :id="endLineId"
+          class="end-card__line"
+        >
+          {{ $t('endRound.line') }}
+        </p>
+
+        <div class="end-card__actions">
+          <button
+            type="button"
+            class="tile end-card__confirm"
+            @click="game.send({ type: 'end' })"
+          >
+            {{ $t('endRound.confirm') }}
+          </button>
+
+          <button
+            ref="keepPlayingTile"
+            type="button"
+            class="tile end-card__keep"
+            @click="keepPlaying"
+          >
+            {{ $t('endRound.keepPlaying') }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -133,6 +254,24 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     min-height: 44px;
     padding: 6px 8px;
     box-shadow: 0 3px 0 $color-ink;
+  }
+
+  &__end {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    padding: 0;
+
+    &:active {
+      transform: none;
+      box-shadow: 0 4px 0 $color-ink;
+    }
+
+    &--active {
+      background: $color-brick;
+      color: $color-surface;
+    }
   }
 
   &__score {
@@ -246,6 +385,65 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     font-size: 19px;
     font-weight: 800;
   }
+}
+
+.card-flip {
+  &--out {
+    animation: flip-out 140ms ease-in forwards;
+  }
+
+  &--in {
+    animation: flip-in 160ms ease-out;
+  }
+}
+
+.end-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px 14px;
+
+  &__title {
+    margin: 0;
+    font-family: $font-serif;
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.02;
+  }
+
+  &__line {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  &__confirm,
+  &__keep {
+    flex: 1 1 140px;
+    min-height: 48px;
+    font-family: $font-serif;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  &__confirm {
+    background: $color-brick;
+    color: $color-surface;
+  }
+}
+
+@keyframes flip-out {
+  to { transform: rotateX(90deg); }
+}
+
+@keyframes flip-in {
+  from { transform: rotateX(90deg); }
 }
 
 @keyframes flip-right {

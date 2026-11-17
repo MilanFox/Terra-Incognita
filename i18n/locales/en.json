@@ -73,7 +73,8 @@
   "modes": {
     "find": {
       "name": "Landfall",
-      "subtitle": "Find on the map"
+      "subtitle": "Find on the map",
+      "help": "You're shown a place by its name, its flag or both, and tap it on the map. Right answers move on by themselves; after a wrong one the map shows the real place and you press Next. You get one try per place (three with Easy mode), and places you haven't reached when you end the round count as missed."
     }
   },
   "round": {
@@ -92,7 +93,14 @@
     "scoreText": "{score} of {total} right",
     "right": "{place}: right",
     "wrong": "{place}: wrong",
-    "home": "Main menu"
+    "home": "Main menu",
+    "titleEnded": "Round ended",
+    "wrongCount": "Wrong",
+    "unreachedCount": "Not reached",
+    "missed": "{place}: not reached",
+    "unreachedList": "Not reached: {places}",
+    "playAgain": "Play again",
+    "changeSetup": "Change setup"
   },
   "settings": {
     "open": "Settings",
@@ -107,5 +115,17 @@
       "en": "English",
       "de": "Deutsch"
     }
+  },
+  "endRound": {
+    "open": "End round",
+    "title": "End round?",
+    "line": "Unreached places count as missed.",
+    "confirm": "End round",
+    "keepPlaying": "Keep playing"
+  },
+  "help": {
+    "open": "Help",
+    "title": "How to play: {mode}",
+    "close": "Close"
   }
 }

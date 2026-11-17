@@ -13,9 +13,11 @@ const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
 const setupTray = useTemplateRef('setupTray');
+const resultsTray = useTemplateRef('resultsTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element);
+const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 
 usePlayFeedback(() => game.state);
@@ -31,6 +33,23 @@ const poolPlaceIds = computed(() => setupDraft.value ? game.poolOf(setupDraft.va
 const frameRegion = computed(() => setupDraft.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
+
+const resultPlaces = computed(() => {
+  if (game.state.phase !== 'results') return null;
+  const { answers, missedPlaceIds } = game.state;
+  return [
+    ...answers.map(({ placeId, outcome }) => ({ placeId, outcome })),
+    ...missedPlaceIds.map(placeId => ({ placeId, outcome: 'missed' as const })),
+  ];
+});
+
+const frameInset = computed(() => {
+  if (setupDraft.value) return setupTrayHeight.value;
+  return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
+});
+
+const isMapInert = computed(() => !!setupDraft.value || isSettingsOpen.value || game.state.phase === 'results'
+  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && game.state.isConfirmingEnd));
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
@@ -48,16 +67,28 @@ const closeSetup = async () => {
   homeTray.value?.focusModeTile();
 };
 
-const play = (setup: RoundSetup | undefined) => {
+const play = async (setup: RoundSetup | undefined) => {
   homeSelectedPlaceId.value = null;
   setupDraft.value = null;
   if (setup) game.play(setup);
+  await nextTick();
   worldMap.value?.focus();
 };
 
 const next = () => {
   game.send({ type: 'next' });
   worldMap.value?.focus();
+};
+
+const playAgainFromResults = () => {
+  if (game.state.phase === 'results') play(game.state.setup);
+};
+
+const changeSetup = () => {
+  if (game.state.phase !== 'results') return;
+  const { mode } = game.state.setup;
+  game.send({ type: 'leave' });
+  openSetup(mode);
 };
 
 const closeSettings = async () => {
@@ -111,7 +142,10 @@ onMounted(game.load);
     <Transition name="tray">
       <ResultsTray
         v-if="isShellReady && game.state.phase === 'results'"
+        ref="resultsTray"
         :state="game.state"
+        @play-again="playAgainFromResults"
+        @change-setup="changeSetup"
         @leave="leave"
       />
     </Transition>
@@ -127,12 +161,13 @@ onMounted(game.load);
       ref="worldMap"
       :selected-place-id="selectedPlaceId"
       :verdict="verdict"
+      :result-places="resultPlaces"
       :fade="answerFade"
       :tier="shownTier"
       :pool-place-ids="poolPlaceIds"
       :frame-region="frameRegion"
-      :frame-inset="setupDraft ? setupTrayHeight : 0"
-      :inert="!!setupDraft || isSettingsOpen"
+      :frame-inset="frameInset"
+      :inert="isMapInert"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
     />

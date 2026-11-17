@@ -51,6 +51,9 @@ export type GameEvent
     | { type: 'tap', placeId?: string }
     | { type: 'next' }
     | { type: 'tick' }
+    | { type: 'askEnd' }
+    | { type: 'keepPlaying' }
+    | { type: 'end' }
     | { type: 'leave' };
 
 export const rightAnswerHoldMs = 1000;
@@ -79,13 +82,14 @@ interface RoundInPlay {
   wrongTapPlaceIds: string[]
   score: number
   progress: ProgressCell[]
+  isConfirmingEnd: boolean
 }
 
 export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
-    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[] };
+    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean };
 
 type Phase = GameState['phase'];
 
@@ -132,6 +136,8 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   let promptIndex = 0;
   let answeredAt = 0;
   let wrongTapPlaceIds: string[] = [];
+  let isConfirmingEnd = false;
+  let isComplete = true;
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
@@ -186,9 +192,9 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
-    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers] };
+    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
-    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress };
+    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
@@ -200,6 +206,8 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
     answers = [];
     wrongTapPlaceIds = [];
     promptIndex = 0;
+    isConfirmingEnd = false;
+    isComplete = true;
     phase = 'prompt';
     rememberSetup(roundSetup);
   };
@@ -229,8 +237,26 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
     }
   };
 
+  const keepPlaying = () => {
+    isConfirmingEnd = false;
+    if (phase === 'verdict' && answers[promptIndex]!.outcome === 'right') answeredAt = clock();
+  };
+
+  const end = () => {
+    isConfirmingEnd = false;
+    isComplete = false;
+    phase = 'results';
+  };
+
   const send = (event: GameEvent) => {
-    if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
+    const isInRound = phase === 'prompt' || phase === 'verdict';
+    if (isInRound && isConfirmingEnd) {
+      if (event.type === 'keepPlaying') keepPlaying();
+      else if (event.type === 'end') end();
+      else return;
+    }
+    else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
+    else if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'tap' && phase === 'prompt' && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
     else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
