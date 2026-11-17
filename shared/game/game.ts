@@ -27,9 +27,15 @@ export interface GameDependencies {
 
 export type GameEvent
   = | { type: 'start', setup: RoundSetup }
-    | { type: 'tap', placeId: string }
+    | { type: 'tap', placeId?: string }
     | { type: 'next' }
+    | { type: 'tick' }
     | { type: 'leave' };
+
+export const rightAnswerHoldMs = 1000;
+export const rightAnswerFadeMs = 300;
+export const rightAnswerAdvanceMs = rightAnswerHoldMs + rightAnswerFadeMs;
+const tapSkipGuardMs = 150;
 
 export type Outcome = 'right' | 'wrong';
 export type ProgressCell = Outcome | 'current' | 'pending';
@@ -52,7 +58,7 @@ interface RoundInPlay {
 export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
-    | { phase: 'verdict', answer: Answer } & RoundInPlay
+    | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
     | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[] };
 
 type Phase = GameState['phase'];
@@ -72,7 +78,7 @@ const shuffled = <T>(items: readonly T[], random: () => number) => {
   return deck;
 };
 
-export const createGame = ({ places, random }: GameDependencies) => {
+export const createGame = ({ places, random, clock }: GameDependencies) => {
   const placeIds = new Set(places.map(({ id }) => id));
 
   let phase: Phase = 'home';
@@ -80,6 +86,7 @@ export const createGame = ({ places, random }: GameDependencies) => {
   let deck: string[] = [];
   let answers: Answer[] = [];
   let promptIndex = 0;
+  let answeredAt = 0;
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
@@ -92,7 +99,7 @@ export const createGame = ({ places, random }: GameDependencies) => {
     if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers] };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
     const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, score, progress };
-    return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, ...roundInPlay } : { phase, ...roundInPlay };
+    return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
   let state = snapshot();
@@ -108,8 +115,11 @@ export const createGame = ({ places, random }: GameDependencies) => {
   const answer = (tappedPlaceId: string) => {
     const placeId = deck[promptIndex]!;
     answers = [...answers, { placeId, tappedPlaceId, outcome: tappedPlaceId === placeId ? 'right' : 'wrong' }];
+    answeredAt = clock();
     phase = 'verdict';
   };
+
+  const isRightAnswerDue = () => answers[promptIndex]?.outcome === 'right' && clock() - answeredAt >= rightAnswerAdvanceMs;
 
   const advance = () => {
     if (promptIndex + 1 < deck.length) {
@@ -123,8 +133,10 @@ export const createGame = ({ places, random }: GameDependencies) => {
 
   const send = (event: GameEvent) => {
     if (event.type === 'start' && (phase === 'home' || phase === 'results')) start(event.setup);
-    else if (event.type === 'tap' && phase === 'prompt' && placeIds.has(event.placeId)) answer(event.placeId);
+    else if (event.type === 'tap' && phase === 'prompt' && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
+    else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
+    else if (event.type === 'tick' && phase === 'verdict' && isRightAnswerDue()) advance();
     else if (event.type === 'leave' && phase === 'results') phase = 'home';
     else return;
     state = snapshot();

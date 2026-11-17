@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 
@@ -8,16 +9,15 @@ const homeSelectedPlaceId = ref<string | null>(null);
 const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
+const answerFade = useRightAnswerFade();
 
-const selectedPlaceId = computed(() => {
-  const { state } = game;
-  if (state.phase === 'home') return homeSelectedPlaceId.value;
-  return state.phase === 'verdict' ? state.answer.tappedPlaceId : null;
-});
+const selectedPlaceId = computed(() => game.state.phase === 'home' ? homeSelectedPlaceId.value : null);
 
-const handleTap = (placeId: string) => {
-  if (game.state.phase === 'home') homeSelectedPlaceId.value = placeId;
-  else game.send({ type: 'tap', placeId });
+const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
+
+const handleTap = (placeId?: string) => {
+  if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
+  else if (placeId) homeSelectedPlaceId.value = placeId;
 };
 
 const play = () => {
@@ -52,6 +52,7 @@ onMounted(game.load);
       <RoundScreen
         v-else-if="game.state.phase === 'prompt' || game.state.phase === 'verdict'"
         :state="game.state"
+        :fade="answerFade"
         @next="next"
       />
 
@@ -65,6 +66,8 @@ onMounted(game.load);
     <WorldMap
       ref="worldMap"
       :selected-place-id="selectedPlaceId"
+      :verdict="verdict"
+      :fade="answerFade"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
     />

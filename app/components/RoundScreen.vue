@@ -2,13 +2,15 @@
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }> }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number }>();
 const emit = defineEmits<{ next: [] }>();
 
 const { locale } = useI18n();
 const game = useGameStore();
 
 const cellMarks: Record<ProgressCell, string> = { right: '✓', wrong: '✗', current: '', pending: '' };
+
+const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
 
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 </script>
@@ -39,8 +41,10 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     </div>
 
     <div
+      :key="state.promptNumber"
       class="tile prompt-card"
-      :class="state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`"
+      :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving']"
+      :style="{ '--fade': fade }"
     >
       <p class="kicker prompt-card__kicker">
         {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : $t('round.findPrompt') }}
@@ -62,6 +66,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         </i18n-t>
 
         <button
+          v-if="state.answer.outcome === 'wrong'"
           type="button"
           class="tile prompt-card__next"
           @click="emit('next')"
@@ -155,12 +160,24 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
   gap: 4px;
   padding: 12px 16px 14px;
 
-  &--right &__kicker {
-    color: $color-green;
+  &--right {
+    background: color-mix(in srgb, $color-surface calc(var(--fade) * 100%), $color-green);
+    color: $color-surface;
+    animation: flip-right 640ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  &--wrong &__kicker {
-    color: $color-brick;
+  &--right > * {
+    opacity: calc(1 - var(--fade));
+  }
+
+  &--wrong {
+    background: $color-brick;
+    color: $color-surface;
+    animation: shake 340ms ease-out;
+  }
+
+  &--arriving {
+    animation: content-in 420ms ease-out;
   }
 
   &__place {
@@ -190,6 +207,32 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     font-family: $font-serif;
     font-size: 19px;
     font-weight: 800;
+  }
+}
+
+@keyframes flip-right {
+  0% { transform: rotateX(0); }
+  45% { transform: rotateX(88deg); }
+  100% { transform: none; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-9px); }
+  36% { transform: translateX(8px); }
+  54% { transform: translateX(-6px); }
+  72% { transform: translateX(4px); }
+  88% { transform: translateX(-2px); }
+}
+
+@keyframes content-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-card--right,
+  .prompt-card--wrong {
+    animation: none;
   }
 }
 </style>

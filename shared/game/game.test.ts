@@ -24,8 +24,8 @@ const memoryStorage = (): KeyValueStorage => {
   };
 };
 
-const startGame = (seed = 1) => {
-  const game = createGame({ places, random: seededRandom(seed), clock: () => Date.UTC(2026, 10, 17), storage: memoryStorage() });
+const startGame = (seed = 1, clock = () => Date.UTC(2026, 10, 17)) => {
+  const game = createGame({ places, random: seededRandom(seed), clock, storage: memoryStorage() });
   game.send({ type: 'start', setup: game.setupFor('find') });
   return game;
 };
@@ -143,6 +143,80 @@ describe('one attempt', () => {
     game.send({ type: 'tap', placeId: firstPlaceId });
     game.send({ type: 'next' });
     expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2, score: 1, progress: ['right', 'current', ...Array(8).fill('pending')] });
+  });
+});
+
+describe('answer timing', () => {
+  const startTimedGame = () => {
+    let now = Date.UTC(2026, 10, 17);
+    const game = startGame(1, () => now);
+    const wait = (milliseconds: number) => {
+      now += milliseconds;
+      game.send({ type: 'tick' });
+    };
+    return { game, wait };
+  };
+
+  it('moves on by itself 1.3 s after a right answer, not before', () => {
+    const { game, wait } = startTimedGame();
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+
+    wait(1299);
+    expect(game.state.phase).toBe('verdict');
+
+    wait(1);
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2, score: 1 });
+  });
+
+  it('lets a right answer be skipped by Next or by a tap once the answering tap has settled', () => {
+    const { game, wait } = startTimedGame();
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+    game.send({ type: 'tap', placeId: 'DEU' });
+    expect(game.state.phase).toBe('verdict');
+
+    wait(150);
+    game.send({ type: 'tap', placeId: 'DEU' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+    game.send({ type: 'next' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 3 });
+  });
+
+  it('never moves on by itself after a wrong answer', () => {
+    const { game, wait } = startTimedGame();
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+
+    wait(60_000);
+
+    expect(game.state).toMatchObject({ phase: 'verdict', answer: { outcome: 'wrong' } });
+  });
+
+  it('continues from a wrong answer on Next or on a later tap on the map', () => {
+    const { game, wait } = startTimedGame();
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+    game.send({ type: 'next' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+    wait(150);
+    game.send({ type: 'tap', placeId: 'DEU' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 3 });
+
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+    wait(150);
+    game.send({ type: 'tap' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 4 });
+  });
+
+  it('ends on results when the last right answer runs out', () => {
+    const { game, wait } = startTimedGame();
+    for (let prompt = 0; prompt < 10; prompt += 1) {
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      wait(1300);
+    }
+
+    expect(resultsOf(game)).toMatchObject({ score: 10 });
   });
 });
 
