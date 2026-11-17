@@ -35,6 +35,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
+| `chains.json` | the island-chain overrides (see [Island chains](#island-chains)): `keep` and `drop` (id to note) and `groups` (id to a list of `{ name, bbox }`) |
 | `dropped-borders.<tier>.json` | one per tier, the reviewed dropped-border list (see [Dropped-border lists](#dropped-border-lists)): `review` (`pending` \| `accepted`) and `pairs`, keyed by the two ids sorted and joined with `-`, each with a note (names and reason) |
 
 Ids are NE's `ADM0_A3`. Carved breakaways use their NE `BRK_A3` (`B35` Abkhazia, `B36` Transnistria, `B37` South Ossetia); NE's `IOA` is split into `CXR` and `CCK`.
@@ -48,6 +49,7 @@ All sorted by id.
 | `map-sovereign.geojson`, `map-defacto.geojson`, `map-dependencies.geojson` | one map per tier: polygons, one feature per place of the tier plus Unclaimed land, `{ id, unclaimed? }`; one feature per line. 200 / 206 / 248 features |
 | `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `neighbours`, `mainlandNeighbours` and `microstate` each as `{ sovereign, defacto, dependencies }` |
 | `points.geojson` | one point per place (245), `{ id, speckZoom }`; one feature per line. The app filters them by tier |
+| `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): polygons, `{ id, tier, group? }`, sorted by id then group; one feature per line. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
 | `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value. One file covers all three maps |
 
 In a tier's map, the land of each place outside the tier is part of the place its holder chain ends in (a place's holder, or the holder's holder, until one is in the tier): dependencies sit in their sovereign in the de facto and sovereign maps, and de facto places in their parent state in the sovereign map. Ids are the same in every map; Unclaimed land and the merges in `features.json` are the same in every map. Only the holders are dissolved again, so every other feature is byte-identical across the three maps.
@@ -71,7 +73,7 @@ Step numbers follow the spec; step 6 doesn't compute island-chain outlines yet, 
 3. **Patch** (`steps/patch.ts`): apply `patches/` (Vatican City and the matching hole in Italy), before simplifying, so the patch is simplified like everything else.
 4. **Simplify** (`steps/simplify.ts`): explode each place into islands, simplify 14% with `keep-shapes`, dissolve per id, precision 0.001. Without the explode step only one ring per place survives. The result is the dependencies map.
 5. **Dissolve** (`steps/dissolve.ts`): for the sovereign and de facto maps, relabel each place outside the tier with the end of its holder chain (from `places.json`) and dissolve the holders, precision 0.001. A broken chain leaves the land under its own id, and the check fails on it.
-6. **Compute** (`steps/compute.ts`): each place's `bbox` from the dependencies map. Then (`steps/borders.ts`, `steps/tier-facts.ts`) per tier: the pieces of land in the tier's map and which pieces share a border segment, with the Macao–China gap bridged; `neighbours` and `microstate` from them. `steps/specks.ts`: the speck point and `speckZoom` from the dependencies map. `steps/ease.ts`: the ease rank. `steps/mainland.ts`: per tier, each place's mainland and `mainlandNeighbours`; the build prints each tier's dropped borders.
+6. **Compute** (`steps/compute.ts`): each place's `bbox` from the dependencies map. Then (`steps/borders.ts`, `steps/tier-facts.ts`) per tier: the pieces of land in the tier's map and which pieces share a border segment, with the Macao–China gap bridged; `neighbours` and `microstate` from them. `steps/specks.ts`: the speck point and `speckZoom` from the dependencies map. `steps/ease.ts`: the ease rank. `steps/chains.ts`: per tier, the island chains and their outlines (see [Island chains](#island-chains)). `steps/mainland.ts`: per tier, each place's mainland and `mainlandNeighbours`; the build prints each tier's dropped borders.
 7. **Join** (`steps/join.ts`): tier and holder from `places.json`, `bbox` from step 6; QID, ISO code and region from the curated override, else from NE. The default region comes from NE's UN M49 fields: North America = Northern America + Central America + Caribbean; NE's "Seven seas (open ocean)" gives no region, so those places carry an override.
 8. **Check** (`check.ts`): see below. A failure stops the build before anything is written.
 9. **Write** (`steps/write.ts`): write the shipped files sorted by id, and print their sizes.
@@ -94,6 +96,8 @@ The build fails, and writes nothing, on:
 - asymmetric neighbours: in some tier a place lists another that doesn't list it back (this also catches a neighbour outside the tier, whose list there is empty)
 - a tier's dropped borders differing from `data/curated/dropped-borders.<tier>.json`, whether or not that list is reviewed yet; a missing file counts as empty. Per tier, `+` marks a pair the build drops that the list lacks, `-` a listed pair the build no longer drops
 
+- an island chain check (see [Island chains](#island-chains)): any of the 12 prototype sovereign chains missing, a tier's chains differing from the expected 16 / 0 / 15, Kiribati or St Helena not outlined in their groups, outlines overlapping outside the two accepted pairs, or a `keep` / `drop` that no longer applies
+
 It warns, without failing, on a dropped-border list whose `review` is not `accepted`.
 
 ## Dropped-border lists
@@ -107,6 +111,25 @@ A dropped border is a pair of neighbours that are not mainland neighbours. The b
 The three lists are committed in `data/curated/dropped-borders.<tier>.json` for the owner's one-time review (#38). `review` records where that stands: `pending` until the owner has read the list, then `accepted`. The check compares the pairs whatever `review` says; a pending list only adds a warning. Only the keys are compared; the notes are for the reader.
 
 **After a ruling change** (or an NE bump) that moves a mainland, the build fails and prints the difference per tier. For each `+` pair, check that it is an overseas part, an exclave or an island landmass in the sense of D13: if it is, add it to `pairs` with the printed note; if it isn't, fix the ruling or the mainland rule instead. Delete each `-` pair. Set `review` to `pending` in every list you changed until the owner has read the changed pairs, then back to `accepted`. Rebuild.
+
+## Island chains
+
+A place is an island chain when, on its own tier's map (sovereign places on the sovereign map, de facto on the de facto map, dependencies on the dependencies map; the simplified geometry), it has at least 2 pieces, its bounding box is more than 10 times its land area, and its largest piece is under 6,000 km². Areas are spherical; the bounding box takes the narrowest longitude span (`bboxOf` in `steps/compute.ts`). The 6,000 km² limit is the chain rule's own and has nothing to do with the microstate threshold. The two constants are `chainMinBboxRatio` and `chainMaxLargestPieceKm2` in `steps/chains.ts`.
+
+`data/curated/chains.json` overrides the rule:
+
+- `keep`: a place that is a chain whatever the rule says. Bahamas, Antigua and Barbuda, Mauritius and São Tomé and Príncipe are the four extras kept beyond the prototype's 12.
+- `drop`: a place that is not a chain. `UMI` spans the Caribbean and the Pacific.
+- `groups`: a place outlined in several parts. Each piece goes to the group whose `bbox` holds the mean point of its outer ring, and every piece must land in exactly one group. A group of a single piece gets no outline. Kiribati is split into Gilbert, Phoenix and Line; St Helena into Ascension, Saint Helena and Tristan da Cunha, of which only Tristan da Cunha (two pieces) is outlined.
+
+Each outline is the convex hull of the chain's land, padded with a rounded corner (radius at least 0.4°, up to 0.35 of the hull's narrow side). Outlines that overlap get less round, in steps of 0.05, until they clear. Two overlaps cannot be cleared and are accepted: Bahamas / Turks and Caicos and the US / British Virgin Islands. An outline's ring is never wider than 180° of longitude: a chain that crosses the antimeridian stops the build until it is split into groups.
+
+Current chains per tier (sovereign / de facto / dependencies): 16 / 0 / 15, and 33 outlines in the file (Kiribati and Tristan da Cunha as groups).
+
+- Sovereign: the prototype's 12 (MDV SYC TUV MHL KIR FSM PLW TON CPV COM SLB VUT) plus BHS ATG MUS STP. The margin is thin (Comoros 10.6 against St Vincent 9.6), which is why the check names all 12.
+- Dependencies: TCA PCN PYF VIR AIA VGB CYM SHN GGY IOT COK WLF SGS ASM MNP.
+
+The `tier` of an outline is its place's tier. A tier's play uses the outlines of every place in it, as with `points.geojson`.
 
 ## Updating Natural Earth
 

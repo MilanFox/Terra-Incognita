@@ -38,7 +38,7 @@ const narrowestLongitudeSpan = (polygonLongitudes: Range[]) => {
   return span;
 };
 
-const bboxOf = (geometry: Geometry | null): Bbox | undefined => {
+export const bboxOf = (geometry: Geometry | null): Bbox | undefined => {
   const outerRings = polygonsOf(geometry).flatMap(([outer]) => (outer?.length ? [outer] : []));
   if (!outerRings.length) return undefined;
   const { west, east } = narrowestLongitudeSpan(outerRings.map(ring => rangeOf(ring.map(([lon]) => lon))));

@@ -1,9 +1,11 @@
 import { check } from './check.ts';
+import { chainChecks } from './check-chains.ts';
 import { droppedBorderNotes, droppedBordersMatch, printDroppedBorders } from './check-dropped-borders.ts';
 import { neighboursAreSymmetric } from './check-neighbours.ts';
 import { readCurated } from './curated.ts';
 import { countByTier } from './model.ts';
 import { bordersByTier } from './steps/borders.ts';
+import { chainsOf, readChainRulings } from './steps/chains.ts';
 import { compute } from './steps/compute.ts';
 import { dissolve } from './steps/dissolve.ts';
 import { easeRanks } from './steps/ease.ts';
@@ -43,6 +45,9 @@ const borders = bordersByTier(maps);
 const points = await speckPoints(maps.dependencies);
 const ease = easeRanks(naturalEarth, Object.keys(curated.places));
 
+step('6 compute island chains and their outlines per tier');
+const chains = chainsOf(maps, curated.places, readChainRulings());
+
 step('6 compute mainland neighbours per tier and list the dropped borders');
 const mainlands = mainlandsByTier(borders, curated.places);
 const placeTierFacts = tierFacts(borders, mainlands, curated.places);
@@ -57,6 +62,7 @@ const lines = check({ naturalEarth, curated, places, maps });
 lines.push(neighboursAreSymmetric(placeTierFacts));
 const droppedBordersCheck = droppedBordersMatch(droppedBorders);
 lines.push(droppedBordersCheck.line);
+lines.push(...chainChecks(chains));
 for (const { label, failures } of lines) {
   console.log(`  ${failures.length ? 'FAIL' : 'ok  '}  ${label}`);
   for (const failure of failures) console.log(`          ${failure}`);
@@ -69,4 +75,4 @@ if (lines.some(({ failures }) => failures.length)) {
 
 step('9 write');
 const shippedPlaces = places.map(place => ({ ...place, ease: ease.get(place.id), ...placeTierFacts.get(place.id) }));
-write({ maps, places: shippedPlaces, points, version: { ne: naturalEarth.release, counts: countByTier(places) } });
+write({ maps, places: shippedPlaces, points, chainOutlines: chains.outlines, version: { ne: naturalEarth.release, counts: countByTier(places) } });

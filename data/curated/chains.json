@@ -1,0 +1,23 @@
+{
+  "keep": {
+    "BHS": "Bahamas; kept as an extra (#26)",
+    "ATG": "Antigua and Barbuda; kept as an extra (#26)",
+    "MUS": "Mauritius with Rodrigues and Agaléga; kept as an extra (#26)",
+    "STP": "São Tomé and Príncipe; kept as an extra (#26)"
+  },
+  "drop": {
+    "UMI": "Spans the Caribbean and the Pacific, and its outline would overlap Kiribati and the Cayman Islands (#26)"
+  },
+  "groups": {
+    "KIR": [
+      { "name": "Gilbert", "bbox": [0, -90, 180, 90] },
+      { "name": "Phoenix", "bbox": [-180, -90, -165, 90] },
+      { "name": "Line", "bbox": [-165, -90, 0, 90] }
+    ],
+    "SHN": [
+      { "name": "Ascension", "bbox": [-180, -10, 180, 90] },
+      { "name": "Saint Helena", "bbox": [-180, -30, 180, -10] },
+      { "name": "Tristan da Cunha", "bbox": [-180, -90, 180, -30] }
+    ]
+  }
+}
