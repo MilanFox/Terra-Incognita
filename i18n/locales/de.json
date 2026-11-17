@@ -21,6 +21,46 @@
     "showAll": "Alle Modi zeigen",
     "showFewer": "Weniger anzeigen"
   },
+  "setup": {
+    "title": "{mode}: Einstellungen",
+    "close": "Schließen",
+    "play": "Spielen · {count} Ort | Spielen · {count} Orte",
+    "places": "{count} Ort | {count} Orte",
+    "unavailable": "nicht verfügbar",
+    "optionName": "{name}, {places}",
+    "unavailableOptionName": "{name}, {places}, nicht verfügbar",
+    "groups": {
+      "region": "Region",
+      "tier": "Stufe",
+      "deckSize": "Orte pro Runde"
+    },
+    "regions": {
+      "world": "Welt",
+      "Africa": "Afrika",
+      "Asia": "Asien",
+      "Europe": "Europa",
+      "North America": "Nordamerika",
+      "South America": "Südamerika",
+      "Oceania": "Ozeanien"
+    },
+    "tiers": {
+      "sovereign": "Souverän",
+      "defacto": "De facto",
+      "dependencies": "Abhängige Gebiete"
+    },
+    "deckSizes": {
+      "10": "10",
+      "all": "Alle"
+    },
+    "playAgain": {
+      "label": "Nochmal spielen",
+      "summary": "{region} · {tier} · {deckSize}",
+      "deckSizes": {
+        "10": "10 Orte",
+        "all": "Alle Orte"
+      }
+    }
+  },
   "modes": {
     "find": {
       "name": "Landfall",

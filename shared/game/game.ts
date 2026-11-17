@@ -2,18 +2,35 @@ export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
 export type Mode = 'find';
 
+export type DeckSize = 10 | 'all';
+export type RegionChoice = Region | 'world';
+
 export interface Place {
   id: string
   tier: Tier
   region: Region
+  holder?: string
 }
 
 export interface RoundSetup {
   mode: Mode
   variant: 'name'
-  region: Region | 'world'
+  region: RegionChoice
   tier: Tier
-  deckSize: 10
+  deckSize: DeckSize
+}
+
+export interface Choice<Value> {
+  value: Value
+  count: number
+  isAvailable: boolean
+}
+
+export interface SetupChoices {
+  regions: Choice<RegionChoice>[]
+  tiers: Choice<Tier>[]
+  deckSizes: Choice<DeckSize>[]
+  playCount: number
 }
 
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -36,6 +53,8 @@ export const rightAnswerHoldMs = 1000;
 export const rightAnswerFadeMs = 300;
 export const rightAnswerAdvanceMs = rightAnswerHoldMs + rightAnswerFadeMs;
 const tapSkipGuardMs = 150;
+const minimumPoolSize = 5;
+const setupStorageKey = 'ti:setup';
 
 export type Outcome = 'right' | 'wrong';
 export type ProgressCell = Outcome | 'current' | 'pending';
@@ -64,10 +83,25 @@ export type GameState
 type Phase = GameState['phase'];
 
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
+const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+const deckSizeChoices: DeckSize[] = [10, 'all'];
+
+interface StoredSetups {
+  lastMode: Mode
+  setups: Partial<Record<Mode, RoundSetup>>
+}
 
 const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier);
 
 const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
+
+const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
+  const stored = value as Partial<RoundSetup> | null;
+  return stored?.mode === mode && stored.variant === 'name'
+    && regionChoices.includes(stored.region as RegionChoice)
+    && tiersInOrder.includes(stored.tier as Tier)
+    && deckSizeChoices.includes(stored.deckSize as DeckSize);
+};
 
 const shuffled = <T>(items: readonly T[], random: () => number) => {
   const deck = [...items];
@@ -78,8 +112,9 @@ const shuffled = <T>(items: readonly T[], random: () => number) => {
   return deck;
 };
 
-export const createGame = ({ places, random, clock }: GameDependencies) => {
+export const createGame = ({ places, random, clock, storage }: GameDependencies) => {
   const placeIds = new Set(places.map(({ id }) => id));
+  const placesById = new Map(places.map(place => [place.id, place]));
 
   let phase: Phase = 'home';
   let setup = firstTimeSetup('find');
@@ -92,6 +127,47 @@ export const createGame = ({ places, random, clock }: GameDependencies) => {
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
     .map(({ id }) => id);
+
+  const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
+
+  const choiceOf = <Value>(value: Value, count: number): Choice<Value> => ({ value, count, isAvailable: count >= minimumPoolSize });
+
+  const choicesFor = (chosen: RoundSetup): SetupChoices => {
+    const poolSize = poolSizeOf(chosen);
+    return {
+      regions: regionChoices.map(region => choiceOf(region, poolSizeOf({ ...chosen, region }))),
+      tiers: tiersInOrder.map(tier => choiceOf(tier, poolSizeOf({ ...chosen, tier }))),
+      deckSizes: deckSizeChoices.map(deckSize => choiceOf(deckSize, deckSize === 'all' ? poolSize : Math.min(deckSize, poolSize))),
+      playCount: Math.min(chosen.deckSize === 'all' ? poolSize : chosen.deckSize, poolSize),
+    };
+  };
+
+  const readStoredSetups = (): StoredSetups => {
+    try {
+      const stored = JSON.parse(storage.getItem(setupStorageKey) ?? 'null') as StoredSetups | null;
+      if (stored?.lastMode === 'find' && stored.setups && typeof stored.setups === 'object') return stored;
+    }
+    catch {
+      // A damaged entry is treated as no memory.
+    }
+    return { lastMode: 'find', setups: {} };
+  };
+
+  const rememberedSetupFor = (mode: Mode) => {
+    const remembered = readStoredSetups().setups[mode];
+    return isStoredSetup(remembered, mode) ? remembered : firstTimeSetup(mode);
+  };
+
+  const rememberSetup = (rememberedSetup: RoundSetup) => {
+    const { setups } = readStoredSetups();
+    storage.setItem(setupStorageKey, JSON.stringify({ lastMode: rememberedSetup.mode, setups: { ...setups, [rememberedSetup.mode]: rememberedSetup } }));
+  };
+
+  const answeredAs = (tappedPlaceId: string) => {
+    let tapped = placesById.get(tappedPlaceId)!;
+    while (!isInTier(tapped, setup.tier) && tapped.holder && placesById.has(tapped.holder)) tapped = placesById.get(tapped.holder)!;
+    return tapped.id;
+  };
 
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
@@ -106,15 +182,17 @@ export const createGame = ({ places, random, clock }: GameDependencies) => {
 
   const start = (roundSetup: RoundSetup) => {
     setup = roundSetup;
-    deck = shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize);
+    deck = shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize);
     answers = [];
     promptIndex = 0;
     phase = 'prompt';
+    rememberSetup(roundSetup);
   };
 
   const answer = (tappedPlaceId: string) => {
     const placeId = deck[promptIndex]!;
-    answers = [...answers, { placeId, tappedPlaceId, outcome: tappedPlaceId === placeId ? 'right' : 'wrong' }];
+    const answeredPlaceId = answeredAs(tappedPlaceId);
+    answers = [...answers, { placeId, tappedPlaceId: answeredPlaceId, outcome: answeredPlaceId === placeId ? 'right' : 'wrong' }];
     answeredAt = clock();
     phase = 'verdict';
   };
@@ -132,7 +210,7 @@ export const createGame = ({ places, random, clock }: GameDependencies) => {
   };
 
   const send = (event: GameEvent) => {
-    if (event.type === 'start' && (phase === 'home' || phase === 'results')) start(event.setup);
+    if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'tap' && phase === 'prompt' && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
     else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
@@ -146,7 +224,9 @@ export const createGame = ({ places, random, clock }: GameDependencies) => {
     get state() {
       return state;
     },
-    setupFor: firstTimeSetup,
+    setupFor: rememberedSetupFor,
+    lastSetup: () => rememberedSetupFor(readStoredSetups().lastMode),
+    choicesFor,
     poolOf,
     send,
   };

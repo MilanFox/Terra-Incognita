@@ -21,6 +21,46 @@
     "showAll": "Show all modes",
     "showFewer": "Show fewer"
   },
+  "setup": {
+    "title": "{mode}: setup",
+    "close": "Close",
+    "play": "Play · {count} place | Play · {count} places",
+    "places": "{count} place | {count} places",
+    "unavailable": "unavailable",
+    "optionName": "{name}, {places}",
+    "unavailableOptionName": "{name}, {places}, unavailable",
+    "groups": {
+      "region": "Region",
+      "tier": "Tier",
+      "deckSize": "Places per round"
+    },
+    "regions": {
+      "world": "World",
+      "Africa": "Africa",
+      "Asia": "Asia",
+      "Europe": "Europe",
+      "North America": "North America",
+      "South America": "South America",
+      "Oceania": "Oceania"
+    },
+    "tiers": {
+      "sovereign": "Sovereign",
+      "defacto": "De facto",
+      "dependencies": "Dependencies"
+    },
+    "deckSizes": {
+      "10": "10",
+      "all": "All"
+    },
+    "playAgain": {
+      "label": "Play again",
+      "summary": "{region} · {tier} · {deckSize}",
+      "deckSizes": {
+        "10": "10 places",
+        "all": "All places"
+      }
+    }
+  },
   "modes": {
     "find": {
       "name": "Landfall",

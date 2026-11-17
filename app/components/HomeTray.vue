@@ -1,18 +1,20 @@
 <script setup lang="ts">
+import type { Mode, RoundSetup } from '#shared/game/game';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
-const emit = defineEmits<{ play: [], interact: [] }>();
+const props = defineProps<{ lastSetup?: RoundSetup }>();
+const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], interact: [] }>();
 
 const liftMs = 180;
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 const gridId = useId();
 const subtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
-const dateLine = useTemplateRef<HTMLElement>('dateLine');
+const playAgainTile = useTemplateRef<HTMLElement>('playAgainTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 
 const isOpen = ref(false);
@@ -21,9 +23,15 @@ const collapsedShift = ref(0);
 
 const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
 
+const playAgainSummary = computed(() => props.lastSetup && [
+  t(`setup.regions.${props.lastSetup.region}`),
+  t(`setup.tiers.${props.lastSetup.tier}`),
+  t(`setup.playAgain.deckSizes.${props.lastSetup.deckSize}`),
+].join(' · '));
+
 const measure = () => {
-  if (!tray.value || !body.value || !dateLine.value) return;
-  const peekHeight = dateLine.value.offsetTop + dateLine.value.offsetHeight + Number.parseFloat(getComputedStyle(body.value).paddingBottom);
+  if (!tray.value || !body.value || !playAgainTile.value) return;
+  const peekHeight = playAgainTile.value.offsetTop + playAgainTile.value.offsetHeight + Number.parseFloat(getComputedStyle(body.value).paddingBottom);
   collapsedShift.value = Math.max(0, tray.value.offsetHeight - peekHeight);
 };
 
@@ -43,12 +51,12 @@ onMounted(measure);
 useResizeObserver(tray, measure);
 watch(locale, () => nextTick(measure));
 
-const { start: startPlay } = useTimeoutFn(() => emit('play'), liftMs, { immediate: false });
+const { start: startPlay } = useTimeoutFn(() => emit('playAgain'), liftMs, { immediate: false });
 
 const launch = () => {
   if (isLaunching.value) return;
   if (prefersReducedMotion.value) {
-    emit('play');
+    emit('playAgain');
     return;
   }
   isLaunching.value = true;
@@ -118,6 +126,46 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
         {{ dateText }}
       </p>
 
+      <button
+        v-if="lastSetup"
+        ref="playAgainTile"
+        type="button"
+        class="tile mode-tile play-again-tile"
+        :class="{ 'mode-tile--launching': isLaunching }"
+        @click="launch"
+      >
+        <span
+          class="mode-tile__glyph"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 32 32"
+            width="30"
+            height="30"
+          >
+            <path
+              d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"
+              fill="currentColor"
+            />
+
+            <circle
+              class="mode-tile__pin-dot"
+              cx="16"
+              cy="12"
+              r="3.4"
+            />
+          </svg>
+        </span>
+
+        <span class="mode-tile__text">
+          <span class="kicker">{{ $t('setup.playAgain.label') }}</span>
+
+          <span class="mode-tile__name">{{ $t(`modes.${lastSetup.mode}.name`) }}</span>
+
+          <span class="mode-tile__subtitle">{{ playAgainSummary }}</span>
+        </span>
+      </button>
+
       <div
         :id="gridId"
         class="home-tray__grid"
@@ -126,10 +174,9 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
         <button
           type="button"
           class="tile mode-tile"
-          :class="{ 'mode-tile--launching': isLaunching }"
           :aria-label="$t('modes.find.name')"
           :aria-describedby="subtitleId"
-          @click="launch"
+          @click="emit('openSetup', 'find')"
         >
           <span
             class="mode-tile__glyph"
@@ -233,6 +280,10 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
     letter-spacing: 0.04em;
   }
 
+  &__date + .play-again-tile {
+    margin-top: 12px;
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -259,6 +310,13 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
   padding: 12px;
   background: $color-mustard;
   text-align: left;
+
+  &.play-again-tile {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    width: 100%;
+    min-height: 0;
+  }
 
   &--launching {
     transform: translateY(-6px) scale(1.02);

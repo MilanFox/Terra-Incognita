@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
-import type { ExpressionSpecification, FilterSpecification, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
+type RegionChoice = 'world' | 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
 type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal';
 
 interface PlaceProperties {
@@ -29,12 +30,19 @@ interface Verdict {
   outcome: 'right' | 'wrong'
 }
 
-const props = defineProps<{ selectedPlaceId?: string | null, verdict?: Verdict | null, fade?: number }>();
+const props = withDefaults(defineProps<{
+  selectedPlaceId?: string | null
+  verdict?: Verdict | null
+  fade?: number
+  tier?: Tier
+  poolPlaceIds?: string[] | null
+  frameRegion?: RegionChoice | null
+  frameInset?: number
+}>(), { selectedPlaceId: null, verdict: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string] }>();
 
 const { t } = useI18n();
 
-const tier: Tier = 'sovereign';
 const placeSources = ['places', 'specks'] as const;
 const tapBoxPx = 8;
 const flightMs = 800;
@@ -42,6 +50,17 @@ const flightMaxZoom = 4;
 const flightPadding = { top: 230, bottom: 60, left: 40, right: 40 };
 const hatchName = 'hatch-wrong';
 const highestSpeckZoom = 8;
+const regionFrames: Record<RegionChoice, [[number, number], [number, number]]> = {
+  'world': [[-170, -58], [190, 78]],
+  'Africa': [[-20, -36], [52, 38]],
+  'Asia': [[25, -11], [150, 78]],
+  'Europe': [[-25, 34], [45, 72]],
+  'North America': [[-170, 7], [-50, 72]],
+  'South America': [[-82, -56], [-34, 13]],
+  'Oceania': [[112, -48], [190, 12]],
+};
+const regionFramePadding = { top: 20, left: 20, right: 20 };
+const dimmedNone: FilterSpecification = ['==', ['get', 'id'], ''];
 
 const colours = {
   water: '#cddbe2',
@@ -66,6 +85,11 @@ const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const speckOpacity = ['interpolate', ['linear'], ['zoom'],
   ...Array.from({ length: highestSpeckZoom + 1 }, (_, stop) => [stop, ['max', 0, ['min', 1, ['-', ['get', 'speckZoom'], stop]]]]).flat(),
 ] as ExpressionSpecification;
+
+const dimColour = colours.water;
+const dimmedFilterFor = (poolPlaceIds: string[] | null | undefined): FilterSpecification => poolPlaceIds
+  ? ['all', isPlace, ['!', ['in', ['get', 'id'], ['literal', poolPlaceIds]]]]
+  : dimmedNone;
 
 const toneOf = (placeId: string) => [...placeId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % landTones.length;
 
@@ -92,6 +116,7 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
     { id: 'water', type: 'background', paint: { 'background-color': colours.water } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFill } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchName, 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
+    { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': dimColour, 'fill-opacity': 0.7 } },
     { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': colours.border, 'line-width': 0.6 } },
     { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': colours.ink, 'line-width': statusBorderWidth } },
     {
@@ -106,6 +131,13 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
         'circle-stroke-color': colours.border,
         'circle-stroke-opacity': speckOpacity,
       },
+    },
+    {
+      id: 'speck-dim',
+      type: 'circle',
+      source: 'specks',
+      filter: dimmedFilterFor(props.poolPlaceIds),
+      paint: { 'circle-radius': 1.5, 'circle-color': dimColour, 'circle-opacity': 0.7 },
     },
   ],
 });
@@ -139,6 +171,22 @@ const pickPlaceId = (point: MapMouseEvent['point']) => {
   const tapBox: [PointLike, PointLike] = [[point.x - tapBoxPx, point.y - tapBoxPx], [point.x + tapBoxPx, point.y + tapBoxPx]];
   const picked = map.queryRenderedFeatures(point, query)[0] ?? map.queryRenderedFeatures(tapBox, query)[0];
   return picked?.properties.id as string | undefined;
+};
+
+const loadedTierMaps = new Map<Tier, ReturnType<typeof loadTierMap>>();
+const tierMapOf = (shownTier: Tier) => {
+  if (!loadedTierMaps.has(shownTier)) loadedTierMaps.set(shownTier, loadTierMap(shownTier));
+  return loadedTierMaps.get(shownTier)!;
+};
+let shownTier: Tier | undefined;
+
+const swapTierMap = async (nextTier: Tier) => {
+  const tierMap = await tierMapOf(nextTier);
+  if (!map || nextTier !== props.tier) return;
+  loadedPlaces = tierMap.places;
+  shownTier = nextTier;
+  (map.getSource('places') as GeoJSONSource).setData(tierMap.places);
+  (map.getSource('specks') as GeoJSONSource).setData(tierMap.specks);
 };
 
 const handleClick = (event: MapMouseEvent) => {
@@ -191,9 +239,25 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 });
 
+const flyToRegion = () => {
+  if (!map || !props.frameRegion) return;
+  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
+  map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: props.frameInset } });
+};
+
+const dimOutsidePool = () => {
+  if (!map) return;
+  for (const layer of ['place-dim', 'speck-dim']) map.setFilter(layer, dimmedFilterFor(props.poolPlaceIds));
+};
+
+watch(() => props.tier, swapTierMap);
+watch(() => props.poolPlaceIds, dimOutsidePool);
+watch(() => [props.frameRegion, props.frameInset], flyToRegion);
+
 onMounted(async () => {
-  const tierMap = await loadTierMap(tier);
+  const tierMap = await tierMapOf(props.tier);
   loadedPlaces = tierMap.places;
+  shownTier = props.tier;
   setWorkerUrl(workerUrl);
   map = new MapLibreMap({
     container: mapContainer.value!,
@@ -213,6 +277,7 @@ onMounted(async () => {
     if (id === hatchName && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1), { pixelRatio: window.devicePixelRatio || 1 });
   });
   map.once('idle', () => emit('drawn'));
+  if (props.tier !== shownTier) swapTierMap(props.tier);
 });
 
 onBeforeUnmount(() => map?.remove());

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { createGame } from '#shared/game/game';
-import type { Game, GameEvent, GameState, Mode, Place } from '#shared/game/game';
+import type { Game, GameEvent, GameState, Mode, Place, RoundSetup } from '#shared/game/game';
 
 type Locale = 'en' | 'de';
 type PlaceNames = Record<string, Record<Locale, { name: string }>>;
@@ -11,6 +11,7 @@ export const useGameStore = defineStore('game', () => {
   const state = shallowRef<GameState>({ phase: 'home' });
   const names = shallowRef<PlaceNames>({});
   const isReady = ref(false);
+  const lastSetup = shallowRef<RoundSetup>();
   let game: Game | undefined;
 
   const load = async () => {
@@ -21,6 +22,7 @@ export const useGameStore = defineStore('game', () => {
     game = createGame({ places, random: Math.random, clock: Date.now, storage: localStorage });
     names.value = placeNames;
     state.value = game.state;
+    lastSetup.value = game.lastSetup();
     isReady.value = true;
   };
 
@@ -28,11 +30,18 @@ export const useGameStore = defineStore('game', () => {
     if (!game) return;
     game.send(event);
     state.value = game.state;
+    lastSetup.value = game.lastSetup();
   };
 
-  const play = (mode: Mode) => game && send({ type: 'start', setup: game.setupFor(mode) });
+  const play = (setup: RoundSetup) => send({ type: 'start', setup });
+
+  const setupFor = (mode: Mode) => game!.setupFor(mode);
+
+  const poolOf = (setup: RoundSetup) => game?.poolOf(setup) ?? [];
+
+  const choicesFor = (setup: RoundSetup) => game!.choicesFor(setup);
 
   const nameOf = (placeId: string, locale: string) => names.value[placeId]?.[locale as Locale]?.name ?? placeId;
 
-  return { state, isReady, load, send, play, nameOf };
+  return { state, isReady, lastSetup, load, send, play, setupFor, poolOf, choicesFor, nameOf };
 });
