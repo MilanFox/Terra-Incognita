@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { createGame } from '#shared/game/game';
-import type { Game, GameEvent, GameState, Mode, Place, RoundSetup } from '#shared/game/game';
+import { createGame, deepestTierPlayed } from '#shared/game/game';
+import type { DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
 
 type Locale = 'en' | 'de';
 type PlaceNames = Record<string, Record<Locale, { name: string }>>;
@@ -12,14 +12,16 @@ export const useGameStore = defineStore('game', () => {
   const names = shallowRef<PlaceNames>({});
   const isReady = ref(false);
   const lastSetup = shallowRef<RoundSetup>();
+  const homeTier = ref<Tier>(deepestTierPlayed(localStorage));
   let game: Game | undefined;
 
   const load = async () => {
-    const [places, placeNames] = await Promise.all([
+    const [places, placeNames, version] = await Promise.all([
       fetchJson<Place[]>('/data/places.json'),
       fetchJson<PlaceNames>('/data/names.json'),
+      fetchJson<DataVersion>('/data/version.json'),
     ]);
-    game = createGame({ places, random: Math.random, clock: Date.now, storage: localStorage });
+    game = createGame({ places, version, random: Math.random, clock: Date.now, storage: localStorage });
     names.value = placeNames;
     state.value = game.state;
     lastSetup.value = game.lastSetup();
@@ -29,9 +31,12 @@ export const useGameStore = defineStore('game', () => {
   const send = (event: GameEvent) => {
     if (!game) return;
     game.send(event);
+    if (game.state.phase === 'home') homeTier.value = deepestTierPlayed(localStorage);
     state.value = game.state;
     lastSetup.value = game.lastSetup();
   };
+
+  useEventListener(document, 'visibilitychange', () => send({ type: document.hidden ? 'hide' : 'show' }));
 
   const play = (setup: RoundSetup) => send({ type: 'start', setup });
 
@@ -43,5 +48,5 @@ export const useGameStore = defineStore('game', () => {
 
   const nameOf = (placeId: string, locale: string) => names.value[placeId]?.[locale as Locale]?.name ?? placeId;
 
-  return { state, isReady, lastSetup, load, send, play, setupFor, poolOf, choicesFor, nameOf };
+  return { state, isReady, lastSetup, homeTier, load, send, play, setupFor, poolOf, choicesFor, nameOf };
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import shippedPlaces from '../../public/data/places.json';
-import { createGame, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
+import shippedVersion from '../../public/data/version.json';
+import { createGame, deepestTierPlayed, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
 import type { GameState, KeyValueStorage, Place, RoundSetup } from './game';
 
 const places = shippedPlaces as Place[];
@@ -25,7 +26,7 @@ const memoryStorage = (): KeyValueStorage => {
 };
 
 const startGame = (seed = 1, clock = () => Date.UTC(2026, 10, 17)) => {
-  const game = createGame({ places, random: seededRandom(seed), clock, storage: memoryStorage() });
+  const game = createGame({ places, version: shippedVersion, random: seededRandom(seed), clock, storage: memoryStorage() });
   game.send({ type: 'start', setup: game.setupFor('find') });
   return game;
 };
@@ -246,7 +247,7 @@ describe('scoring', () => {
   });
 });
 
-const gameOver = (placesInPlay = places, storage = memoryStorage()) => createGame({ places: placesInPlay, random: seededRandom(3), clock: () => Date.UTC(2026, 10, 17), storage });
+const gameOver = (placesInPlay = places, storage = memoryStorage()) => createGame({ places: placesInPlay, version: shippedVersion, random: seededRandom(3), clock: () => Date.UTC(2026, 10, 17), storage });
 
 const setupOf = (game: ReturnType<typeof gameOver>, changes: Partial<RoundSetup>): RoundSetup => ({ ...game.setupFor('find'), variant: 'name', ...changes });
 
@@ -636,4 +637,340 @@ describe('end round', () => {
     playThrough(game, 10);
     expect(resultsOf(game)).toMatchObject({ isComplete: true, score: 10 });
   });
+});
+
+const recordingGame = (storage = memoryStorage(), placesInPlay = places) => {
+  let now = Date.UTC(2026, 10, 17, 9);
+  const game = createGame({ places: placesInPlay, version: shippedVersion, random: seededRandom(5), clock: () => now, storage });
+  const wait = (milliseconds: number) => {
+    now += milliseconds;
+  };
+  return { game, storage, wait, now: () => now };
+};
+
+const storedJson = (storage: KeyValueStorage, key: string) => JSON.parse(storage.getItem(key) ?? 'null');
+
+const firstTimeSetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false };
+
+const startRound = (game: RoundGame, setup: Partial<RoundSetup> = {}) => game.send({ type: 'start', setup: { ...firstTimeSetup, ...setup } });
+
+const playRound = (game: RoundGame, setup: Partial<RoundSetup>, rightCount: number) => {
+  startRound(game, setup);
+  return playThrough(game, rightCount);
+};
+
+const endRoundNow = (game: RoundGame) => {
+  game.send({ type: 'askEnd' });
+  game.send({ type: 'end' });
+};
+
+describe('recording per place', () => {
+  it('keeps every answered place in ti:places under its mode and variant, after every answer', () => {
+    const { game, storage } = recordingGame();
+    startRound(game);
+    const firstPlaceId = promptedPlaceId(game);
+
+    game.send({ type: 'tap', placeId: firstPlaceId });
+    expect(storedJson(storage, 'ti:places')).toEqual({ 'find:flag': { [firstPlaceId]: { seen: 1, correct: 1, recent: [1], easySeen: 0, easyCorrect: 0 } } });
+
+    game.send({ type: 'next' });
+    const restOfDeck = playThrough(game, 6);
+    const records = storedJson(storage, 'ti:places')['find:flag'];
+
+    expect(Object.keys(records).sort()).toEqual([firstPlaceId, ...restOfDeck].sort());
+    for (const placeId of restOfDeck.slice(0, 6)) expect(records[placeId]).toEqual({ seen: 1, correct: 1, recent: [1], easySeen: 0, easyCorrect: 0 });
+    for (const placeId of restOfDeck.slice(6)) expect(records[placeId]).toEqual({ seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusedWith: someOtherPlaceId(placeId) });
+  });
+
+  it('counts only answered prompts when a round is ended early', () => {
+    const { game, storage } = recordingGame();
+    startRound(game);
+    const answeredPlaceId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: someOtherPlaceId(answeredPlaceId) });
+
+    endRoundNow(game);
+
+    expect(Object.keys(storedJson(storage, 'ti:places')['find:flag'])).toEqual([answeredPlaceId]);
+  });
+
+  it('keeps the last 8 normal outcomes in recent and counts every answer', () => {
+    const fiveOceaniaPlaces = ({ region, tier, id }: Place) => region !== 'Oceania' || tier !== 'sovereign' || ['AUS', 'NZL', 'FJI', 'PNG', 'WSM'].includes(id);
+    const { game, storage } = recordingGame(memoryStorage(), places.filter(fiveOceaniaPlaces));
+    for (let round = 1; round <= 10; round += 1) playRound(game, { variant: 'name', region: 'Oceania' }, round <= 3 ? 5 : 0);
+
+    expect(storedJson(storage, 'ti:places')['find:name'].FJI).toEqual({ seen: 10, correct: 3, recent: [1, 0, 0, 0, 0, 0, 0, 0], easySeen: 0, easyCorrect: 0, confusedWith: 'DEU' });
+  });
+
+  it('counts Easy-mode answers only in the easy counters', () => {
+    const { game, storage } = recordingGame();
+    startRound(game, { easy: true });
+    const rightOnSecondTry = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: 'BRA' });
+    game.send({ type: 'tap', placeId: rightOnSecondTry });
+    game.send({ type: 'next' });
+    const wrongThreeTimes = promptedPlaceId(game);
+    for (const tappedPlaceId of ['BRA', 'CHL', 'PER']) game.send({ type: 'tap', placeId: tappedPlaceId === wrongThreeTimes ? 'DEU' : tappedPlaceId });
+
+    const records = storedJson(storage, 'ti:places')['find:flag'];
+    expect(records[rightOnSecondTry]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 1, confusedWith: 'BRA' });
+    expect(records[wrongThreeTimes]).toMatchObject({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 0 });
+  });
+
+  it('stores the holder as confusedWith when merged land was tapped, and keeps one record per place across tiers', () => {
+    const { game, storage } = recordingGame();
+    const answerUntil = (placeId: string, tappedPlaceId: string) => {
+      while (promptedPlaceId(game) !== placeId) {
+        game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+        game.send({ type: 'next' });
+      }
+      game.send({ type: 'tap', placeId: tappedPlaceId });
+      endRoundNow(game);
+      game.send({ type: 'leave' });
+    };
+
+    startRound(game, { variant: 'name', deckSize: 'all' });
+    answerUntil('FRA', 'GIB');
+    startRound(game, { variant: 'name', tier: 'dependencies', deckSize: 'all' });
+    answerUntil('FRA', 'FRA');
+
+    expect(storedJson(storage, 'ti:places')['find:name'].FRA).toEqual({ seen: 2, correct: 1, recent: [0, 1], easySeen: 0, easyCorrect: 0, confusedWith: 'GBR' });
+  });
+});
+
+describe('the round log', () => {
+  it('logs a finished round with its setup, score, time and data version', () => {
+    const { game, storage, wait, now } = recordingGame();
+    const startedAt = now();
+    startRound(game, { variant: 'both', region: 'Europe', tier: 'defacto', easy: true });
+    for (let prompt = 0; prompt < 10; prompt += 1) {
+      wait(4000);
+      for (const tappedPlaceId of prompt < 6 ? [promptedPlaceId(game)] : ['CHN', 'CHN', 'CHN']) game.send({ type: 'tap', placeId: tappedPlaceId });
+      game.send({ type: 'next' });
+    }
+
+    expect(storedJson(storage, 'ti:rounds')).toEqual([{
+      date: startedAt,
+      mode: 'find',
+      variant: 'both',
+      region: 'Europe',
+      tier: 'defacto',
+      deckSize: 10,
+      timed: false,
+      easy: true,
+      daily: false,
+      learn: false,
+      score: 6,
+      complete: true,
+      elapsedMs: 40_000,
+      pausesUsed: 0,
+      dataVersion: shippedVersion.dataVersion,
+    }]);
+  });
+
+  it('logs a round ended early as complete: false, with the real deck size', () => {
+    const { game, storage } = recordingGame();
+    startRound(game, { deckSize: 'all' });
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+
+    endRoundNow(game);
+
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ deckSize: 197, score: 1, complete: false })]);
+  });
+
+  it('keeps the last 1,000 rounds', () => {
+    const { game, storage, wait } = recordingGame();
+    for (let round = 0; round < 1002; round += 1) {
+      wait(60_000);
+      startRound(game);
+      endRoundNow(game);
+      game.send({ type: 'leave' });
+    }
+
+    const log = storedJson(storage, 'ti:rounds');
+    expect(log).toHaveLength(1000);
+    expect(log[0].date).toBe(Date.UTC(2026, 10, 17, 9) + 3 * 60_000);
+    expect(log[999].date).toBe(Date.UTC(2026, 10, 17, 9) + 1002 * 60_000);
+  });
+});
+
+describe('elapsed time', () => {
+  it('runs from the start of the round to its results, without the time in the background', () => {
+    const { game, storage, wait } = recordingGame();
+    startRound(game);
+    wait(5000);
+    game.send({ type: 'hide' });
+    wait(120_000);
+    game.send({ type: 'show' });
+    wait(3000);
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'hide' });
+    wait(30_000);
+    game.send({ type: 'show' });
+    wait(2000);
+    game.send({ type: 'end' });
+
+    expect(resultsOf(game).elapsedMs).toBe(10_000);
+    expect(storedJson(storage, 'ti:rounds')[0].elapsedMs).toBe(10_000);
+  });
+
+  it('starts afresh with each round', () => {
+    const { game, wait } = recordingGame();
+    startRound(game);
+    game.send({ type: 'hide' });
+    wait(60_000);
+    game.send({ type: 'show' });
+    endRoundNow(game);
+    wait(30_000);
+
+    startRound(game);
+    wait(7000);
+    endRoundNow(game);
+
+    expect(resultsOf(game).elapsedMs).toBe(7000);
+  });
+});
+
+describe('personal bests', () => {
+  const worldSovereignTen = 'find:flag:world:sovereign:10:normal';
+
+  it('keep the best score of complete rounds per setup and show a new best', () => {
+    const { game, storage } = recordingGame();
+
+    playRound(game, {}, 5);
+    expect(resultsOf(game).isNewBest).toBe(true);
+    playRound(game, {}, 3);
+    expect(resultsOf(game).isNewBest).toBe(false);
+    startRound(game);
+    for (let prompt = 0; prompt < 7; prompt += 1) {
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'next' });
+    }
+    endRoundNow(game);
+    expect(resultsOf(game).isNewBest).toBe(false);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ [worldSovereignTen]: { score: 5, fastestPerfectMs: null } });
+
+    playRound(game, {}, 8);
+    expect(resultsOf(game).isNewBest).toBe(true);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ [worldSovereignTen]: { score: 8, fastestPerfectMs: null } });
+  });
+
+  it('show no new best for a first round without a right answer', () => {
+    const { game, storage } = recordingGame();
+
+    playRound(game, {}, 0);
+
+    expect(resultsOf(game).isNewBest).toBe(false);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ [worldSovereignTen]: { score: 0, fastestPerfectMs: null } });
+  });
+
+  it('are keyed by mode, variant, region, tier, deck size and Easy mode', () => {
+    const { game, storage } = recordingGame();
+
+    playRound(game, {}, 4);
+    playRound(game, { variant: 'name' }, 4);
+    playRound(game, { region: 'Europe' }, 4);
+    playRound(game, { tier: 'dependencies' }, 4);
+    playRound(game, { easy: true }, 4);
+    playRound(game, { variant: 'both', region: 'Africa', tier: 'defacto', deckSize: 'all', easy: true }, 4);
+
+    expect(Object.keys(storedJson(storage, 'ti:bests')).sort()).toEqual([
+      'find:both:Africa:defacto:all:easy',
+      'find:flag:Europe:sovereign:10:normal',
+      'find:flag:world:dependencies:10:normal',
+      'find:flag:world:sovereign:10:easy',
+      worldSovereignTen,
+      'find:name:world:sovereign:10:normal',
+    ]);
+  });
+
+  it('keep the fastest perfect round, which also shows as a new best', () => {
+    const { game, storage, wait } = recordingGame();
+    const playPerfectRound = (secondsPerPrompt: number) => {
+      startRound(game);
+      for (let prompt = 0; prompt < 10; prompt += 1) {
+        wait(secondsPerPrompt * 1000);
+        game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+        game.send({ type: 'next' });
+      }
+      return resultsOf(game).isNewBest;
+    };
+
+    expect(playPerfectRound(6)).toBe(true);
+    expect(playPerfectRound(9)).toBe(false);
+    expect(storedJson(storage, 'ti:bests')[worldSovereignTen]).toEqual({ score: 10, fastestPerfectMs: 60_000 });
+    expect(playPerfectRound(4)).toBe(true);
+    expect(storedJson(storage, 'ti:bests')[worldSovereignTen]).toEqual({ score: 10, fastestPerfectMs: 40_000 });
+  });
+});
+
+describe('the tier drawn outside a round', () => {
+  it('is sovereign until another tier is played, then the deepest tier played so far', () => {
+    const { game, storage } = recordingGame();
+    expect(deepestTierPlayed(storage)).toBe('sovereign');
+
+    playRound(game, { tier: 'defacto' }, 2);
+    expect(deepestTierPlayed(storage)).toBe('defacto');
+
+    game.send({ type: 'leave' });
+    startRound(game, { tier: 'dependencies' });
+    endRoundNow(game);
+    playRound(game, { tier: 'sovereign' }, 2);
+    expect(deepestTierPlayed(storage)).toBe('dependencies');
+  });
+});
+
+describe('storage layout', () => {
+  const listedStorage = () => {
+    const entries = new Map<string, string>();
+    const storage: KeyValueStorage = {
+      getItem: key => entries.get(key) ?? null,
+      setItem: (key, value) => entries.set(key, value),
+      removeItem: key => entries.delete(key),
+    };
+    return { storage, entries };
+  };
+
+  it('keeps play in ti:places, ti:rounds and ti:bests next to the remembered setup', () => {
+    const { storage, entries } = listedStorage();
+    const { game } = recordingGame(storage);
+
+    playRound(game, {}, 10);
+
+    expect([...entries.keys()].sort()).toEqual(['ti:bests', 'ti:places', 'ti:rounds', 'ti:setup']);
+  });
+
+  it('treats a damaged entry as empty', () => {
+    const { storage } = listedStorage();
+    storage.setItem('ti:places', 'not json');
+    storage.setItem('ti:rounds', '{"not":"a list"}');
+    storage.setItem('ti:bests', '[]');
+    const { game } = recordingGame(storage);
+
+    expect(deepestTierPlayed(storage)).toBe('sovereign');
+    playRound(game, {}, 10);
+
+    expect(Object.keys(storedJson(storage, 'ti:places')['find:flag'])).toHaveLength(10);
+    expect(storedJson(storage, 'ti:rounds')).toHaveLength(1);
+    expect(resultsOf(game).isNewBest).toBe(true);
+  });
+
+  it('stays within the 500 KB budget for a heavy player of every variant', () => {
+    const { storage, entries } = listedStorage();
+    const { game, wait } = recordingGame(storage);
+    const deepestSetup = { region: 'world', tier: 'dependencies', deckSize: 'all' } as const;
+    for (const variant of ['flag', 'name', 'both'] as const) {
+      for (let round = 0; round < 8; round += 1) playRound(game, { ...deepestSetup, variant }, 0);
+      playRound(game, { ...deepestSetup, variant, easy: true }, 0);
+    }
+    for (let round = 0; round < 1000; round += 1) {
+      wait(3_600_000);
+      startRound(game, { region: 'North America', tier: 'dependencies', deckSize: 'all' });
+      wait(3_600_000);
+      endRoundNow(game);
+    }
+
+    const totalSize = [...entries].reduce((size, [key, value]) => size + key.length + value.length, 0);
+    expect(Object.values(storedJson(storage, 'ti:places')['find:name']).every(record => (record as { recent: unknown[] }).recent.length === 8)).toBe(true);
+    expect(totalSize).toBeLessThan(500_000);
+  }, 20_000);
 });

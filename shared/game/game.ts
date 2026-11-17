@@ -1,3 +1,6 @@
+import { createRecords } from './records';
+import type { RoundSummary } from './records';
+
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
 export type Mode = 'find';
@@ -39,8 +42,13 @@ export interface SetupChoices {
 
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
+export interface DataVersion {
+  dataVersion: number
+}
+
 export interface GameDependencies {
   places: readonly Place[]
+  version: DataVersion
   random: () => number
   clock: () => number
   storage: KeyValueStorage
@@ -54,7 +62,9 @@ export type GameEvent
     | { type: 'askEnd' }
     | { type: 'keepPlaying' }
     | { type: 'end' }
-    | { type: 'leave' };
+    | { type: 'leave' }
+    | { type: 'hide' }
+    | { type: 'show' };
 
 export const rightAnswerHoldMs = 1000;
 export const rightAnswerFadeMs = 300;
@@ -89,7 +99,7 @@ export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
-    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean };
+    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean };
 
 type Phase = GameState['phase'];
 
@@ -125,9 +135,14 @@ const shuffled = <T>(items: readonly T[], random: () => number) => {
   return deck;
 };
 
-export const createGame = ({ places, random, clock, storage }: GameDependencies) => {
+export const deepestTierPlayed = (storage: KeyValueStorage) => createRecords(storage).roundLog()
+  .map(({ tier }) => tier)
+  .reduce((deepest, tier) => (tiersInOrder.indexOf(tier) > tiersInOrder.indexOf(deepest) ? tier : deepest), tiersInOrder[0]!);
+
+export const createGame = ({ places, version, random, clock, storage }: GameDependencies) => {
   const placeIds = new Set(places.map(({ id }) => id));
   const placesById = new Map(places.map(place => [place.id, place]));
+  const records = createRecords(storage);
 
   let phase: Phase = 'home';
   let setup = firstTimeSetup('find');
@@ -138,6 +153,11 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   let wrongTapPlaceIds: string[] = [];
   let isConfirmingEnd = false;
   let isComplete = true;
+  let startedAt = 0;
+  let hiddenAt: number | null = null;
+  let backgroundMs = 0;
+  let elapsedMs = 0;
+  let isNewBest = false;
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
@@ -192,7 +212,7 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
-    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete };
+    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
     const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
@@ -208,6 +228,9 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
     promptIndex = 0;
     isConfirmingEnd = false;
     isComplete = true;
+    startedAt = clock();
+    hiddenAt = null;
+    backgroundMs = 0;
     phase = 'prompt';
     rememberSetup(roundSetup);
   };
@@ -219,9 +242,45 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
       wrongTapPlaceIds = [...wrongTapPlaceIds, answeredPlaceId];
       return;
     }
-    answers = [...answers, { placeId, tappedPlaceId: answeredPlaceId, outcome: answeredPlaceId === placeId ? 'right' : 'wrong' }];
+    const answered: Answer = { placeId, tappedPlaceId: answeredPlaceId, outcome: answeredPlaceId === placeId ? 'right' : 'wrong' };
+    answers = [...answers, answered];
     answeredAt = clock();
     phase = 'verdict';
+    records.recordAnswer(setup, answered, answered.outcome === 'wrong' ? answeredPlaceId : wrongTapPlaceIds.at(-1));
+  };
+
+  const hide = () => {
+    hiddenAt ??= clock();
+  };
+
+  const show = () => {
+    if (hiddenAt !== null) backgroundMs += clock() - hiddenAt;
+    hiddenAt = null;
+  };
+
+  const finish = () => {
+    const now = clock();
+    elapsedMs = now - startedAt - backgroundMs - (hiddenAt === null ? 0 : now - hiddenAt);
+    const summary: RoundSummary = {
+      date: startedAt,
+      mode: setup.mode,
+      variant: setup.variant,
+      region: setup.region,
+      tier: setup.tier,
+      deckSize: deck.length,
+      timed: false,
+      easy: setup.easy,
+      daily: false,
+      learn: false,
+      score: answers.filter(({ outcome }) => outcome === 'right').length,
+      complete: isComplete,
+      elapsedMs,
+      pausesUsed: 0,
+      dataVersion: version.dataVersion,
+    };
+    records.logRound(summary);
+    isNewBest = isComplete && records.recordBest(setup, summary);
+    phase = 'results';
   };
 
   const isRightAnswerDue = () => answers[promptIndex]?.outcome === 'right' && clock() - answeredAt >= rightAnswerAdvanceMs;
@@ -233,7 +292,7 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
       phase = 'prompt';
     }
     else {
-      phase = 'results';
+      finish();
     }
   };
 
@@ -245,11 +304,16 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
   const end = () => {
     isConfirmingEnd = false;
     isComplete = false;
-    phase = 'results';
+    finish();
   };
 
   const send = (event: GameEvent) => {
     const isInRound = phase === 'prompt' || phase === 'verdict';
+    if (event.type === 'hide' || event.type === 'show') {
+      if (event.type === 'hide') hide();
+      else show();
+      return;
+    }
     if (isInRound && isConfirmingEnd) {
       if (event.type === 'keepPlaying') keepPlaying();
       else if (event.type === 'end') end();

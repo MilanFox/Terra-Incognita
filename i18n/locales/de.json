@@ -102,6 +102,12 @@
     "playAgain": "Nochmal spielen",
     "changeSetup": "Einstellungen ändern"
   },
+  "record": {
+    "time": "Zeit: {time}",
+    "minutes": "{count} Minute | {count} Minuten",
+    "seconds": "{count} Sekunde | {count} Sekunden",
+    "newBest": "Neue Bestleistung · {region} · {tier} · {deckSize}"
+  },
   "settings": {
     "open": "Einstellungen",
     "close": "Schließen",

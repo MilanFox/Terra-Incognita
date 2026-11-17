@@ -102,6 +102,12 @@
     "playAgain": "Play again",
     "changeSetup": "Change setup"
   },
+  "record": {
+    "time": "Time: {time}",
+    "minutes": "{count} minute | {count} minutes",
+    "seconds": "{count} second | {count} seconds",
+    "newBest": "New best · {region} · {tier} · {deckSize}"
+  },
   "settings": {
     "open": "Settings",
     "close": "Close",

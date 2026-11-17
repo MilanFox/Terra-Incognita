@@ -25,6 +25,23 @@ const resultCells = computed(() => [
 
 const wrongCount = computed(() => props.state.answers.length - props.state.score);
 
+const elapsedTime = computed(() => {
+  const totalSeconds = Math.round(props.state.elapsedMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const spokenSeconds = t('record.seconds', { count: seconds }, seconds);
+  return {
+    shown: `${minutes}:${String(seconds).padStart(2, '0')}`,
+    spoken: minutes ? `${t('record.minutes', { count: minutes }, minutes)} ${spokenSeconds}` : spokenSeconds,
+  };
+});
+
+const newBestLine = computed(() => t('record.newBest', {
+  region: t(`setup.regions.${props.state.setup.region}`),
+  tier: t(`setup.tiers.${props.state.setup.tier}`),
+  deckSize: t(`setup.deckSizes.${props.state.setup.deckSize}`),
+}));
+
 const statTiles = computed(() => [
   { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) },
   { label: t('results.wrongCount'), value: String(wrongCount.value) },
@@ -76,6 +93,13 @@ defineExpose({ element: tray });
       {{ state.isComplete ? $t('results.title') : $t('results.titleEnded') }}
     </h2>
 
+    <p
+      v-if="state.isNewBest"
+      class="results-tray__new-best"
+    >
+      {{ newBestLine }}
+    </p>
+
     <div class="results-tray__stats">
       <div
         v-for="(stat, index) in statTiles"
@@ -110,6 +134,12 @@ defineExpose({ element: tray });
         <span class="visually-hidden">{{ $t(`results.${cell.outcome}`, { place: placeName(cell.placeId) }) }}</span>
       </li>
     </ol>
+
+    <p class="results-tray__time">
+      <span aria-hidden="true">{{ $t('record.time', { time: elapsedTime.shown }) }}</span>
+
+      <span class="visually-hidden">{{ $t('record.time', { time: elapsedTime.spoken }) }}</span>
+    </p>
 
     <p
       v-if="state.missedPlaceIds.length"
@@ -171,6 +201,17 @@ defineExpose({ element: tray });
     gap: 8px;
   }
 
+  &__new-best {
+    justify-self: start;
+    margin: 0;
+    padding: 4px 10px;
+    border: 2px solid $color-ink;
+    border-radius: 4px;
+    background: $color-mustard;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
   &__stat {
     display: grid;
     gap: 4px;
@@ -205,6 +246,7 @@ defineExpose({ element: tray });
     list-style: none;
   }
 
+  &__time,
   &__unreached {
     margin: 0;
     color: $color-muted;

@@ -28,7 +28,7 @@ const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(),
 
 const selectedPlaceId = computed(() => game.state.phase === 'home' ? homeSelectedPlaceId.value : null);
 
-const shownTier = computed(() => setupDraft.value?.tier ?? (game.state.phase === 'home' ? 'sovereign' : game.state.setup.tier));
+const shownTier = computed(() => setupDraft.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
 const poolPlaceIds = computed(() => setupDraft.value ? game.poolOf(setupDraft.value) : null);
 const frameRegion = computed(() => setupDraft.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
