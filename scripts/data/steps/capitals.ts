@@ -7,7 +7,7 @@ import type { Land, Place, Ring } from '../model.ts';
 import type { WikidataBinding } from '../sources/wikidata.ts';
 import type { AliasRulings, Language, LocalisedName } from './names.ts';
 
-export type ShippedPlace = Place & { capitals: string[] };
+export type ShippedPlace = Place & { flag: string | null, capitals: string[] };
 export type CapitalNames = Record<string, Record<Language, LocalisedName>>;
 
 type Capital = {

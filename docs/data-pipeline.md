@@ -4,7 +4,7 @@ The place data the app ships is built from Natural Earth (NE) and the curated ru
 
 ```sh
 npm run data:fetch          # network: download the pinned sources (all scopes)
-npm run data:fetch -- --ne  # only Natural Earth (also --wikidata, --cldr, --mledoze)
+npm run data:fetch -- --ne  # only Natural Earth (also --wikidata, --cldr, --mledoze, --flags)
 npm run data:build          # offline and deterministic: rule, patch, simplify, check, write
 ```
 
@@ -12,10 +12,10 @@ npm run data:build          # offline and deterministic: rule, patch, simplify, 
 
 | Path | What | In git |
 |---|---|---|
-| `scripts/data/fetch.ts` | fetch script, one fetcher per scope (`--ne`, `--wikidata`, `--cldr`, `--mledoze`) | yes |
+| `scripts/data/fetch.ts` | fetch script, one fetcher per scope (`--ne`, `--wikidata`, `--cldr`, `--mledoze`, `--flags`) | yes |
 | `scripts/data/build.ts` | build script, runs the steps below in order | yes |
 | `scripts/data/steps/` | one module per build step | yes |
-| `scripts/data/check.ts`, `scripts/data/check-names.ts` | the build check; the name lines and warnings | yes |
+| `scripts/data/check.ts`, `scripts/data/check-names.ts`, `scripts/data/check-flags.ts` | the build check; the name lines and warnings; the flag lines and warnings | yes |
 | `shared/utils/normalise.ts` | D14's normalisation, shared with the answer matcher | yes |
 | `scripts/data/sources/natural-earth.ts` | the NE pin: release, file names, sha256 | yes |
 | `data/sources/` | committed snapshots of the sources that drift (below) | yes |
@@ -29,9 +29,11 @@ npm run data:build          # offline and deterministic: rule, patch, simplify, 
 
 Snapshots, committed in `data/sources/` because the sources drift; the build reads them and never the network:
 
-- `wikidata.json`: one SPARQL result, one binding per line, sorted. For every place QID (read from `public/data/places.json`, plus Abkhazia's flag item Q31354462): EN/DE/`mul` labels, EN/DE altLabels, P41 flags (no end date, not deprecated), P36 capitals (same filter) with their labels, altLabels and P625 coordinates. The four capitals D4 overrides (Ramallah, Tifariti, Jerusalem, Jamestown) are fetched whether or not P36 lists them. Names use the place labels; the capitals feed `capitals` in the shipped files; flags are for a later ticket. Sent with the User-Agent `terra-incognita-data-pipeline`.
+- `wikidata.json`: one SPARQL result, one binding per line, sorted. For every place QID (read from `public/data/places.json`, plus Abkhazia's flag item Q31354462): EN/DE/`mul` labels, EN/DE altLabels, P41 flags (no end date, not deprecated), P36 capitals (same filter) with their labels, altLabels and P625 coordinates. The four capitals D4 overrides (Ramallah, Tifariti, Jerusalem, Jamestown) are fetched whether or not P36 lists them. Names use the place labels; the capitals feed `capitals` in the shipped files; flags: see below. Sent with the User-Agent `terra-incognita-data-pipeline`.
 - `cldr-en-territories.json`, `cldr-de-territories.json`: CLDR v49 territory names, including the `-alt-` forms, from the `cldr-json` tag `49.0.0`.
 - `mledoze-alias-subset.json`: the fields of mledoze/countries the aliases need, pinned to a commit. ODbL 1.0, so `names.json` is marked ODbL.
+- `flags/<id>.svg`, `flags/licences.json`: per place with a flag, the Commons SVG as downloaded, and per id `{ file, license, artist, attributionRequired, licenseUrl }` from the Commons API (`LicenseShortName`, `Artist` with the HTML stripped, `AttributionRequired`, `LicenseUrl`). `npm run data:fetch -- --flags` reads the flag files from `wikidata.json` and `data/curated/flags.json`, fetches them one at a time with a pause (User-Agent `terra-incognita-data-pipeline`, retries on 429/5xx), drops snapshots of places that no longer have a flag and prints a `warn` line when a licence field of an existing flag changed.
+- `licences/`: the notice texts the build copies into `THIRD-PARTY-NOTICES.txt`, committed by hand: `unicode-license-v3.txt` (cldr-json tag `49.0.0`), `maplibre-gl-js-LICENSE.txt` (maplibre-gl-js tag `v6.19.0`; MapLibre GL JS arrives in milestone 2, bump the file with the dependency) and `mledoze-odbl-notice.txt`.
 - `fetched.json`: per source, the date of the fetch that last changed its snapshot (plus the CLDR version and the mledoze commit). A fetch that finds nothing new changes nothing.
 
 ### Curated files (`data/curated/`)
@@ -43,6 +45,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 | `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `capitals` (list of QIDs replacing the computed capitals; `[]` = no capital: `HMD`, `UMI`, `ATF`, `IOT`, `HKG`, `MAC`; `SHN` = Jamestown), `iso2` (supplies the ISO code of a split place), `note` |
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
+| `flags.json` | per place id: `"<Commons file>"` where Wikidata's P41 is wrong or ambiguous (several flags without an end date: historical, civil, state or older variants), or `null` = flagless: `BLM`, `MAF`, `SPM`, `WLF`, `UMI`, `HMD`. Every other place needs exactly one P41 flag, else the build fails |
 | `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, applied to that place's capital) and `drop` (list of `{ lang, alias, why }`, plus `capital`, a QID, for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
 
@@ -55,8 +58,11 @@ All sorted by id.
 | File | Shape |
 |---|---|
 | `map-dependencies.geojson` | polygons, one feature per place plus Unclaimed land: `{ id, unclaimed? }`; one feature per line |
-| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, capitals }`; `capitals` is a list of QIDs, empty for a place outside Name the capital |
+| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, flag, capitals }`; `flag` is `"<id>.svg"` or `null` for a flagless place; `capitals` is a list of QIDs, empty for a place outside Name the capital |
 | `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: { qid: { en: { name, aliases[] }, de: { name, aliases[] } } } } }`, one place per line |
+| `flags/<id>.svg` | the Commons SVG with `<metadata>` and comments stripped and, where the root has none (116 of 239 do not), a `viewBox="0 0 <width> <height>"` taken from its pixel width and height; not minified |
+| `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). Nothing shows it yet (milestone 9) |
+| `THIRD-PARTY-NOTICES.txt` | Unicode License v3 (CLDR), MapLibre GL JS 6.19.0's licence in full, and the ODbL notice for mledoze/countries (`names.json` carries the matching `_license` entry) |
 | `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value |
 
 ## Build steps
@@ -70,6 +76,7 @@ Step numbers follow the spec; steps 5, 6 and 10 (per-tier maps, computed facts, 
 7. **Join** (`steps/join.ts`): tier and holder from `places.json`; QID, ISO code and region from the curated override, else from NE. The default region comes from NE's UN M49 fields: North America = Northern America + Central America + Caribbean; NE's "Seven seas (open ocean)" gives no region, so those places carry an override.
 7b. **Names** (`steps/names.ts`, part of step 7): the display name is CLDR's for the place's ISO code, else NE's `NAME_EN` / `NAME_DE` (the breakaway layer's for carved breakaways). Aliases are added in this order and deduplicated case-insensitively: CLDR alt forms, Wikidata label, `mul` label and EN/DE altLabels, mledoze (`name.common`, `name.official`, `altSpellings`; for DE the German translation), NE's name, and `add` from `aliases.json`. Everything but the name and the hand additions is filtered: short codes ("DE", "deu"; CLDR is exempt, which keeps "UK"), machine strings (ISO 3166-2 codes, time-zone ids, strings without letters), non-Latin script, then the `drop` list. Wikidata's `mul` altLabels are not used: they mix languages and were not reviewed. The 23 reviewed aliases that Wikidata moved to `mul` after #10 (Hellas, Malvinas, Føroyar, ...) are hand additions in `aliases.json`.
 8. **Check** (`check.ts`): see below. A failure stops the build before anything is written.
+7c. **Flags** (`steps/flags.ts`, part of step 7): a place's flag is its `flags.json` ruling, else its single P41 flag. The snapshot SVG is copied with `<metadata>` and comments removed and a `viewBox` added from `width`/`height` when missing; a file that still has none (other units, no size) fails the check. The credits are the flags with `attributionRequired`.
 9. **Write** (`steps/write.ts`): write the shipped files sorted by id, and print their sizes.
 
 A broken reference in the curated files (a merge into a non-place, a carve whose `from` or `brkA3` doesn't exist, a split bbox that holds no part, a patch for an id without land) stops the build with an error at the step that meets it.
@@ -87,8 +94,10 @@ The build fails, and writes nothing, on:
 - a place without an EN or a DE name
 - a place with capitals none of which lies inside its geometry
 - a capital without an EN or a DE name
+- a place that is not flagless without a flag SVG (no or several unruled P41 flags, a missing snapshot or licence entry, a snapshot of another file than the ruling names)
+- a flag SVG without a `viewBox`, or of 2 MiB or more
 
-It warns, and still writes, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
+It warns, and still writes, on a name or alias that normalises identically (`normaliseKeys`, umlauts both ways) for two places, and on an alias drop, capital or not, that matches nothing, and on a capital alias addition for a capital the place doesn't have. A new attribution-required flag, or a changed licence of one, compared with the previous `credits.json`, is a warning too (no warning when that file doesn't exist yet). Capitals left out for lying outside their place, and capitals accepted only within the coastal tolerance, are printed as `info` lines, not warnings. The collision list is the one to review after a fetch or an alias edit: fix it by dropping the alias in `aliases.json`, or accept it if both places really are called that.
 
 ## Capitals
 
@@ -97,6 +106,10 @@ A place's capitals are the P36 statements of its Wikidata item (no end date, not
 ## Updating the name sources
 
 `npm run data:fetch -- --wikidata` (or `--cldr`, `--mledoze`), then `npm run data:build`. Read the warnings and the diff of `data/sources/` and `public/data/names.json`: new aliases from Wikidata arrive unreviewed. Bump `cldrVersion` in `scripts/data/sources/cldr.ts` or `mledozeCommit` in `scripts/data/sources/mledoze.ts` to move those pins.
+
+## Updating the flags
+
+`npm run data:fetch -- --flags`, then `npm run data:build`. Read the `warn` lines of both (licence changes, new attribution-required files) and the diff of `data/sources/flags/` and `public/data/credits.json`. A flag that needs attribution is shown in the footer once milestone 9 lands; check its `Artist` text. A Commons SVG without a `viewBox` fails the build: pick another file in `flags.json`. A new P41 flag on Wikidata that makes a place ambiguous also fails it: rule the place in `flags.json`.
 
 ## Updating Natural Earth
 

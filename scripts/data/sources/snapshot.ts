@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fromRepoRoot, sourcesDir } from '../paths.ts';
 
 const fetchedFile = resolve(sourcesDir, 'fetched.json');
@@ -15,6 +15,7 @@ export const writeSnapshots = (source: string, snapshots: Record<string, string>
   const changed = Object.entries(snapshots).filter(([name, text]) => readText(resolve(sourcesDir, name)) !== text);
   const detailsChanged = Object.entries(details).some(([key, value]) => fetched[source]?.[key] !== value);
   for (const [name, text] of changed) {
+    mkdirSync(dirname(resolve(sourcesDir, name)), { recursive: true });
     writeFileSync(resolve(sourcesDir, name), text);
     console.log(`  written     ${fromRepoRoot(resolve(sourcesDir, name))} (${Math.round(text.length / 1024)} KB)`);
   }
