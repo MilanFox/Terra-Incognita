@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useAppUpdate } from '~/composables/useAppUpdate';
+import { useGameStore } from '~/stores/game';
 
 const { isUpdateReady, applyUpdate, dismissUpdate } = useAppUpdate();
+const game = useGameStore();
 </script>
 
 <template>
   <div
     class="update-toast"
+    :class="{ 'update-toast--top': game.state.phase === 'results' }"
     role="status"
   >
     <template v-if="isUpdateReady">
@@ -40,6 +43,10 @@ const { isUpdateReady, applyUpdate, dismissUpdate } = useAppUpdate();
   align-items: center;
   gap: $spacing-sm;
   justify-content: space-between;
+
+  &--top {
+    inset: calc(env(safe-area-inset-top, 0px) + $spacing-md) $spacing-md auto;
+  }
 
   &:empty {
     display: none;
