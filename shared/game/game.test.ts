@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import shippedPlaces from '../../public/data/places.json';
 import shippedVersion from '../../public/data/version.json';
 import { createGame, deepestTierPlayed, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
+import type { SchemaMigration } from './migrations';
 import type { GameState, KeyValueStorage, Place, RoundSetup } from './game';
 
 const places = shippedPlaces as Place[];
@@ -936,7 +937,7 @@ describe('storage layout', () => {
 
     playRound(game, {}, 10);
 
-    expect([...entries.keys()].sort()).toEqual(['ti:bests', 'ti:places', 'ti:rounds', 'ti:setup']);
+    expect([...entries.keys()].sort()).toEqual(['ti:bests', 'ti:meta', 'ti:places', 'ti:rounds', 'ti:setup']);
   });
 
   it('treats a damaged entry as empty', () => {
@@ -973,4 +974,115 @@ describe('storage layout', () => {
     expect(Object.values(storedJson(storage, 'ti:places')['find:name']).every(record => (record as { recent: unknown[] }).recent.length === 8)).toBe(true);
     expect(totalSize).toBeLessThan(500_000);
   }, 20_000);
+});
+
+describe('storage migration on boot', () => {
+  const record = (seen: number, correct: number, recent: (0 | 1)[]) => ({ seen, correct, recent, easySeen: 0, easyCorrect: 0 });
+
+  const bootWith = (stored: Record<string, unknown>, version: object, schemaMigrations?: SchemaMigration[]) => {
+    const storage = memoryStorage();
+    Object.entries(stored).forEach(([key, value]) => storage.setItem(key, JSON.stringify(value)));
+    createGame({ places, version: { ...shippedVersion, ...version }, random: seededRandom(1), clock: () => Date.UTC(2026, 10, 17), storage, schemaMigrations });
+    const read = (key: string) => JSON.parse(storage.getItem(key) ?? 'null');
+    return { storage, read };
+  };
+
+  it('only stamps ti:meta on a first launch', () => {
+    const { storage, read } = bootWith({}, { dataVersion: 4, idMoves: { 4: { AAA: 'BBB' } } });
+    expect(read('ti:meta')).toEqual({ schema: 1, dataVersion: 4 });
+    expect(storage.getItem('ti:places')).toBeNull();
+  });
+
+  it('leaves everything alone when the data version is current', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 3 }, 'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]) } } };
+    const { read } = bootWith(stored, { dataVersion: 3, idMoves: { 3: { AAA: 'BBB' } } });
+    expect(read('ti:places')).toEqual(stored['ti:places']);
+  });
+
+  it('moves a renamed id, remaps confusedWith and stamps the new version', () => {
+    const { read } = bootWith({
+      'ti:meta': { schema: 1, dataVersion: 1 },
+      'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'AAA' } } },
+    }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
+    expect(read('ti:places')).toEqual({ 'find:flag': { BBB: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'BBB' } } });
+    expect(read('ti:meta')).toEqual({ schema: 1, dataVersion: 2 });
+  });
+
+  it('merges records per mode and variant: counters summed, the longer recent kept', () => {
+    const { read } = bootWith({
+      'ti:meta': { schema: 1, dataVersion: 1 },
+      'ti:places': {
+        'find:flag': { AAA: record(3, 2, [1, 1, 0]), BBB: record(2, 1, [0, 1]) },
+        'find:name': { AAA: record(1, 1, [1]) },
+      },
+    }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
+    const merged = read('ti:places');
+    expect(merged['find:flag']).toEqual({ BBB: record(5, 3, [1, 1, 0]) });
+    expect(merged['find:name']).toEqual({ BBB: record(1, 1, [1]) });
+  });
+
+  it('adds easy counters when merging and drops a confusedWith that points at itself', () => {
+    const { read } = bootWith({
+      'ti:meta': { schema: 1, dataVersion: 1 },
+      'ti:places': { 'find:flag': { AAA: { ...{ ...record(1, 1, [1]), confusedWith: 'BBB' }, easySeen: 2, easyCorrect: 1 }, BBB: { ...record(0, 0, []), easySeen: 3, easyCorrect: 3 } } },
+    }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
+    expect(read('ti:places')['find:flag']).toEqual({ BBB: { seen: 1, correct: 1, recent: [1], easySeen: 5, easyCorrect: 4 } });
+  });
+
+  it('applies every missed version in order, skipping versions already stored', () => {
+    const { read } = bootWith({
+      'ti:meta': { schema: 1, dataVersion: 1 },
+      'ti:places': { 'find:flag': { AAA: record(1, 1, [1]), XXX: record(4, 4, [1, 1, 1, 1]) } },
+    }, { dataVersion: 4, idMoves: { 1: { XXX: 'ZZZ' }, 2: { AAA: 'BBB' }, 3: { BBB: 'CCC' } } });
+    expect(Object.keys(read('ti:places')['find:flag'])).toEqual(['CCC', 'XXX']);
+  });
+
+  it('leaves a split\'s old record in place as an orphan', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { OLD: record(3, 3, [1, 1, 1]) } } };
+    const { read } = bootWith(stored, { dataVersion: 2, idMoves: {} });
+    expect(read('ti:places')).toEqual(stored['ti:places']);
+    expect(read('ti:meta').dataVersion).toBe(2);
+  });
+
+  it('keeps the records of a removed place, so they are back if the id returns', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { GONE: record(3, 3, [1, 1, 1]) } } };
+    const { read } = bootWith(stored, { dataVersion: 3, idMoves: {}, removed: { 2: ['GONE'] } });
+    expect(read('ti:places')).toEqual(stored['ti:places']);
+  });
+
+  it('does not touch bests, daily records, rounds or setups', () => {
+    const untouched = {
+      'ti:bests': { 'find:flag:world:sovereign:10:normal': { score: 9, fastestPerfectMs: null } },
+      'ti:daily': { '2026-11-16': { date: '2026-11-16', variant: 'flag', score: 8, deckSize: 10, elapsedMs: 1000, complete: true } },
+      'ti:rounds': [{ dataVersion: 1 }],
+      'ti:setup': { lastMode: 'find', setups: {} },
+    };
+    const { read } = bootWith({ 'ti:meta': { schema: 1, dataVersion: 1 }, ...untouched }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
+    Object.entries(untouched).forEach(([key, value]) => expect(read(key)).toEqual(value));
+  });
+
+  it('runs the ordered schema migrations that were missed and stamps the new schema', () => {
+    const order: string[] = [];
+    const schemaMigrations = [
+      () => order.push('1 to 2'),
+      (migratedStorage: KeyValueStorage) => {
+        order.push('2 to 3');
+        migratedStorage.setItem('ti:setup', 'migrated');
+      },
+    ];
+    const { read, storage } = bootWith({ 'ti:meta': { schema: 2, dataVersion: 1 } }, { dataVersion: 1 }, schemaMigrations);
+    expect(order).toEqual(['2 to 3']);
+    expect(storage.getItem('ti:setup')).toBe('migrated');
+    expect(read('ti:meta')).toEqual({ schema: 3, dataVersion: 1 });
+  });
+
+  it('runs every schema migration from the first schema, and none on a first launch', () => {
+    const order: string[] = [];
+    const schemaMigrations = [() => order.push('1 to 2'), () => order.push('2 to 3')];
+    bootWith({ 'ti:meta': { schema: 1, dataVersion: 1 } }, { dataVersion: 1 }, schemaMigrations);
+    expect(order).toEqual(['1 to 2', '2 to 3']);
+    order.length = 0;
+    bootWith({}, { dataVersion: 1 }, schemaMigrations);
+    expect(order).toEqual([]);
+  });
 });

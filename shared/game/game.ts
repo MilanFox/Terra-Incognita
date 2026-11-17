@@ -1,3 +1,5 @@
+import { migrateStorage } from './migrations';
+import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
 import type { RoundSummary } from './records';
 
@@ -44,6 +46,7 @@ export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'
 
 export interface DataVersion {
   dataVersion: number
+  idMoves: Record<string, Record<string, string>>
 }
 
 export interface GameDependencies {
@@ -52,6 +55,7 @@ export interface GameDependencies {
   random: () => number
   clock: () => number
   storage: KeyValueStorage
+  schemaMigrations?: SchemaMigration[]
 }
 
 export type GameEvent
@@ -139,7 +143,8 @@ export const deepestTierPlayed = (storage: KeyValueStorage) => createRecords(sto
   .map(({ tier }) => tier)
   .reduce((deepest, tier) => (tiersInOrder.indexOf(tier) > tiersInOrder.indexOf(deepest) ? tier : deepest), tiersInOrder[0]!);
 
-export const createGame = ({ places, version, random, clock, storage }: GameDependencies) => {
+export const createGame = ({ places, version, random, clock, storage, schemaMigrations }: GameDependencies) => {
+  migrateStorage(storage, version, schemaMigrations);
   const placeIds = new Set(places.map(({ id }) => id));
   const placesById = new Map(places.map(place => [place.id, place]));
   const records = createRecords(storage);
