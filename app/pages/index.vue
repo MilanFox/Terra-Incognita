@@ -3,6 +3,7 @@ import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
+import { usePlayFeedback } from '~/composables/usePlayFeedback';
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -11,6 +12,9 @@ const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
 const answerFade = useRightAnswerFade();
+const isSettingsOpen = ref(false);
+
+usePlayFeedback(() => game.state);
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home');
@@ -36,6 +40,12 @@ const next = () => {
   worldMap.value?.focus();
 };
 
+const closeSettings = async () => {
+  isSettingsOpen.value = false;
+  await nextTick();
+  homeTray.value?.focusSettings();
+};
+
 const leave = async () => {
   game.send({ type: 'leave' });
   await nextTick();
@@ -49,9 +59,10 @@ onMounted(game.load);
   <main class="home">
     <Transition name="tray">
       <HomeTray
-        v-if="isShellReady && game.state.phase === 'home'"
+        v-if="isShellReady && game.state.phase === 'home' && !isSettingsOpen"
         ref="homeTray"
         @play="play"
+        @settings="isSettingsOpen = true"
         @interact="stopDrift"
       />
     </Transition>
@@ -73,8 +84,16 @@ onMounted(game.load);
       />
     </Transition>
 
+    <Transition name="tray">
+      <SettingsTray
+        v-if="isShellReady && game.state.phase === 'home' && isSettingsOpen"
+        @close="closeSettings"
+      />
+    </Transition>
+
     <WorldMap
       ref="worldMap"
+      :inert="isSettingsOpen"
       :selected-place-id="selectedPlaceId"
       :verdict="verdict"
       :fade="answerFade"

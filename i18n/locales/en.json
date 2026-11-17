@@ -43,5 +43,19 @@
     "right": "{place}: right",
     "wrong": "{place}: wrong",
     "home": "Main menu"
+  },
+  "settings": {
+    "open": "Settings",
+    "close": "Close",
+    "title": "Settings",
+    "sound": "Sound",
+    "soundHint": "Sounds and light vibration while you play.",
+    "on": "On",
+    "off": "Off",
+    "language": "Language",
+    "languages": {
+      "en": "English",
+      "de": "Deutsch"
+    }
   }
 }
