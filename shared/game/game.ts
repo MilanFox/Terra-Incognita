@@ -69,11 +69,14 @@ export type GameEvent
     | { type: 'end' }
     | { type: 'leave' }
     | { type: 'hide' }
-    | { type: 'show' };
+    | { type: 'show' }
+    | { type: 'pause' }
+    | { type: 'resume' };
 
 export const rightAnswerHoldMs = 1000;
 export const rightAnswerFadeMs = 300;
 export const rightAnswerAdvanceMs = rightAnswerHoldMs + rightAnswerFadeMs;
+export const pausesPerRound = 3;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
@@ -100,6 +103,8 @@ interface RoundInPlay {
   score: number
   progress: ProgressCell[]
   isConfirmingEnd: boolean
+  isPaused: boolean
+  pausesLeft: number
 }
 
 export type GameState
@@ -141,11 +146,15 @@ interface StoredRound {
   wrongTapPlaceIds: string[]
   startedAt: number
   hiddenAt: number | null
-  backgroundMs: number
+  stoppedMs: number
+  pausedAt: number | null
+  pausesUsed: number
   dataVersion: number
 }
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === 'string');
+
+const isMomentOrNull = (value: unknown) => value === null || typeof value === 'number';
 
 const shuffled = <T>(items: readonly T[], random: () => number) => {
   const deck = [...items];
@@ -177,7 +186,9 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
   let isComplete = true;
   let startedAt = 0;
   let hiddenAt: number | null = null;
-  let backgroundMs = 0;
+  let stoppedMs = 0;
+  let pausedAt: number | null = null;
+  let pausesUsed = 0;
   let elapsedMs = 0;
   let isNewBest = false;
 
@@ -231,12 +242,14 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
 
   const attemptsAllowed = () => (setup.easy ? easyAttempts : 1);
 
+  const pausesLeft = () => (setup.timed ? pausesPerRound - pausesUsed : 0);
+
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
     if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
-    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd };
+    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
@@ -245,7 +258,8 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       storage.removeItem(roundStorageKey);
       return;
     }
-    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt, backgroundMs, dataVersion: version.dataVersion };
+    // A round read back on relaunch counts as hidden since its last write, if the app never got to hide it.
+    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, dataVersion: version.dataVersion };
     storage.setItem(roundStorageKey, JSON.stringify(round));
   };
 
@@ -264,7 +278,8 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       && Array.isArray(storedAnswers) && (storedAnswers.length === storedIndex || storedAnswers.length === storedIndex! + 1)
       && storedAnswers.every((storedAnswer: Answer, index) => storedAnswer.placeId === storedDeck[index] && placeIds.has(storedAnswer.tappedPlaceId) && (storedAnswer.outcome === 'right' || storedAnswer.outcome === 'wrong'))
       && isStringList(storedWrongTaps) && storedWrongTaps.every(id => placeIds.has(id))
-      && typeof stored.startedAt === 'number' && typeof stored.backgroundMs === 'number' && (stored.hiddenAt === null || typeof stored.hiddenAt === 'number');
+      && typeof stored.startedAt === 'number' && typeof stored.stoppedMs === 'number' && isMomentOrNull(stored.hiddenAt) && isMomentOrNull(stored.pausedAt)
+      && Number.isInteger(stored.pausesUsed) && stored.pausesUsed! >= 0 && stored.pausesUsed! <= pausesPerRound;
     if (!isValid) {
       storage.removeItem(roundStorageKey);
       return;
@@ -275,9 +290,16 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     promptIndex = storedIndex!;
     wrongTapPlaceIds = storedWrongTaps;
     startedAt = stored!.startedAt!;
-    backgroundMs = stored!.backgroundMs! + (stored!.hiddenAt === null ? 0 : clock() - stored!.hiddenAt!);
+    stoppedMs = stored!.stoppedMs!;
+    hiddenAt = stored!.hiddenAt ?? null;
+    pausedAt = stored!.pausedAt ?? null;
+    pausesUsed = stored!.pausesUsed!;
     phase = 'prompt';
+    // A relaunch is a return from the background.
+    hide();
+    show();
     if (answers.length > promptIndex) advance();
+    if (timeLeftMs() === 0) runOut();
   };
 
   let state = snapshot();
@@ -292,7 +314,9 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     isComplete = true;
     startedAt = clock();
     hiddenAt = null;
-    backgroundMs = 0;
+    stoppedMs = 0;
+    pausedAt = null;
+    pausesUsed = 0;
     phase = 'prompt';
     rememberSetup(roundSetup);
   };
@@ -311,18 +335,36 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     records.recordAnswer(setup, answered, answered.outcome === 'wrong' ? answeredPlaceId : wrongTapPlaceIds.at(-1));
   };
 
+  const pause = () => {
+    // A pause used by backgrounding starts at the moment the app was hidden.
+    pausedAt = hiddenAt ?? clock();
+    pausesUsed += 1;
+  };
+
   const hide = () => {
     hiddenAt ??= clock();
+    if (pausedAt === null && pausesLeft() > 0) pause();
   };
 
   const show = () => {
-    if (hiddenAt !== null) backgroundMs += clock() - hiddenAt;
+    if (!setup.timed && hiddenAt !== null) stoppedMs += clock() - hiddenAt;
     hiddenAt = null;
+  };
+
+  const restartRightAnswerHold = () => {
+    if (phase === 'verdict' && answers[promptIndex]!.outcome === 'right') answeredAt = clock();
+  };
+
+  const resume = () => {
+    stoppedMs += clock() - pausedAt!;
+    pausedAt = null;
+    restartRightAnswerHold();
   };
 
   const playedMs = () => {
     const now = clock();
-    return now - startedAt - backgroundMs - (hiddenAt === null ? 0 : now - hiddenAt);
+    const stoppedSince = pausedAt ?? (setup.timed ? null : hiddenAt);
+    return now - startedAt - stoppedMs - (stoppedSince === null ? 0 : now - stoppedSince);
   };
 
   const timeLimitMs = () => (setup.timed ? promptBudgetsMs[setup.mode] * deck.length : Infinity);
@@ -347,7 +389,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       score: answers.filter(({ outcome }) => outcome === 'right').length,
       complete: isComplete,
       elapsedMs,
-      pausesUsed: 0,
+      pausesUsed,
       dataVersion: version.dataVersion,
     };
     records.logRound(summary);
@@ -370,7 +412,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
 
   const keepPlaying = () => {
     isConfirmingEnd = false;
-    if (phase === 'verdict' && answers[promptIndex]!.outcome === 'right') answeredAt = clock();
+    restartRightAnswerHold();
   };
 
   const end = () => {
@@ -383,13 +425,14 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
 
   const send = (event: GameEvent) => {
     const isInRound = isRoundInPlay();
-    if (event.type === 'hide' || event.type === 'show') {
-      if (event.type === 'hide') hide();
-      else show();
-      persistRound();
-      return;
-    }
     if (isInRound && timeLeftMs() === 0) runOut();
+    else if (event.type === 'hide' && isInRound) hide();
+    else if (event.type === 'show' && isInRound) show();
+    else if (isInRound && pausedAt !== null) {
+      if (event.type === 'resume') resume();
+      else return;
+    }
+    else if (event.type === 'pause' && isInRound && pausesLeft() > 0) pause();
     else if (isInRound && isConfirmingEnd) {
       if (event.type === 'keepPlaying') keepPlaying();
       else if (event.type === 'end') end();

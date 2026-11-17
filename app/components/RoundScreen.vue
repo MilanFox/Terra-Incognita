@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pausesPerRound } from '#shared/game/game';
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
@@ -27,6 +28,7 @@ const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
 const flipPhase = ref<'out' | 'in' | null>(null);
 const keepPlayingTile = useTemplateRef<HTMLButtonElement>('keepPlayingTile');
 const closeTile = useTemplateRef<HTMLButtonElement>('closeTile');
+const pauseTile = useTemplateRef<HTMLButtonElement>('pauseTile');
 const endLineId = useId();
 let flipTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -59,8 +61,25 @@ const keepPlaying = async () => {
   closeTile.value?.focus();
 };
 
+const isPauseDisabled = computed(() => props.state.pausesLeft === 0);
+let focusBeforePause: HTMLElement | null = null;
+
+watch(() => props.state.isPaused, (isPaused) => {
+  if (isPaused) focusBeforePause = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+});
+
+const pause = () => {
+  if (!isPauseDisabled.value) game.send({ type: 'pause' });
+};
+
+const resume = async () => {
+  game.send({ type: 'resume' });
+  await nextTick();
+  (focusBeforePause?.isConnected ? focusBeforePause : pauseTile.value)?.focus();
+};
+
 useEventListener(document, 'keydown', (event) => {
-  if (event.key !== 'Escape' || !isConfirming.value) return;
+  if (event.key !== 'Escape' || event.defaultPrevented || !isConfirming.value) return;
   event.preventDefault();
   keepPlaying();
 });
@@ -71,7 +90,10 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 </script>
 
 <template>
-  <div class="round-screen">
+  <div
+    class="round-screen"
+    :inert="state.isPaused"
+  >
     <div class="round-hud">
       <div
         class="tile round-hud__progress"
@@ -105,6 +127,31 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 
         <span class="visually-hidden">{{ clockText.spoken }}</span>
       </div>
+
+      <button
+        v-if="state.setup.timed"
+        ref="pauseTile"
+        type="button"
+        class="tile round-hud__pause"
+        :aria-label="$t('pause.open', { count: state.pausesLeft, total: pausesPerRound })"
+        :aria-disabled="isPauseDisabled || undefined"
+        aria-haspopup="dialog"
+        @click="pause"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          aria-hidden="true"
+        >
+          <path
+            d="M8 5v14M16 5v14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3.5"
+          />
+        </svg>
+      </button>
 
       <HelpTile
         :mode="state.setup.mode"
@@ -294,6 +341,12 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         </svg>
       </button>
     </div>
+
+    <PauseScreen
+      v-if="state.isPaused"
+      :pauses-left="state.pausesLeft"
+      @resume="resume"
+    />
   </div>
 </template>
 
@@ -320,16 +373,20 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 .round-hud {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+
+  :deep(.help-tile) {
+    width: 36px;
+  }
 
   &__progress {
-    flex: 1 1 120px;
+    flex: 1 1 96px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     min-height: 44px;
-    padding: 6px 8px;
+    padding: 6px;
     box-shadow: 0 3px 0 $color-ink;
   }
 
@@ -357,7 +414,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     align-items: baseline;
     justify-content: center;
     min-width: 56px;
-    padding: 9px 8px 0;
+    padding: 9px 6px 0;
     box-shadow: 0 3px 0 $color-ink;
     font-family: $font-serif;
     font-size: 24px;
@@ -370,11 +427,30 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     }
   }
 
+  &__pause {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    min-height: 40px;
+
+    &[aria-disabled='true'] {
+      border-style: dashed;
+      background: $color-paper;
+      box-shadow: none;
+      color: $color-muted;
+      cursor: default;
+
+      &:active {
+        transform: none;
+      }
+    }
+  }
+
   &__clock {
     display: grid;
     place-items: center;
     min-width: 56px;
-    padding: 0 8px;
+    padding: 0 6px;
     box-shadow: 0 3px 0 $color-ink;
     font-family: $font-serif;
     font-size: 20px;

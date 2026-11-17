@@ -71,6 +71,10 @@ _Avoid_: Difficulty, level
 **Timed round**:
 A round with one countdown for the whole round; untimed rounds show no clock. When it runs out, a regular mode's round ends as if ended early, while a special mode's round counts as complete.
 
+**Pause**:
+Stopping a timed round's clock, by the pause button or by leaving the app; a round has three. Once they are spent, time away from the app runs off the clock.
+_Avoid_: Break, freeze
+
 **End round**:
 Stopping a round before it ends by itself. Prompts not yet reached count as missed and the round does not count for personal bests; a learning round loses nothing.
 _Avoid_: Give up, quit

@@ -37,8 +37,15 @@ const makeStoredSetupsUntimed: SchemaMigration = (storage) => {
   if (isObject(round)) storage.setItem(roundStorageKey, JSON.stringify({ ...round, setup: untimed(round.setup) }));
 };
 
+const moveStoredRoundToPausableClock: SchemaMigration = (storage) => {
+  const round = readJson(storage, roundStorageKey);
+  if (!isObject(round)) return;
+  const { backgroundMs, ...unchangedFields } = round;
+  storage.setItem(roundStorageKey, JSON.stringify({ ...unchangedFields, stoppedMs: backgroundMs, pausedAt: null, pausesUsed: 0 }));
+};
+
 // Entry n upgrades schema n + 1 to n + 2.
-export const schemaMigrations: SchemaMigration[] = [makeStoredSetupsUntimed];
+export const schemaMigrations: SchemaMigration[] = [makeStoredSetupsUntimed, moveStoredRoundToPausableClock];
 
 const readMeta = (storage: KeyValueStorage): StoredMeta | undefined => {
   const stored = readJson(storage, metaStorageKey) as Partial<StoredMeta> | null;

@@ -132,6 +132,12 @@
     "confirm": "Runde beenden",
     "keepPlaying": "Weiterspielen"
   },
+  "pause": {
+    "open": "Pause, {count} von {total} übrig",
+    "title": "Pausiert",
+    "left": "{count} von {total} Pausen übrig",
+    "resume": "Fortsetzen"
+  },
   "help": {
     "open": "Hilfe",
     "title": "So wird gespielt: {mode}",

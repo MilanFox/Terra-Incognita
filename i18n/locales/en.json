@@ -132,6 +132,12 @@
     "confirm": "End round",
     "keepPlaying": "Keep playing"
   },
+  "pause": {
+    "open": "Pause, {count} of {total} left",
+    "title": "Paused",
+    "left": "{count} of {total} pauses left",
+    "resume": "Resume"
+  },
   "help": {
     "open": "Help",
     "title": "How to play: {mode}",

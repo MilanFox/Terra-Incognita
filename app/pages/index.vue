@@ -57,7 +57,7 @@ const frameInset = computed(() => {
 });
 
 const isMapInert = computed(() => !!setupDraft.value || isSettingsOpen.value || game.state.phase === 'results'
-  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && game.state.isConfirmingEnd));
+  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && (game.state.isConfirmingEnd || game.state.isPaused)));
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });

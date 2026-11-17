@@ -665,6 +665,13 @@ const endRoundNow = (game: RoundGame) => {
   game.send({ type: 'end' });
 };
 
+const spendPauses = (game: RoundGame) => {
+  for (let pause = 0; pause < 3; pause += 1) {
+    game.send({ type: 'pause' });
+    game.send({ type: 'resume' });
+  }
+};
+
 describe('recording per place', () => {
   it('keeps every answered place in ti:places under its mode and variant, after every answer', () => {
     const { game, storage } = recordingGame();
@@ -1017,6 +1024,175 @@ describe('timed rounds', () => {
     startRound(game);
     expect(game.timeLeftMs()).toBeNull();
   });
+
+  describe('pauses', () => {
+    it('stop the countdown until Resume, which continues it', () => {
+      const { game, waitAndTick } = timedRound();
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 3 });
+      waitAndTick(10_000);
+
+      game.send({ type: 'pause' });
+      expect(game.state).toMatchObject({ phase: 'prompt', isPaused: true, pausesLeft: 2 });
+      waitAndTick(300_000);
+      expect(game.timeLeftMs()).toBe(70_000);
+
+      game.send({ type: 'resume' });
+      waitAndTick(5000);
+      expect(game.state).toMatchObject({ phase: 'prompt', isPaused: false, pausesLeft: 2 });
+      expect(game.timeLeftMs()).toBe(65_000);
+    });
+
+    it('come three to a round, and a fourth pause does nothing', () => {
+      const { game, waitAndTick } = timedRound();
+      for (let pause = 0; pause < 3; pause += 1) {
+        game.send({ type: 'pause' });
+        waitAndTick(60_000);
+        game.send({ type: 'resume' });
+      }
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 0 });
+
+      game.send({ type: 'pause' });
+      waitAndTick(1000);
+
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 0 });
+      expect(game.timeLeftMs()).toBe(79_000);
+    });
+
+    it('take no answer while the round is paused', () => {
+      const { game } = timedRound();
+      const placeId = promptedPlaceId(game);
+      game.send({ type: 'pause' });
+
+      game.send({ type: 'tap', placeId });
+      game.send({ type: 'askEnd' });
+
+      expect(game.state).toMatchObject({ phase: 'prompt', placeId, score: 0, isPaused: true, isConfirmingEnd: false });
+    });
+
+    it('are used by backgrounding while one is left: the round comes back paused, no time lost', () => {
+      const { game, waitAndTick } = timedRound();
+      waitAndTick(10_000);
+
+      game.send({ type: 'hide' });
+      expect(game.state).toMatchObject({ isPaused: true, pausesLeft: 2 });
+      waitAndTick(600_000);
+      game.send({ type: 'show' });
+      waitAndTick(5000);
+
+      expect(game.state).toMatchObject({ phase: 'prompt', isPaused: true, pausesLeft: 2 });
+      expect(game.timeLeftMs()).toBe(70_000);
+      game.send({ type: 'resume' });
+      waitAndTick(5000);
+      expect(game.timeLeftMs()).toBe(65_000);
+    });
+
+    it('are not used again by backgrounding a paused round', () => {
+      const { game, wait } = timedRound();
+      game.send({ type: 'pause' });
+
+      game.send({ type: 'hide' });
+      wait(60_000);
+      game.send({ type: 'show' });
+
+      expect(game.state).toMatchObject({ isPaused: true, pausesLeft: 2 });
+      expect(game.timeLeftMs()).toBe(80_000);
+    });
+
+    it('once spent, leave the clock running in the background: the time away is deducted on return', () => {
+      const { game, wait } = timedRound();
+      spendPauses(game);
+      wait(10_000);
+
+      game.send({ type: 'hide' });
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 0 });
+      wait(30_000);
+      game.send({ type: 'show' });
+
+      expect(game.state).toMatchObject({ phase: 'prompt', isPaused: false });
+      expect(game.timeLeftMs()).toBe(40_000);
+    });
+
+    it('once spent, end the round as a timeout on return when the clock ran out in the background', () => {
+      const { game, storage, wait } = timedRound();
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'next' });
+      spendPauses(game);
+
+      game.send({ type: 'hide' });
+      wait(600_000);
+      game.send({ type: 'show' });
+
+      expect(resultsOf(game)).toMatchObject({ score: 1, isComplete: false, elapsedMs: 80_000 });
+      expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ timed: true, complete: false, pausesUsed: 3 })]);
+      expect(storage.getItem('ti:round')).toBeNull();
+    });
+
+    it('are counted in the round log', () => {
+      const { game, storage, wait } = timedRound();
+      game.send({ type: 'pause' });
+      game.send({ type: 'resume' });
+      game.send({ type: 'hide' });
+      wait(1000);
+      game.send({ type: 'show' });
+      game.send({ type: 'resume' });
+
+      playThrough(game, 10);
+
+      expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ timed: true, complete: true, pausesUsed: 2 })]);
+    });
+
+    it('are not used by the End round confirm or the help dialog, which leave the clock running', () => {
+      const { game, waitAndTick } = timedRound();
+      game.send({ type: 'askEnd' });
+      waitAndTick(20_000);
+      game.send({ type: 'keepPlaying' });
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 3 });
+      expect(game.timeLeftMs()).toBe(60_000);
+
+      waitAndTick(20_000);
+
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 3 });
+      expect(game.timeLeftMs()).toBe(40_000);
+    });
+
+    it('can be taken while the End round confirm is up, which is still up after Resume', () => {
+      const { game, waitAndTick } = timedRound();
+      game.send({ type: 'askEnd' });
+      game.send({ type: 'pause' });
+      waitAndTick(60_000);
+
+      game.send({ type: 'resume' });
+
+      expect(game.state).toMatchObject({ phase: 'prompt', isPaused: false, isConfirmingEnd: true, pausesLeft: 2 });
+      expect(game.timeLeftMs()).toBe(80_000);
+    });
+
+    it('hold a right answer while paused and restart its hold on Resume', () => {
+      const { game, waitAndTick } = timedRound();
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'pause' });
+      waitAndTick(rightAnswerAdvanceMs * 2);
+      expect(game.state).toMatchObject({ phase: 'verdict', promptNumber: 1, isPaused: true });
+
+      game.send({ type: 'resume' });
+      waitAndTick(rightAnswerAdvanceMs - 1);
+      expect(game.state).toMatchObject({ phase: 'verdict', promptNumber: 1 });
+      waitAndTick(1);
+      expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+    });
+
+    it('do not exist in untimed rounds', () => {
+      const { game, wait } = recordingGame();
+      startRound(game);
+      expect(game.state).toMatchObject({ isPaused: false, pausesLeft: 0 });
+
+      game.send({ type: 'pause' });
+      wait(5000);
+      endRoundNow(game);
+
+      expect(resultsOf(game).elapsedMs).toBe(5000);
+    });
+  });
 });
 
 describe('the tier drawn outside a round', () => {
@@ -1104,7 +1280,7 @@ describe('storage migration on boot', () => {
 
   it('only stamps ti:meta on a first launch', () => {
     const { storage, read } = bootWith({}, { dataVersion: 4, idMoves: { 4: { AAA: 'BBB' } } });
-    expect(read('ti:meta')).toEqual({ schema: 2, dataVersion: 4 });
+    expect(read('ti:meta')).toEqual({ schema: 3, dataVersion: 4 });
     expect(storage.getItem('ti:places')).toBeNull();
   });
 
@@ -1120,7 +1296,7 @@ describe('storage migration on boot', () => {
       'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'AAA' } } },
     }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
     expect(read('ti:places')).toEqual({ 'find:flag': { BBB: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'BBB' } } });
-    expect(read('ti:meta')).toEqual({ schema: 2, dataVersion: 2 });
+    expect(read('ti:meta')).toEqual({ schema: 3, dataVersion: 2 });
   });
 
   it('merges records per mode and variant: counters summed, the longer recent kept', () => {
@@ -1252,7 +1428,20 @@ describe('storage migration on boot', () => {
 
     expect(game.setupFor('find')).toEqual({ ...setupBeforeTimed, timed: false });
     expect(game.state).toMatchObject({ phase: 'prompt', placeId: 'FRA', setup: { deckSize: 10, timed: false } });
-    expect(JSON.parse(storage.getItem('ti:meta')!).schema).toBe(2);
+    expect(JSON.parse(storage.getItem('ti:meta')!).schema).toBe(3);
+  });
+
+  it('carries a stored round from before pauses over with no pause used, and applies the pause rules to it', () => {
+    const roundBeforePauses = { setup: { ...firstTimeSetup, timed: true }, deck: ['FRA', 'DEU', 'ITA', 'ESP', 'PRT'], promptIndex: 0, answers: [], wrongTapPlaceIds: [], startedAt: 1000, hiddenAt: 11_000, backgroundMs: 2000, dataVersion: shippedVersion.dataVersion };
+    const storage = memoryStorage();
+    storage.setItem('ti:meta', JSON.stringify({ schema: 2, dataVersion: shippedVersion.dataVersion }));
+    storage.setItem('ti:round', JSON.stringify(roundBeforePauses));
+
+    const game = createGame({ places, version: shippedVersion, random: seededRandom(1), clock: () => 500_000, storage });
+
+    expect(game.state).toMatchObject({ phase: 'prompt', placeId: 'FRA', isPaused: true, pausesLeft: 2 });
+    expect(game.timeLeftMs()).toBe(32_000);
+    expect(JSON.parse(storage.getItem('ti:round')!)).not.toHaveProperty('backgroundMs');
   });
 });
 
@@ -1304,6 +1493,77 @@ describe('resuming an interrupted round', () => {
     resumed.send({ type: 'askEnd' });
     resumed.send({ type: 'end' });
     expect(resultsOf(resumed as RoundGame).elapsedMs).toBe(15_000);
+  });
+
+  describe('when timed', () => {
+    const timedSetup: RoundSetup = { ...easySetup, easy: false, timed: true };
+
+    const startTimed = (storage: KeyValueStorage) => {
+      now = 1_000_000;
+      const game = boot(storage);
+      game.send({ type: 'start', setup: timedSetup });
+      return game;
+    };
+
+    it('keeps the pauses used and the moment it was hidden, and comes back paused with no time lost', () => {
+      const storage = memoryStorage();
+      const game = startTimed(storage);
+      now += 10_000;
+      game.send({ type: 'hide' });
+      expect(JSON.parse(storage.getItem('ti:round')!)).toMatchObject({ pausesUsed: 1, hiddenAt: 1_010_000 });
+      now += 3_600_000;
+
+      const resumed = boot(storage);
+
+      expect(resumed.state).toMatchObject({ phase: 'prompt', isPaused: true, pausesLeft: 2 });
+      expect(resumed.timeLeftMs()).toBe(70_000);
+      resumed.send({ type: 'resume' });
+      now += 5000;
+      expect(resumed.timeLeftMs()).toBe(65_000);
+    });
+
+    it('comes back paused after a relaunch it was not hidden for, using a pause from its last answer', () => {
+      const storage = memoryStorage();
+      const game = startTimed(storage);
+      now += 3000;
+      game.send({ type: 'tap', placeId: promptedPlaceId(game as RoundGame) });
+      now += 3_600_000;
+
+      const resumed = boot(storage);
+
+      expect(resumed.state).toMatchObject({ phase: 'prompt', promptNumber: 2, isPaused: true, pausesLeft: 2 });
+      expect(resumed.timeLeftMs()).toBe(77_000);
+    });
+
+    it('with no pause left, deducts the time away since it was hidden', () => {
+      const storage = memoryStorage();
+      const game = startTimed(storage);
+      spendPauses(game);
+      now += 10_000;
+      game.send({ type: 'hide' });
+      now += 30_000;
+
+      const resumed = boot(storage);
+
+      expect(resumed.state).toMatchObject({ phase: 'prompt', isPaused: false, pausesLeft: 0 });
+      expect(resumed.timeLeftMs()).toBe(40_000);
+    });
+
+    it('with no pause left, ends as a timeout when the clock ran out while away, logging the pauses used', () => {
+      const storage = memoryStorage();
+      const game = startTimed(storage);
+      game.send({ type: 'tap', placeId: promptedPlaceId(game as RoundGame) });
+      game.send({ type: 'next' });
+      spendPauses(game);
+      game.send({ type: 'hide' });
+      now += 600_000;
+
+      const resumed = boot(storage);
+
+      expect(resultsOf(resumed as RoundGame)).toMatchObject({ score: 1, isComplete: false, elapsedMs: 80_000 });
+      expect(JSON.parse(storage.getItem('ti:rounds')!)).toEqual([expect.objectContaining({ timed: true, complete: false, pausesUsed: 3 })]);
+      expect(storage.getItem('ti:round')).toBeNull();
+    });
   });
 
   it('continues a verdict by moving on to the next prompt', () => {
