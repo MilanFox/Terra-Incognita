@@ -2,5 +2,10 @@
   "app": {
     "title": "Terra Incognita",
     "tagline": "Geografie-Quizspiele auf einer Weltkarte."
+  },
+  "update": {
+    "message": "Eine neue Version ist verfügbar.",
+    "reload": "Neu laden",
+    "dismiss": "Später"
   }
 }

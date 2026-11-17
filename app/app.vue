@@ -8,5 +8,9 @@ useHead({
 </script>
 
 <template>
+  <NuxtPwaManifest />
+
   <NuxtPage />
+
+  <UpdateToast />
 </template>

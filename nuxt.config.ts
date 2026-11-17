@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@vueuse/nuxt',
     '@nuxtjs/i18n',
+    '@vite-pwa/nuxt',
   ],
 
   ssr: false,
@@ -17,11 +18,16 @@ export default defineNuxtConfig({
 
   app: {
     head: {
+      meta: [{ name: 'theme-color', content: '#182640' }],
       link: [
         {
           rel: 'icon',
           type: 'image/x-icon',
           href: '/favicon.ico',
+        },
+        {
+          rel: 'apple-touch-icon',
+          href: '/apple-touch-icon-180x180.png',
         },
       ],
     },
@@ -116,6 +122,32 @@ export default defineNuxtConfig({
     detectBrowserLanguage: {
       useCookie: false,
       fallbackLocale: 'en',
+    },
+  },
+
+  pwa: {
+    registerType: 'prompt',
+    manifest: {
+      name: 'Terra Incognita',
+      short_name: 'Terra Incognita',
+      description: 'Geography quiz games played on a world map.',
+      display: 'standalone',
+      start_url: '/',
+      scope: '/',
+      background_color: '#182640',
+      theme_color: '#182640',
+      icons: [
+        { src: '/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+        { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    },
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,json,geojson,svg,png,ico,webmanifest,txt}'],
+      globIgnores: ['200.html', '404.html'],
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      cleanupOutdatedCaches: true,
     },
   },
 });
