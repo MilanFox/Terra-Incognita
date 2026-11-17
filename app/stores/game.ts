@@ -12,7 +12,7 @@ export const useGameStore = defineStore('game', () => {
   const names = shallowRef<PlaceNames>({});
   const isReady = ref(false);
   const lastSetup = shallowRef<RoundSetup>();
-  const homeTier = ref<Tier>(deepestTierPlayed(localStorage));
+  const homeTier = ref<Tier>('sovereign');
   let game: Game | undefined;
 
   const load = async () => {
@@ -24,6 +24,7 @@ export const useGameStore = defineStore('game', () => {
     game = createGame({ places, version, random: Math.random, clock: Date.now, storage: localStorage });
     names.value = placeNames;
     state.value = game.state;
+    homeTier.value = deepestTierPlayed(localStorage);
     lastSetup.value = game.lastSetup();
     isReady.value = true;
   };
@@ -37,6 +38,7 @@ export const useGameStore = defineStore('game', () => {
   };
 
   useEventListener(document, 'visibilitychange', () => send({ type: document.hidden ? 'hide' : 'show' }));
+  useEventListener(window, 'pagehide', () => send({ type: 'hide' }));
 
   const play = (setup: RoundSetup) => send({ type: 'start', setup });
 

@@ -3,7 +3,7 @@ import shippedPlaces from '../../public/data/places.json';
 import shippedVersion from '../../public/data/version.json';
 import { createGame, deepestTierPlayed, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
 import type { SchemaMigration } from './migrations';
-import type { GameState, KeyValueStorage, Place, RoundSetup } from './game';
+import type { DataVersion, GameState, KeyValueStorage, Place, RoundSetup } from './game';
 
 const places = shippedPlaces as Place[];
 
@@ -979,10 +979,10 @@ describe('storage layout', () => {
 describe('storage migration on boot', () => {
   const record = (seen: number, correct: number, recent: (0 | 1)[]) => ({ seen, correct, recent, easySeen: 0, easyCorrect: 0 });
 
-  const bootWith = (stored: Record<string, unknown>, version: object, schemaMigrations?: SchemaMigration[]) => {
+  const bootWith = (stored: Record<string, unknown>, version: object, { schemaMigrations, bootPlaces = places }: { schemaMigrations?: SchemaMigration[], bootPlaces?: Place[] } = {}) => {
     const storage = memoryStorage();
     Object.entries(stored).forEach(([key, value]) => storage.setItem(key, JSON.stringify(value)));
-    createGame({ places, version: { ...shippedVersion, ...version }, random: seededRandom(1), clock: () => Date.UTC(2026, 10, 17), storage, schemaMigrations });
+    createGame({ places: bootPlaces, version: { ...shippedVersion, ...version }, random: seededRandom(1), clock: () => Date.UTC(2026, 10, 17), storage, schemaMigrations });
     const read = (key: string) => JSON.parse(storage.getItem(key) ?? 'null');
     return { storage, read };
   };
@@ -1037,17 +1037,56 @@ describe('storage migration on boot', () => {
     expect(Object.keys(read('ti:places')['find:flag'])).toEqual(['CCC', 'XXX']);
   });
 
-  it('leaves a split\'s old record in place as an orphan', () => {
-    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { OLD: record(3, 3, [1, 1, 1]) } } };
-    const { read } = bootWith(stored, { dataVersion: 2, idMoves: {} });
-    expect(read('ti:places')).toEqual(stored['ti:places']);
-    expect(read('ti:meta').dataVersion).toBe(2);
+  it('leaves a split\'s old record untouched as a hidden orphan: the id has no target and is not a current place', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { DEU: record(3, 3, [1, 1, 1]), FRA: record(2, 1, [0, 1]) } } };
+    const withoutSplitPlace = places.filter(({ id }) => id !== 'DEU');
+    const storage = memoryStorage();
+    Object.entries(stored).forEach(([key, value]) => storage.setItem(key, JSON.stringify(value)));
+    const game = createGame({ places: withoutSplitPlace, version: { ...shippedVersion, dataVersion: 2, idMoves: {} }, random: seededRandom(1), clock: () => 0, storage });
+    expect(JSON.parse(storage.getItem('ti:places')!)).toEqual(stored['ti:places']);
+    expect(JSON.parse(storage.getItem('ti:meta')!).dataVersion).toBe(2);
+    expect(game.poolOf({ ...game.setupFor('find'), tier: 'dependencies' })).not.toContain('DEU');
   });
 
-  it('keeps the records of a removed place, so they are back if the id returns', () => {
-    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { GONE: record(3, 3, [1, 1, 1]) } } };
-    const { read } = bootWith(stored, { dataVersion: 3, idMoves: {}, removed: { 2: ['GONE'] } });
+  it('keeps the records of a removed place across versions, and they are back in effect when the id returns', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { DEU: record(3, 3, [1, 1, 1]) } } };
+    const withoutPlace = places.filter(({ id }) => id !== 'DEU');
+    const storage = memoryStorage();
+    Object.entries(stored).forEach(([key, value]) => storage.setItem(key, JSON.stringify(value)));
+    createGame({ places: withoutPlace, version: { ...shippedVersion, dataVersion: 2, idMoves: {} }, random: seededRandom(1), clock: () => 0, storage });
+    createGame({ places: withoutPlace, version: { ...shippedVersion, dataVersion: 3, idMoves: {} }, random: seededRandom(1), clock: () => 0, storage });
+    expect(JSON.parse(storage.getItem('ti:places')!)).toEqual(stored['ti:places']);
+    const game = createGame({ places, version: { ...shippedVersion, dataVersion: 4, idMoves: {} }, random: seededRandom(1), clock: () => 0, storage });
+    expect(game.poolOf({ ...game.setupFor('find'), tier: 'dependencies' })).toContain('DEU');
+    expect(JSON.parse(storage.getItem('ti:places')!)).toEqual(stored['ti:places']);
+  });
+
+  it('changes nothing stored for added, renamed, re-tiered or re-regioned places', () => {
+    const stored = { 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:places': { 'find:flag': { DEU: record(3, 3, [1, 1, 1]) } }, 'ti:round': null };
+    const changedPlaces: Place[] = [
+      ...places.map(place => (place.id === 'DEU' ? { ...place, tier: 'dependencies' as const, region: 'Asia' as const } : place)),
+      { id: 'NEW', tier: 'sovereign', region: 'Europe', flag: null },
+    ];
+    const { read } = bootWith(stored, { dataVersion: 2, idMoves: {} }, { bootPlaces: changedPlaces });
     expect(read('ti:places')).toEqual(stored['ti:places']);
+  });
+
+  it('remaps the stored round\'s deck, answers and wrong taps by idMoves', () => {
+    const round = {
+      setup: { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: true },
+      deck: ['AAA', 'FRA', 'DEU', 'ITA', 'ESP'],
+      promptIndex: 1,
+      answers: [{ placeId: 'AAA', tappedPlaceId: 'AAA', outcome: 'right' }],
+      wrongTapPlaceIds: ['AAA'],
+      startedAt: 1,
+      hiddenAt: null,
+      backgroundMs: 0,
+      dataVersion: 1,
+    };
+    const { read } = bootWith({ 'ti:meta': { schema: 1, dataVersion: 1 }, 'ti:round': round }, { dataVersion: 2, idMoves: { 2: { AAA: 'GBR' } } }, { bootPlaces: places.concat({ id: 'GBR', tier: 'sovereign', region: 'Europe', flag: null }) });
+    expect(read('ti:round').deck).toEqual(['GBR', 'FRA', 'DEU', 'ITA', 'ESP']);
+    expect(read('ti:round').answers[0]).toEqual({ placeId: 'GBR', tappedPlaceId: 'GBR', outcome: 'right' });
+    expect(read('ti:round').wrongTapPlaceIds).toEqual(['GBR']);
   });
 
   it('does not touch bests, daily records, rounds or setups', () => {
@@ -1070,7 +1109,7 @@ describe('storage migration on boot', () => {
         migratedStorage.setItem('ti:setup', 'migrated');
       },
     ];
-    const { read, storage } = bootWith({ 'ti:meta': { schema: 2, dataVersion: 1 } }, { dataVersion: 1 }, schemaMigrations);
+    const { read, storage } = bootWith({ 'ti:meta': { schema: 2, dataVersion: 1 } }, { dataVersion: 1 }, { schemaMigrations });
     expect(order).toEqual(['2 to 3']);
     expect(storage.getItem('ti:setup')).toBe('migrated');
     expect(read('ti:meta')).toEqual({ schema: 3, dataVersion: 1 });
@@ -1079,10 +1118,103 @@ describe('storage migration on boot', () => {
   it('runs every schema migration from the first schema, and none on a first launch', () => {
     const order: string[] = [];
     const schemaMigrations = [() => order.push('1 to 2'), () => order.push('2 to 3')];
-    bootWith({ 'ti:meta': { schema: 1, dataVersion: 1 } }, { dataVersion: 1 }, schemaMigrations);
+    bootWith({ 'ti:meta': { schema: 1, dataVersion: 1 } }, { dataVersion: 1 }, { schemaMigrations });
     expect(order).toEqual(['1 to 2', '2 to 3']);
     order.length = 0;
-    bootWith({}, { dataVersion: 1 }, schemaMigrations);
+    bootWith({}, { dataVersion: 1 }, { schemaMigrations });
     expect(order).toEqual([]);
+  });
+});
+
+describe('resuming an interrupted round', () => {
+  let now = Date.UTC(2026, 10, 17);
+  const clock = () => now;
+  const boot = (storage: KeyValueStorage, version: DataVersion = shippedVersion) => createGame({ places, version, random: seededRandom(1), clock, storage });
+  const easySetup: RoundSetup = { mode: 'find', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: true };
+
+  it('returns to the same prompt with the answers so far after a relaunch', () => {
+    const storage = memoryStorage();
+    const game = boot(storage);
+    game.send({ type: 'start', setup: game.setupFor('find') });
+    const askedPlaceIds: string[] = [];
+    for (const isRight of [true, false]) {
+      const placeId = promptedPlaceId(game);
+      askedPlaceIds.push(placeId);
+      game.send({ type: 'tap', placeId: isRight ? placeId : someOtherPlaceId(placeId) });
+      game.send({ type: 'next' });
+    }
+    const before = game.state;
+    expect(storage.getItem('ti:round')).not.toBeNull();
+
+    const resumed = boot(storage);
+    expect(resumed.state).toEqual(before);
+    expect(resumed.state).toMatchObject({ phase: 'prompt', promptNumber: 3, score: 1, progress: expect.arrayContaining(['right', 'wrong', 'current']) });
+  });
+
+  it('restores easy-mode tries left and tapped places', () => {
+    const storage = memoryStorage();
+    const game = boot(storage);
+    game.send({ type: 'start', setup: easySetup });
+    const placeId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: someOtherPlaceId(placeId) });
+    expect(boot(storage).state).toMatchObject({ phase: 'prompt', attemptsLeft: 2, wrongTapPlaceIds: [someOtherPlaceId(placeId)] });
+  });
+
+  it('writes the round on hide and carries the time spent away into the elapsed time', () => {
+    const storage = memoryStorage();
+    now = 1_000_000;
+    const game = boot(storage);
+    game.send({ type: 'start', setup: { ...easySetup, easy: false, deckSize: 10 } });
+    now += 10_000;
+    game.send({ type: 'hide' });
+    expect(JSON.parse(storage.getItem('ti:round')!)).toMatchObject({ startedAt: 1_000_000, hiddenAt: 1_010_000 });
+    now += 60_000;
+    const resumed = boot(storage);
+    now += 5_000;
+    resumed.send({ type: 'askEnd' });
+    resumed.send({ type: 'end' });
+    expect(resultsOf(resumed as RoundGame).elapsedMs).toBe(15_000);
+  });
+
+  it('continues a verdict by moving on to the next prompt', () => {
+    const storage = memoryStorage();
+    const game = boot(storage);
+    game.send({ type: 'start', setup: game.setupFor('find') });
+    const placeId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: someOtherPlaceId(placeId) });
+    expect(game.state.phase).toBe('verdict');
+    expect(boot(storage).state).toMatchObject({ phase: 'prompt', promptNumber: 2, score: 0 });
+  });
+
+  it('deletes the stored round on End round and on completion', () => {
+    const storage = memoryStorage();
+    const game = boot(storage);
+    game.send({ type: 'start', setup: game.setupFor('find') });
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'end' });
+    expect(storage.getItem('ti:round')).toBeNull();
+    game.send({ type: 'leave' });
+    game.send({ type: 'start', setup: game.setupFor('find') });
+    playThrough(game as RoundGame, 10);
+    expect(storage.getItem('ti:round')).toBeNull();
+    expect(boot(storage).state.phase).toBe('home');
+  });
+
+  it('resumes the remapped deck after an id move', () => {
+    const storage = memoryStorage();
+    const game = boot(storage);
+    game.send({ type: 'start', setup: game.setupFor('find') });
+    const firstPlaceId = promptedPlaceId(game);
+    const movedTo = places.find(({ id, tier }) => tier === 'sovereign' && id !== firstPlaceId && !JSON.parse(storage.getItem('ti:round')!).deck.includes(id))!.id;
+    const version = { dataVersion: shippedVersion.dataVersion + 1, idMoves: { [shippedVersion.dataVersion + 1]: { [firstPlaceId]: movedTo } } };
+    const resumed = boot(storage, version);
+    expect(resumed.state).toMatchObject({ phase: 'prompt', promptNumber: 1, placeId: movedTo });
+  });
+
+  it('starts at home when the stored round is damaged', () => {
+    const storage = memoryStorage();
+    storage.setItem('ti:round', '{"deck":["XXX"]}');
+    expect(boot(storage).state.phase).toBe('home');
+    expect(storage.getItem('ti:round')).toBeNull();
   });
 });

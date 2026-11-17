@@ -1,4 +1,4 @@
-import type { DataVersion, KeyValueStorage } from './game';
+import type { Answer, DataVersion, KeyValueStorage } from './game';
 import type { PlaceRecord, PlaceRecords } from './records';
 
 // eslint-disable-next-line no-unused-vars
@@ -12,6 +12,7 @@ interface StoredMeta {
 
 const metaStorageKey = 'ti:meta';
 const placesStorageKey = 'ti:places';
+const roundStorageKey = 'ti:round';
 
 // Entry n upgrades schema n + 1 to n + 2.
 export const schemaMigrations: SchemaMigration[] = [];
@@ -68,6 +69,16 @@ export const remapPlaceRecords = (records: PlaceRecords, moveSteps: IdMoves[]): 
 );
 
 const applyIdMoves = (storage: KeyValueStorage, moveSteps: IdMoves[]) => {
+  const round = readJson(storage, roundStorageKey) as { deck?: string[], answers?: Answer[], wrongTapPlaceIds?: string[] } | null;
+  if (moveSteps.length > 0 && Array.isArray(round?.deck) && Array.isArray(round.answers)) {
+    const remap = (placeId: string) => remapId(placeId, moveSteps);
+    storage.setItem(roundStorageKey, JSON.stringify({
+      ...round,
+      deck: round.deck.map(remap),
+      answers: round.answers.map(answer => ({ ...answer, placeId: remap(answer.placeId), tappedPlaceId: remap(answer.tappedPlaceId) })),
+      wrongTapPlaceIds: Array.isArray(round.wrongTapPlaceIds) ? round.wrongTapPlaceIds.map(remap) : [],
+    }));
+  }
   const records = readJson(storage, placesStorageKey);
   if (moveSteps.length === 0 || typeof records !== 'object' || records === null) return;
   storage.setItem(placesStorageKey, JSON.stringify(remapPlaceRecords(records as PlaceRecords, moveSteps)));

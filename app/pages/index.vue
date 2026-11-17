@@ -173,6 +173,7 @@ onMounted(game.load);
     </Transition>
 
     <WorldMap
+      v-if="game.isReady"
       ref="worldMap"
       :selected-place-id="selectedPlaceId"
       :verdict="verdict"

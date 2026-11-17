@@ -77,6 +77,7 @@ const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
 const setupStorageKey = 'ti:setup';
+const roundStorageKey = 'ti:round';
 
 export type Outcome = 'right' | 'wrong';
 export type ProgressCell = Outcome | 'current' | 'pending';
@@ -129,6 +130,20 @@ const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
     && tiersInOrder.includes(stored.tier as Tier)
     && deckSizeChoices.includes(stored.deckSize as DeckSize);
 };
+
+interface StoredRound {
+  setup: RoundSetup
+  deck: string[]
+  promptIndex: number
+  answers: Answer[]
+  wrongTapPlaceIds: string[]
+  startedAt: number
+  hiddenAt: number | null
+  backgroundMs: number
+  dataVersion: number
+}
+
+const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === 'string');
 
 const shuffled = <T>(items: readonly T[], random: () => number) => {
   const deck = [...items];
@@ -221,6 +236,46 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
     const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
+  };
+
+  const persistRound = () => {
+    if (phase !== 'prompt' && phase !== 'verdict') {
+      storage.removeItem(roundStorageKey);
+      return;
+    }
+    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt, backgroundMs, dataVersion: version.dataVersion };
+    storage.setItem(roundStorageKey, JSON.stringify(round));
+  };
+
+  const resumeStoredRound = () => {
+    let stored: Partial<StoredRound> | null = null;
+    try {
+      stored = JSON.parse(storage.getItem(roundStorageKey) ?? 'null');
+    }
+    catch {
+      // A damaged entry is treated as no round.
+    }
+    const { deck: storedDeck, answers: storedAnswers, promptIndex: storedIndex, wrongTapPlaceIds: storedWrongTaps } = stored ?? {};
+    const isValid = stored !== null && isStoredSetup(stored.setup, 'find')
+      && isStringList(storedDeck) && new Set(storedDeck).size === storedDeck.length && storedDeck.every(id => placeIds.has(id))
+      && Number.isInteger(storedIndex) && storedIndex! >= 0 && storedIndex! < storedDeck.length
+      && Array.isArray(storedAnswers) && (storedAnswers.length === storedIndex || storedAnswers.length === storedIndex! + 1)
+      && storedAnswers.every((storedAnswer: Answer, index) => storedAnswer.placeId === storedDeck[index] && placeIds.has(storedAnswer.tappedPlaceId) && (storedAnswer.outcome === 'right' || storedAnswer.outcome === 'wrong'))
+      && isStringList(storedWrongTaps) && storedWrongTaps.every(id => placeIds.has(id))
+      && typeof stored.startedAt === 'number' && typeof stored.backgroundMs === 'number' && (stored.hiddenAt === null || typeof stored.hiddenAt === 'number');
+    if (!isValid) {
+      storage.removeItem(roundStorageKey);
+      return;
+    }
+    setup = stored!.setup!;
+    deck = storedDeck;
+    answers = storedAnswers;
+    promptIndex = storedIndex!;
+    wrongTapPlaceIds = storedWrongTaps;
+    startedAt = stored!.startedAt!;
+    backgroundMs = stored!.backgroundMs! + (stored!.hiddenAt === null ? 0 : clock() - stored!.hiddenAt!);
+    phase = 'prompt';
+    if (answers.length > promptIndex) advance();
   };
 
   let state = snapshot();
@@ -317,6 +372,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     if (event.type === 'hide' || event.type === 'show') {
       if (event.type === 'hide') hide();
       else show();
+      persistRound();
       return;
     }
     if (isInRound && isConfirmingEnd) {
@@ -333,7 +389,12 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     else if (event.type === 'leave' && phase === 'results') phase = 'home';
     else return;
     state = snapshot();
+    persistRound();
   };
+
+  resumeStoredRound();
+  state = snapshot();
+  persistRound();
 
   return {
     get state() {
