@@ -5,7 +5,7 @@ The place data the app ships is built from Natural Earth (NE) and the curated ru
 ```sh
 npm run data:fetch          # network: download the pinned sources (all scopes)
 npm run data:fetch -- --ne  # only Natural Earth
-npm run data:build          # offline and deterministic: rule, patch, simplify, check, write
+npm run data:build          # offline and deterministic: rule, patch, simplify, dissolve per tier, check, write
 ```
 
 ## Files
@@ -31,7 +31,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 
 | File | Shape |
 |---|---|
-| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `note` |
+| `places.json` | one entry per place (245): `tier` (`sovereign` \| `defacto` \| `dependencies`), `holder` (the place whose land takes this one in when a tier leaves it out; dependencies and de facto places; for a dependency it must match NE's `SOVEREIGNT`, the six de facto holders are rulings), and only where needed `region` (overrides the M49 default), `qid` (fixes or supplies the Wikidata QID), `iso2` (supplies the ISO code of a split place), `note` |
 | `features.json` | every NE feature that is not a place: `action` `merge` (land joins `into`), `drop` (land removed) or `unclaimed` (Unclaimed land: drawn, never a place) |
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
@@ -44,19 +44,25 @@ All sorted by id.
 
 | File | Shape |
 |---|---|
-| `map-dependencies.geojson` | polygons, one feature per place plus Unclaimed land: `{ id, unclaimed? }`; one feature per line |
-| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region }` |
-| `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value |
+| `map-sovereign.geojson`, `map-defacto.geojson`, `map-dependencies.geojson` | one map per tier: polygons, one feature per place of the tier plus Unclaimed land, `{ id, unclaimed? }`; one feature per line. 200 / 206 / 248 features |
+| `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, bbox }` |
+| `version.json` | `{ ne, counts: { sovereign, defacto, dependencies } }`; counts are places per `tier` value. One file covers all three maps |
+
+In a tier's map, the land of each place outside the tier is part of the place its holder chain ends in (a place's holder, or the holder's holder, until one is in the tier): dependencies sit in their sovereign in the de facto and sovereign maps, and de facto places in their parent state in the sovereign map. Ids are the same in every map; Unclaimed land and the merges in `features.json` are the same in every map. Only the holders are dissolved again, so every other feature is byte-identical across the three maps.
+
+`bbox` is `[west, south, east, north]` from the place's own land in the dependencies map, in every tier (Denmark's frames Denmark, not Greenland). Its longitudes are the narrowest span that covers all its polygons: for a place across the antimeridian (Russia, the USA, Fiji, Kiribati, New Zealand, US Minor Outlying Islands) `west` is greater than `east`.
 
 ## Build steps
 
-Step numbers follow the spec; steps 5, 6 and 10 (per-tier maps, computed facts, silhouette sheet) are not built yet.
+Step numbers follow the spec; step 6 computes only the bounding box so far, and step 10 (silhouette sheet) is not built yet.
 
 1. **Load** (`steps/load.ts`): read both NE files from the cache and verify their sha256.
 2. **Rule** (`steps/rule.ts`): erase the breakaways from their host, apply `features.json`, split `IOA`. Each place keeps NE's QID and ISO code (`ISO_A2_EH` for countries, `ISO_A2` for breakaways; a split inherits neither) and the M49 fields of the feature its land comes from.
 3. **Patch** (`steps/patch.ts`): apply `patches/` (Vatican City and the matching hole in Italy), before simplifying, so the patch is simplified like everything else.
-4. **Simplify** (`steps/simplify.ts`): explode each place into islands, simplify 14% with `keep-shapes`, dissolve per id, precision 0.001. Without the explode step only one ring per place survives.
-7. **Join** (`steps/join.ts`): tier and holder from `places.json`; QID, ISO code and region from the curated override, else from NE. The default region comes from NE's UN M49 fields: North America = Northern America + Central America + Caribbean; NE's "Seven seas (open ocean)" gives no region, so those places carry an override.
+4. **Simplify** (`steps/simplify.ts`): explode each place into islands, simplify 14% with `keep-shapes`, dissolve per id, precision 0.001. Without the explode step only one ring per place survives. The result is the dependencies map.
+5. **Dissolve** (`steps/dissolve.ts`): for the sovereign and de facto maps, relabel each place outside the tier with the end of its holder chain (from `places.json`) and dissolve the holders, precision 0.001. A broken chain leaves the land under its own id, and the check fails on it.
+6. **Compute** (`steps/compute.ts`): each place's `bbox` from the dependencies map.
+7. **Join** (`steps/join.ts`): tier and holder from `places.json`, `bbox` from step 6; QID, ISO code and region from the curated override, else from NE. The default region comes from NE's UN M49 fields: North America = Northern America + Central America + Caribbean; NE's "Seven seas (open ocean)" gives no region, so those places carry an override.
 8. **Check** (`check.ts`): see below. A failure stops the build before anything is written.
 9. **Write** (`steps/write.ts`): write the shipped files sorted by id, and print their sizes.
 
@@ -68,10 +74,13 @@ The build fails, and writes nothing, on:
 
 - an NE feature covered by neither `places.json`, `features.json` nor a split in `carve.json`, or covered by more than one of them
 - tier counts other than 197 / 6 / 42
+- map feature counts other than 200 / 206 / 248 (sovereign / de facto / dependencies: the tier's places plus 3 Unclaimed land)
 - duplicate ids: a key twice in a curated file, a patch id twice, or a carved place reusing an NE feature id
 - a place without geometry
 - a place without one of the six regions
 - a place without a Wikidata QID
+- a dependency whose curated holder differs from NE's: the feature with `ADMIN` equal to the `SOVEREIGNT` of the NE feature its land comes from (`IOA` for `CXR` and `CCK`). The six de facto holders are rulings NE has no field for, so they are not compared
+- a holder chain that does not end in a place of the tier, checked for every place outside each tier: no holder, a holder that is not a place, or a loop
 
 ## Updating Natural Earth
 

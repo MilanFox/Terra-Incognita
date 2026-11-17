@@ -4,6 +4,8 @@ import type { FeatureCollection } from '../model.ts';
 
 export type NeCountry = {
   ADM0_A3: string
+  ADMIN: string
+  SOVEREIGNT: string
   WIKIDATAID: string
   ISO_A2_EH: string
   REGION_UN: string

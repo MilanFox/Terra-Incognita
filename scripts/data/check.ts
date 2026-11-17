@@ -1,12 +1,14 @@
-import { countByTier, polygonsOf, regions, tiers } from './model.ts';
+import { countByTier, drawnAs, holderChain, polygonsOf, regions, tiers } from './model.ts';
 import type { Curated } from './curated.ts';
-import type { Feature, Land, LandProperties, Place, Tier } from './model.ts';
+import type { Feature, LandProperties, Place, Tier } from './model.ts';
+import type { TierMaps } from './steps/dissolve.ts';
 import type { NaturalEarth } from './steps/load.ts';
 
-export type CheckInput = { naturalEarth: NaturalEarth, curated: Curated, places: Place[], map: Land };
+export type CheckInput = { naturalEarth: NaturalEarth, curated: Curated, places: Place[], maps: TierMaps };
 export type CheckLine = { label: string, failures: string[] };
 
 const expectedTierCounts: Record<Tier, number> = { sovereign: 197, defacto: 6, dependencies: 42 };
+const expectedMapFeatureCounts: Record<Tier, number> = { sovereign: 200, defacto: 206, dependencies: 248 };
 
 const everyFeatureRuled = ({ naturalEarth, curated }: CheckInput): CheckLine => {
   const splitSources = new Set(Object.values(curated.carve)
@@ -39,6 +41,13 @@ const tierCountsMatch = ({ places }: CheckInput): CheckLine => {
   };
 };
 
+const mapFeatureCountsMatch = ({ maps }: CheckInput): CheckLine => ({
+  label: `map feature counts are ${tiers.map(tier => expectedMapFeatureCounts[tier]).join(' / ')}`,
+  failures: tiers
+    .filter(tier => maps[tier].features.length !== expectedMapFeatureCounts[tier])
+    .map(tier => `map-${tier}: ${maps[tier].features.length}, expected ${expectedMapFeatureCounts[tier]}`),
+});
+
 const idsAreUnique = ({ naturalEarth, curated }: CheckInput): CheckLine => {
   const neIds = new Set(naturalEarth.countries.features.map(({ properties }) => properties.ADM0_A3));
   const patchIds = curated.patches.map(({ properties }) => properties.id);
@@ -57,8 +66,8 @@ const idsAreUnique = ({ naturalEarth, curated }: CheckInput): CheckLine => {
 const isDrawn = ({ geometry }: Feature<LandProperties>) =>
   polygonsOf(geometry).some(([outer]) => (outer?.length ?? 0) >= 4);
 
-const everyPlaceHasGeometry = ({ places, map }: CheckInput): CheckLine => {
-  const drawnIds = new Set(map.features.filter(isDrawn).map(({ properties }) => properties.id));
+const everyPlaceHasGeometry = ({ places, maps }: CheckInput): CheckLine => {
+  const drawnIds = new Set(maps.dependencies.features.filter(isDrawn).map(({ properties }) => properties.id));
   return {
     label: 'every place has geometry',
     failures: places.filter(({ id }) => !drawnIds.has(id)).map(({ id }) => id),
@@ -77,11 +86,40 @@ const everyPlaceHasQid = ({ places }: CheckInput): CheckLine => ({
   failures: places.filter(({ qid }) => !/^Q[1-9]\d*$/.test(qid ?? '')).map(({ id }) => id),
 });
 
+const neHoldersMatch = ({ naturalEarth, curated }: CheckInput): CheckLine => {
+  const countries = naturalEarth.countries.features.map(({ properties }) => properties);
+  const sovereignIdByName = new Map(countries
+    .filter(({ ADMIN, SOVEREIGNT }) => ADMIN === SOVEREIGNT)
+    .map(({ ADM0_A3, SOVEREIGNT }) => [SOVEREIGNT, ADM0_A3]));
+  const neHolderOf = (id: string) => {
+    const landSource = curated.carve[id]?.from ?? id;
+    const country = countries.find(({ ADM0_A3 }) => ADM0_A3 === landSource);
+    return country && sovereignIdByName.get(country.SOVEREIGNT);
+  };
+  const dependencies = Object.entries(curated.places).filter(([, { tier }]) => tier === 'dependencies');
+  return {
+    label: `NE's holder matches the curated one for every dependency (${dependencies.length})`,
+    failures: dependencies
+      .filter(([id, { holder }]) => neHolderOf(id) !== holder)
+      .map(([id, { holder }]) => `${id}: curated ${holder ?? 'none'}, NE ${neHolderOf(id) ?? 'none'}`),
+  };
+};
+
+const holderChainsEndInTier = ({ curated }: CheckInput): CheckLine => ({
+  label: 'every holder chain ends in a place of the tier',
+  failures: tiers.flatMap(tier => Object.keys(curated.places)
+    .filter(id => !drawnAs(curated.places, id, tier))
+    .map(id => `${tier}: ${holderChain(curated.places, id, tier).join(' → ')}`)),
+});
+
 export const check = (input: CheckInput): CheckLine[] => [
   everyFeatureRuled,
   tierCountsMatch,
+  mapFeatureCountsMatch,
   idsAreUnique,
   everyPlaceHasGeometry,
   everyPlaceHasRegion,
   everyPlaceHasQid,
+  neHoldersMatch,
+  holderChainsEndInTier,
 ].map(line => line(input));

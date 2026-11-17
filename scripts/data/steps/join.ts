@@ -1,6 +1,7 @@
 import { regions } from '../model.ts';
 import type { Curated } from '../curated.ts';
 import type { Place, Region } from '../model.ts';
+import type { PlaceFacts } from './compute.ts';
 import type { PlaceSource } from './rule.ts';
 
 const northAmericanSubregions = ['Northern America', 'Central America', 'Caribbean'];
@@ -15,7 +16,7 @@ const m49Region = (source: PlaceSource | undefined): Region | undefined => {
   return regions.find(region => region === regionUn);
 };
 
-export const join = (curated: Curated, sources: Map<string, PlaceSource>): Place[] =>
+export const join = (curated: Curated, sources: Map<string, PlaceSource>, facts: Map<string, PlaceFacts>): Place[] =>
   Object.entries(curated.places).map(([id, entry]) => {
     const source = sources.get(id);
     return {
@@ -25,5 +26,6 @@ export const join = (curated: Curated, sources: Map<string, PlaceSource>): Place
       tier: entry.tier,
       holder: entry.holder,
       region: entry.region ?? m49Region(source),
+      bbox: facts.get(id)?.bbox,
     };
   });
