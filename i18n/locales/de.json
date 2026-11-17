@@ -64,7 +64,8 @@
   "modes": {
     "find": {
       "name": "Landfall",
-      "subtitle": "Finde es auf der Karte"
+      "subtitle": "Finde es auf der Karte",
+      "help": "Du siehst den Namen eines Ortes und tippst auf der Karte darauf. Bei einer richtigen Antwort geht es von selbst weiter; nach einer falschen zeigt die Karte den echten Ort und du drückst auf Weiter. Du hast pro Ort einen Versuch, und Orte, die du beim Beenden noch nicht erreicht hast, zählen als verpasst."
     }
   },
   "round": {
@@ -82,7 +83,14 @@
     "scoreText": "{score} von {total} richtig",
     "right": "{place}: richtig",
     "wrong": "{place}: falsch",
-    "home": "Hauptmenü"
+    "home": "Hauptmenü",
+    "titleEnded": "Runde beendet",
+    "wrongCount": "Falsch",
+    "unreachedCount": "Nicht erreicht",
+    "missed": "{place}: nicht erreicht",
+    "unreachedList": "Nicht erreicht: {places}",
+    "playAgain": "Nochmal spielen",
+    "changeSetup": "Einstellungen ändern"
   },
   "settings": {
     "open": "Einstellungen",
@@ -97,5 +105,17 @@
       "en": "English",
       "de": "Deutsch"
     }
+  },
+  "endRound": {
+    "open": "Runde beenden",
+    "title": "Runde beenden?",
+    "line": "Noch nicht erreichte Orte zählen als verpasst.",
+    "confirm": "Runde beenden",
+    "keepPlaying": "Weiterspielen"
+  },
+  "help": {
+    "open": "Hilfe",
+    "title": "So wird gespielt: {mode}",
+    "close": "Schließen"
   }
 }

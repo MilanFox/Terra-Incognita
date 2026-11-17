@@ -7,7 +7,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
 type RegionChoice = 'world' | 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal';
+type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal' | 'missed';
 
 interface PlaceProperties {
   id: string
@@ -30,15 +30,21 @@ interface Verdict {
   outcome: 'right' | 'wrong'
 }
 
+interface ResultPlace {
+  placeId: string
+  outcome: 'right' | 'wrong' | 'missed'
+}
+
 const props = withDefaults(defineProps<{
   selectedPlaceId?: string | null
   verdict?: Verdict | null
+  resultPlaces?: ResultPlace[] | null
   fade?: number
   tier?: Tier
   poolPlaceIds?: string[] | null
   frameRegion?: RegionChoice | null
   frameInset?: number
-}>(), { selectedPlaceId: null, verdict: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0 });
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string] }>();
 
 const { t } = useI18n();
@@ -49,6 +55,7 @@ const flightMs = 800;
 const flightMaxZoom = 4;
 const flightPadding = { top: 230, bottom: 60, left: 40, right: 40 };
 const hatchName = 'hatch-wrong';
+const missedHatchName = 'hatch-missed';
 const highestSpeckZoom = 8;
 const regionFrames: Record<RegionChoice, [[number, number], [number, number]]> = {
   'world': [[-170, -58], [190, 78]],
@@ -70,6 +77,7 @@ const colours = {
   green: '#2f7d4a',
   brick: '#b0442d',
   hatch: '#5e1f12',
+  sand: '#d6cdbd',
 };
 const landTones = ['#ece6d6', '#e8e1d0', '#efeadc', '#e5dfcd'];
 
@@ -77,8 +85,8 @@ const status: ExpressionSpecification = ['to-string', ['feature-state', 'status'
 const landFill: ExpressionSpecification = ['match', ['get', 'tone'], 1, landTones[1]!, 2, landTones[2]!, 3, landTones[3]!, landTones[0]!];
 const fadeState: ExpressionSpecification = ['coalesce', ['feature-state', 'fade'], 0];
 const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeState, 0, colours.green, 1, landFill];
-const placeFill: ExpressionSpecification = ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, landFill];
-const statusBorderWidth: ExpressionSpecification = ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 0];
+const placeFill: ExpressionSpecification = ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, landFill];
+const statusBorderWidth: ExpressionSpecification = ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 0];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 
 // MapLibre only allows ['zoom'] as the input of a top-level interpolate, so the per-place cut-off sits inside each stop.
@@ -116,6 +124,7 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
     { id: 'water', type: 'background', paint: { 'background-color': colours.water } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFill } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchName, 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
+    { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
     { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': dimColour, 'fill-opacity': 0.7 } },
     { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': colours.border, 'line-width': 0.6 } },
     { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': colours.ink, 'line-width': statusBorderWidth } },
@@ -142,13 +151,13 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
   ],
 });
 
-const hatchImage = (pixelRatio: number) => {
+const hatchImage = (pixelRatio: number, stripeColour: string) => {
   const size = 4 * pixelRatio;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const context = canvas.getContext('2d')!;
-  context.strokeStyle = colours.hatch;
+  context.strokeStyle = stripeColour;
   context.lineWidth = pixelRatio;
   context.lineCap = 'square';
   // Neighbouring copies of the stripe keep the tile seamless.
@@ -164,6 +173,7 @@ const hatchImage = (pixelRatio: number) => {
 const mapContainer = useTemplateRef<HTMLDivElement>('mapContainer');
 let map: MapLibreMap | undefined;
 let loadedPlaces: PlaceCollection | undefined;
+let loadedSpecks: SpeckCollection | undefined;
 
 const pickPlaceId = (point: MapMouseEvent['point']) => {
   if (!map) return undefined;
@@ -184,6 +194,7 @@ const swapTierMap = async (nextTier: Tier) => {
   const tierMap = await tierMapOf(nextTier);
   if (!map || nextTier !== props.tier) return;
   loadedPlaces = tierMap.places;
+  loadedSpecks = tierMap.specks;
   shownTier = nextTier;
   (map.getSource('places') as GeoJSONSource).setData(tierMap.places);
   (map.getSource('specks') as GeoJSONSource).setData(tierMap.specks);
@@ -199,7 +210,10 @@ const setPlaceStatus = (placeId: string, placeStatus: PlaceStatus | null) => {
 
 const boundsOf = (placeId: string) => {
   const feature = loadedPlaces?.features.find(({ properties }) => properties.id === placeId);
-  if (!feature) return undefined;
+  if (!feature) {
+    const [longitude, latitude] = loadedSpecks?.features.find(({ properties }) => properties.id === placeId)?.geometry.coordinates ?? [];
+    return longitude === undefined || latitude === undefined ? undefined : [[longitude, latitude], [longitude, latitude]] as [[number, number], [number, number]];
+  }
   const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
   // The largest piece only, so places crossing the antimeridian or owning far islands still frame their main land.
   return polygons.map((polygon) => {
@@ -228,6 +242,11 @@ watch(() => props.verdict, (verdict, previousVerdict) => {
   flyTo(verdict.placeId);
 });
 
+watch(() => props.resultPlaces, (resultPlaces, previousResultPlaces) => {
+  for (const { placeId } of previousResultPlaces ?? []) setPlaceStatus(placeId, null);
+  for (const { placeId, outcome } of resultPlaces ?? []) setPlaceStatus(placeId, outcome);
+});
+
 watch(() => props.fade, (fadeAmount = 0) => {
   const placeId = props.verdict?.placeId;
   if (!placeId) return;
@@ -242,6 +261,15 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
 const flyToRegion = () => {
   if (!map || !props.frameRegion) return;
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
+  const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
+  if (resultBounds?.length) {
+    const west = Math.min(...resultBounds.map(([[placeWest]]) => placeWest));
+    const south = Math.min(...resultBounds.map(([[, placeSouth]]) => placeSouth));
+    const east = Math.max(...resultBounds.map(([, [placeEast]]) => placeEast));
+    const north = Math.max(...resultBounds.map(([, [, placeNorth]]) => placeNorth));
+    map.fitBounds([[west, south], [east, north]], { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: props.frameInset } });
+    return;
+  }
   map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: props.frameInset } });
 };
 
@@ -257,6 +285,7 @@ watch(() => [props.frameRegion, props.frameInset], flyToRegion);
 onMounted(async () => {
   const tierMap = await tierMapOf(props.tier);
   loadedPlaces = tierMap.places;
+  loadedSpecks = tierMap.specks;
   shownTier = props.tier;
   setWorkerUrl(workerUrl);
   map = new MapLibreMap({
@@ -274,7 +303,8 @@ onMounted(async () => {
   map.keyboard.disableRotation();
   map.on('click', handleClick);
   map.setMissingStyleImageResolver((id) => {
-    if (id === hatchName && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1), { pixelRatio: window.devicePixelRatio || 1 });
+    const stripeColour = { [hatchName]: colours.hatch, [missedHatchName]: colours.brick }[id];
+    if (stripeColour && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1, stripeColour), { pixelRatio: window.devicePixelRatio || 1 });
   });
   map.once('idle', () => emit('drawn'));
   if (props.tier !== shownTier) swapTierMap(props.tier);

@@ -12,7 +12,7 @@ export const useRightAnswerFade = () => {
     frame = 0;
     const { state } = game;
     if (state.phase !== 'verdict' || state.answer.outcome !== 'right') return;
-    fade.value = smoothstep(Math.min(1, Math.max(0, (Date.now() - state.answeredAt - rightAnswerHoldMs) / rightAnswerFadeMs)));
+    fade.value = state.isConfirmingEnd ? 0 : smoothstep(Math.min(1, Math.max(0, (Date.now() - state.answeredAt - rightAnswerHoldMs) / rightAnswerFadeMs)));
     game.send({ type: 'tick' });
     frame = requestAnimationFrame(step);
   };

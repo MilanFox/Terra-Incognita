@@ -81,6 +81,8 @@ defineExpose({ element: tray });
       </h2>
 
       <div class="setup-tray__actions">
+        <HelpTile :mode="setup.mode" />
+
         <button
           type="button"
           class="tile setup-tray__close"

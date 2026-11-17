@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import shippedPlaces from '../../public/data/places.json';
-import { createGame } from './game';
+import { createGame, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
 import type { GameState, KeyValueStorage, Place, RoundSetup } from './game';
 
 const places = shippedPlaces as Place[];
@@ -408,5 +408,116 @@ describe('merged land', () => {
 
     game.send({ type: 'tap', placeId: 'DNK' });
     expect(game.state).toMatchObject({ answer: { placeId: 'GRL', tappedPlaceId: 'DNK', outcome: 'wrong' } });
+  });
+});
+
+describe('end round', () => {
+  const endRound = (game: RoundGame) => {
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'end' });
+  };
+
+  it('counts unreached prompts as missed and marks the round incomplete', () => {
+    const game = startGame();
+    const deckOrder: string[] = [];
+    for (let answered = 0; answered < 3; answered += 1) {
+      deckOrder.push(promptedPlaceId(game));
+      game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+      game.send({ type: 'next' });
+    }
+    const unreachedPlaceId = promptedPlaceId(game);
+
+    endRound(game);
+    const results = resultsOf(game);
+
+    expect(results).toMatchObject({ score: 3, deckSize: 10, isComplete: false });
+    expect(results.answers.map(({ placeId }) => placeId)).toEqual(deckOrder);
+    expect(results.missedPlaceIds).toHaveLength(7);
+    expect(results.missedPlaceIds[0]).toBe(unreachedPlaceId);
+    expect(new Set([...deckOrder, ...results.missedPlaceIds]).size).toBe(10);
+  });
+
+  it('keeps an answered prompt on the results when the round ends during its verdict', () => {
+    const game = startGame();
+    const placeId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: someOtherPlaceId(placeId) });
+
+    endRound(game);
+
+    expect(resultsOf(game)).toMatchObject({ score: 0, isComplete: false, answers: [{ placeId, outcome: 'wrong' }] });
+    expect(resultsOf(game).missedPlaceIds).toHaveLength(9);
+  });
+
+  it('ends only after the confirm, and ignores play while the confirm is up', () => {
+    const game = startGame();
+    const placeId = promptedPlaceId(game);
+
+    game.send({ type: 'end' });
+    expect(game.state).toMatchObject({ phase: 'prompt', isConfirmingEnd: false });
+
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'tap', placeId });
+    game.send({ type: 'next' });
+    game.send({ type: 'leave' });
+    expect(game.state).toMatchObject({ phase: 'prompt', placeId, isConfirmingEnd: true });
+  });
+
+  it('restores the exact previous prompt on keep playing', () => {
+    const game = startGame();
+    const before = game.state;
+
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'keepPlaying' });
+
+    expect(game.state).toEqual(before);
+  });
+
+  it('keeps a wrong answer waiting for Next after keep playing', () => {
+    const game = startGame();
+    game.send({ type: 'tap', placeId: someOtherPlaceId(promptedPlaceId(game)) });
+
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'keepPlaying' });
+    game.send({ type: 'tick' });
+    expect(game.state).toMatchObject({ phase: 'verdict', isConfirmingEnd: false });
+
+    game.send({ type: 'next' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+  });
+
+  it('restarts the hold of a right answer after keep playing', () => {
+    let now = Date.UTC(2026, 10, 17);
+    const game = startGame(1, () => now);
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+    now += rightAnswerHoldMs;
+
+    game.send({ type: 'askEnd' });
+    now += 5000;
+    game.send({ type: 'keepPlaying' });
+    game.send({ type: 'tick' });
+    expect(game.state.phase).toBe('verdict');
+
+    now += rightAnswerAdvanceMs;
+    game.send({ type: 'tick' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+  });
+
+  it('shows a finished round as complete with nothing unreached', () => {
+    const game = startGame();
+    playThrough(game, 4);
+
+    expect(resultsOf(game)).toMatchObject({ isComplete: true, missedPlaceIds: [] });
+  });
+
+  it('plays again after an ended round with the same setup and a fresh, complete round', () => {
+    const game = startGame();
+    endRound(game);
+    const { setup } = resultsOf(game);
+
+    game.send({ type: 'start', setup });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 1, isConfirmingEnd: false, setup });
+
+    playThrough(game, 10);
+    expect(resultsOf(game)).toMatchObject({ isComplete: true, score: 10 });
   });
 });
