@@ -83,5 +83,19 @@
     "right": "{place}: richtig",
     "wrong": "{place}: falsch",
     "home": "Hauptmenü"
+  },
+  "settings": {
+    "open": "Einstellungen",
+    "close": "Schließen",
+    "title": "Einstellungen",
+    "sound": "Ton",
+    "soundHint": "Töne und leichte Vibration während des Spiels.",
+    "on": "An",
+    "off": "Aus",
+    "language": "Sprache",
+    "languages": {
+      "en": "English",
+      "de": "Deutsch"
+    }
   }
 }

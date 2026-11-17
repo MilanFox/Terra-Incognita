@@ -122,10 +122,7 @@ export default defineNuxtConfig({
       { code: 'en', name: 'English', file: 'en.json' },
       { code: 'de', name: 'Deutsch', file: 'de.json' },
     ],
-    detectBrowserLanguage: {
-      useCookie: false,
-      fallbackLocale: 'en',
-    },
+    detectBrowserLanguage: false,
   },
 
   pwa: {

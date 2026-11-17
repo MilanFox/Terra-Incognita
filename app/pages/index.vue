@@ -4,6 +4,7 @@ import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
+import { usePlayFeedback } from '~/composables/usePlayFeedback';
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -15,6 +16,9 @@ const setupTray = useTemplateRef('setupTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element);
+const isSettingsOpen = ref(false);
+
+usePlayFeedback(() => game.state);
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !setupDraft.value);
@@ -56,6 +60,12 @@ const next = () => {
   worldMap.value?.focus();
 };
 
+const closeSettings = async () => {
+  isSettingsOpen.value = false;
+  await nextTick();
+  homeTray.value?.focusSettings();
+};
+
 const leave = async () => {
   game.send({ type: 'leave' });
   await nextTick();
@@ -69,11 +79,12 @@ onMounted(game.load);
   <main class="home">
     <Transition name="tray">
       <HomeTray
-        v-if="isShellReady && game.state.phase === 'home' && !setupDraft"
+        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !isSettingsOpen"
         ref="homeTray"
         :last-setup="game.lastSetup"
         @play-again="play(game.lastSetup)"
         @open-setup="openSetup"
+        @settings="isSettingsOpen = true"
         @interact="stopDrift"
       />
     </Transition>
@@ -105,6 +116,13 @@ onMounted(game.load);
       />
     </Transition>
 
+    <Transition name="tray">
+      <SettingsTray
+        v-if="isShellReady && game.state.phase === 'home' && isSettingsOpen"
+        @close="closeSettings"
+      />
+    </Transition>
+
     <WorldMap
       ref="worldMap"
       :selected-place-id="selectedPlaceId"
@@ -114,7 +132,7 @@ onMounted(game.load);
       :pool-place-ids="poolPlaceIds"
       :frame-region="frameRegion"
       :frame-inset="setupDraft ? setupTrayHeight : 0"
-      :inert="!!setupDraft"
+      :inert="!!setupDraft || isSettingsOpen"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
     />

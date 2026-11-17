@@ -3,7 +3,7 @@ import type { Mode, RoundSetup } from '#shared/game/game';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
 const props = defineProps<{ lastSetup?: RoundSetup }>();
-const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], interact: [] }>();
+const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], interact: [], settings: [] }>();
 
 const liftMs = 180;
 
@@ -16,6 +16,7 @@ const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
 const playAgainTile = useTemplateRef<HTMLElement>('playAgainTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
+const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
 const isOpen = ref(false);
 const isLaunching = ref(false);
@@ -63,7 +64,10 @@ const launch = () => {
   startPlay();
 };
 
-defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
+defineExpose({
+  focus: () => handle.value?.focus({ preventScroll: true }),
+  focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
+});
 </script>
 
 <template>
@@ -81,6 +85,45 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
     @touchcancel="onTouchEnd"
     @click.capture="onClickCapture"
   >
+    <Teleport to="body">
+      <button
+        ref="settingsTile"
+        type="button"
+        class="tile settings-tile"
+        :aria-label="$t('settings.open')"
+        @click="emit('settings')"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 7h10M18 7h2M4 17h2M10 17h10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="square"
+          />
+
+          <circle
+            cx="16"
+            cy="7"
+            r="2.5"
+            fill="currentColor"
+          />
+
+          <circle
+            cx="8"
+            cy="17"
+            r="2.5"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+    </Teleport>
+
     <button
       ref="handle"
       type="button"
@@ -216,6 +259,17 @@ defineExpose({ focus: () => handle.value?.focus({ preventScroll: true }) });
 </template>
 
 <style scoped lang="scss">
+.settings-tile {
+  position: fixed;
+  z-index: 1;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+
 .home-tray {
   max-width: 520px;
   max-height: calc(100% - env(safe-area-inset-top, 0px) - 72px);
