@@ -15,6 +15,7 @@ const subtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
 const playAgainTile = useTemplateRef<HTMLElement>('playAgainTile');
+const grid = useTemplateRef<HTMLElement>('grid');
 const dateLine = useTemplateRef<HTMLElement>('dateLine');
 const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
@@ -23,6 +24,7 @@ const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 const isOpen = ref(false);
 const isLaunching = ref(false);
 const collapsedShift = ref(0);
+const isPositioned = ref(false);
 
 const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
 
@@ -33,9 +35,8 @@ const playAgainSummary = computed(() => props.lastSetup && [
 ].join(' · '));
 
 const measure = () => {
-  const peekEdge = playAgainTile.value ?? dateLine.value;
-  if (!tray.value || !body.value || !peekEdge) return;
-  const peekHeight = peekEdge.offsetTop + peekEdge.offsetHeight + Number.parseFloat(getComputedStyle(body.value).paddingBottom);
+  if (!tray.value || !grid.value) return;
+  const peekHeight = grid.value.offsetTop + tray.value.clientTop;
   collapsedShift.value = Math.max(0, tray.value.offsetHeight - peekHeight);
 };
 
@@ -51,7 +52,12 @@ watch(isOpen, (nowOpen) => {
   if (!nowOpen && tray.value) tray.value.scrollTop = 0;
 });
 
-onMounted(measure);
+onMounted(() => {
+  measure();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    isPositioned.value = true;
+  }));
+});
 useResizeObserver(tray, measure);
 watch(locale, () => nextTick(measure));
 
@@ -82,7 +88,7 @@ defineExpose({
   <section
     ref="tray"
     class="tray home-tray"
-    :class="{ 'home-tray--open': isOpen, 'home-tray--dragging': dragShift !== null }"
+    :class="{ 'home-tray--open': isOpen, 'home-tray--dragging': dragShift !== null, 'home-tray--unpositioned': !isPositioned }"
     :style="{ translate: `0 ${trayShift}px` }"
     :aria-label="$t('home.label')"
     @pointerdown="onPointerDown($event); emit('interact')"
@@ -219,6 +225,7 @@ defineExpose({
 
       <div
         :id="gridId"
+        ref="grid"
         class="home-tray__grid"
         :inert="!isOpen"
       >
@@ -293,7 +300,8 @@ defineExpose({
     overflow-y: auto;
   }
 
-  &--dragging {
+  &--dragging,
+  &--unpositioned {
     transition: none;
   }
 
@@ -351,7 +359,7 @@ defineExpose({
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
     gap: 12px;
-    margin-top: 18px;
+    margin-top: calc(env(safe-area-inset-bottom, 0px) + 18px);
   }
 }
 
