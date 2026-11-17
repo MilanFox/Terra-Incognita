@@ -95,6 +95,7 @@ const handleKeydown = (event: KeyboardEvent) => {
   width: 40px;
   min-height: 40px;
   padding: 0;
+  pointer-events: auto;
   font-family: $font-serif;
   font-size: 20px;
   font-weight: 900;
