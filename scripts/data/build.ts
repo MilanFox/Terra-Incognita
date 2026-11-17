@@ -17,7 +17,7 @@ import { easeRanks } from './steps/ease.ts';
 import { joinFlags, loadFlagSources, writeFlagFiles } from './steps/flags.ts';
 import { join, qidOf } from './steps/join.ts';
 import { load } from './steps/load.ts';
-import { mainlandsByTier } from './steps/mainland.ts';
+import { sovereignMainlands } from './steps/mainland.ts';
 import { joinNames, loadNameSources } from './steps/names.ts';
 import { patch } from './steps/patch.ts';
 import { rule } from './steps/rule.ts';
@@ -61,8 +61,8 @@ const ease = easeRanks(naturalEarth, Object.keys(curated.places));
 step('6 compute island chains and their outlines per tier');
 const chains = chainsOf(maps, curated.places, readChainRulings());
 
-step('6 compute mainland neighbours per tier');
-const mainlands = mainlandsByTier(borders, curated.places);
+step('6 compute sovereign mainland neighbours');
+const mainlands = sovereignMainlands(borders, curated.places);
 const placeTierFacts = tierFacts(borders, mainlands, curated.places);
 
 step('6 compute the capitals inside their place');

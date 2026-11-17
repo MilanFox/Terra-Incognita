@@ -1,5 +1,5 @@
 import { pieceAreaKm2 } from '../land-area.ts';
-import { drawnAs, isInTier, tiers } from '../model.ts';
+import { drawnAs, isInTier } from '../model.ts';
 import { gapKm, neighboursIn } from './borders.ts';
 import type { Tier, TieredPlaces } from '../model.ts';
 import type { Borders } from './borders.ts';
@@ -139,10 +139,7 @@ const tierMainlands = (landmasses: Landmasses, { places, tier, tierBorders }: Ti
   return { neighbours: neighbourMap(mainlandPairs), dropped, placesByBlock };
 };
 
-// Mainlands come from the dependencies map relabelled per tier, because the tier's own map has already dissolved
-// dependency land into its holder.
-export const mainlandsByTier = (borders: Record<Tier, Borders>, places: TieredPlaces) => {
-  const landmasses = landmassesOf(borders.dependencies);
-  return Object.fromEntries(tiers.map(tier =>
-    [tier, tierMainlands(landmasses, { places, tier, tierBorders: borders[tier] })])) as Record<Tier, TierMainlands>;
-};
+// Mainlands come from the dependencies map relabelled for the sovereign tier, because the sovereign map has already
+// dissolved dependency land into its holder.
+export const sovereignMainlands = (borders: Record<Tier, Borders>, places: TieredPlaces) =>
+  tierMainlands(landmassesOf(borders.dependencies), { places, tier: 'sovereign', tierBorders: borders.sovereign });
