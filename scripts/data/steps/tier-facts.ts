@@ -3,10 +3,15 @@ import { isInTier, tiers } from '../model.ts';
 import { neighboursIn } from './borders.ts';
 import type { Tier, TieredPlaces } from '../model.ts';
 import type { Borders } from './borders.ts';
+import type { TierMainlands } from './mainland.ts';
 
 export const microstateMaxKm2 = 2500;
 
-export type TierFacts = { neighbours: Record<Tier, string[]>, microstate: Record<Tier, boolean> };
+export type TierFacts = {
+  neighbours: Record<Tier, string[]>
+  mainlandNeighbours: Record<Tier, string[]>
+  microstate: Record<Tier, boolean>
+};
 
 const largestPieceKm2ById = ({ pieces }: Borders) => {
   const largest = new Map<string, number>();
@@ -15,17 +20,22 @@ const largestPieceKm2ById = ({ pieces }: Borders) => {
 };
 
 // A place outside a tier has no land of its own in that tier's map: no neighbours there, and not a microstate.
-export const tierFacts = (borders: Record<Tier, Borders>, places: TieredPlaces): Map<string, TierFacts> => {
+export const tierFacts = (
+  borders: Record<Tier, Borders>,
+  mainlands: Record<Tier, TierMainlands>,
+  places: TieredPlaces,
+): Map<string, TierFacts> => {
   const measured = tiers.map(tier => ({
     tier,
     neighbours: neighboursIn(borders[tier]),
     largestKm2: largestPieceKm2ById(borders[tier]),
   }));
   return new Map(Object.entries(places).map(([id, place]) => {
-    const facts = { neighbours: {}, microstate: {} } as TierFacts;
+    const facts = { neighbours: {}, mainlandNeighbours: {}, microstate: {} } as TierFacts;
     for (const { tier, neighbours, largestKm2 } of measured) {
       const isDrawn = isInTier(place.tier, tier);
       facts.neighbours[tier] = isDrawn ? neighbours.get(id) ?? [] : [];
+      facts.mainlandNeighbours[tier] = isDrawn ? mainlands[tier].neighbours.get(id) ?? [] : [];
       facts.microstate[tier] = isDrawn && (largestKm2.get(id) ?? 0) < microstateMaxKm2;
     }
     return [id, facts];

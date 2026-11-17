@@ -56,7 +56,7 @@ const vertexToEdgesKm = (vertices: Ring, edges: Ring) => vertices.reduce((neares
   nearest,
 ), Infinity);
 
-const gapKm = (first: Ring, second: Ring) => Math.min(vertexToEdgesKm(first, second), vertexToEdgesKm(second, first));
+export const gapKm = (first: Ring, second: Ring) => Math.min(vertexToEdgesKm(first, second), vertexToEdgesKm(second, first));
 
 const bridge = (pieces: Piece[], { ids: [firstId, secondId], maxKm }: typeof bridgedGaps[number]) => {
   const indicesOf = (id: string) => pieces.flatMap((piece, index) => (piece.id === id ? [index] : []));
