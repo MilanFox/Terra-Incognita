@@ -1,13 +1,18 @@
 import { check } from './check.ts';
+import { neighboursAreSymmetric } from './check-neighbours.ts';
 import { readCurated } from './curated.ts';
 import { countByTier } from './model.ts';
+import { bordersByTier } from './steps/borders.ts';
 import { compute } from './steps/compute.ts';
 import { dissolve } from './steps/dissolve.ts';
+import { easeRanks } from './steps/ease.ts';
 import { join } from './steps/join.ts';
 import { load } from './steps/load.ts';
 import { patch } from './steps/patch.ts';
 import { rule } from './steps/rule.ts';
 import { simplify } from './steps/simplify.ts';
+import { speckPoints } from './steps/specks.ts';
+import { tierFacts } from './steps/tier-facts.ts';
 import { write } from './steps/write.ts';
 
 const step = (name: string) => console.log(name);
@@ -31,11 +36,18 @@ const maps = await dissolve(map, curated.places);
 step('6 compute bounding boxes');
 const facts = compute(maps.dependencies);
 
+step('6 compute neighbours and microstates per tier, specks and ease');
+const borders = bordersByTier(maps);
+const placeTierFacts = tierFacts(borders, curated.places);
+const points = await speckPoints(maps.dependencies);
+const ease = easeRanks(naturalEarth, Object.keys(curated.places));
+
 step('7 join tier, holder, region, QID and ISO code');
 const places = join(curated, ruled.sources, facts);
 
 step('8 check');
 const lines = check({ naturalEarth, curated, places, maps });
+lines.push(neighboursAreSymmetric(placeTierFacts));
 for (const { label, failures } of lines) {
   console.log(`  ${failures.length ? 'FAIL' : 'ok  '}  ${label}`);
   for (const failure of failures) console.log(`          ${failure}`);
@@ -46,4 +58,5 @@ if (lines.some(({ failures }) => failures.length)) {
 }
 
 step('9 write');
-write({ maps, places, version: { ne: naturalEarth.release, counts: countByTier(places) } });
+const shippedPlaces = places.map(place => ({ ...place, ease: ease.get(place.id), ...placeTierFacts.get(place.id) }));
+write({ maps, places: shippedPlaces, points, version: { ne: naturalEarth.release, counts: countByTier(places) } });
