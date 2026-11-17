@@ -426,6 +426,7 @@ onMounted(async () => {
     style: styleFor(tierMap),
     center: [10, 20],
     zoom: 0,
+    ...(props.frameRegion && props.frameRegion !== 'world' && { bounds: regionFrames[props.frameRegion], fitBoundsOptions: { padding: { ...regionFramePadding, bottom: props.frameInset } } }),
     minZoom,
     maxZoom,
     dragRotate: false,
