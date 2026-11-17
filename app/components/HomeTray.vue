@@ -15,6 +15,8 @@ const subtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
 const playAgainTile = useTemplateRef<HTMLElement>('playAgainTile');
+const dateLine = useTemplateRef<HTMLElement>('dateLine');
+const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -31,8 +33,9 @@ const playAgainSummary = computed(() => props.lastSetup && [
 ].join(' · '));
 
 const measure = () => {
-  if (!tray.value || !body.value || !playAgainTile.value) return;
-  const peekHeight = playAgainTile.value.offsetTop + playAgainTile.value.offsetHeight + Number.parseFloat(getComputedStyle(body.value).paddingBottom);
+  const peekEdge = playAgainTile.value ?? dateLine.value;
+  if (!tray.value || !body.value || !peekEdge) return;
+  const peekHeight = peekEdge.offsetTop + peekEdge.offsetHeight + Number.parseFloat(getComputedStyle(body.value).paddingBottom);
   collapsedShift.value = Math.max(0, tray.value.offsetHeight - peekHeight);
 };
 
@@ -66,6 +69,11 @@ const launch = () => {
 
 defineExpose({
   focus: () => handle.value?.focus({ preventScroll: true }),
+  focusModeTile: async () => {
+    isOpen.value = true;
+    await nextTick();
+    modeTile.value?.focus({ preventScroll: true });
+  },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
 });
 </script>
@@ -215,6 +223,7 @@ defineExpose({
         :inert="!isOpen"
       >
         <button
+          ref="modeTile"
           type="button"
           class="tile mode-tile"
           :aria-label="$t('modes.find.name')"

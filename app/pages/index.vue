@@ -45,7 +45,7 @@ const openSetup = (mode: Mode) => {
 const closeSetup = async () => {
   setupDraft.value = null;
   await nextTick();
-  homeTray.value?.focus();
+  homeTray.value?.focusModeTile();
 };
 
 const play = (setup: RoundSetup | undefined) => {

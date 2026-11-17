@@ -273,7 +273,7 @@ onMounted(async () => {
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
   map.on('click', handleClick);
-  map.on('styleimagemissing', ({ id }) => {
+  map.setMissingStyleImageResolver((id) => {
     if (id === hatchName && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1), { pixelRatio: window.devicePixelRatio || 1 });
   });
   map.once('idle', () => emit('drawn'));

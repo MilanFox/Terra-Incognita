@@ -338,7 +338,7 @@ describe('remembered setup', () => {
     const game = gameOver();
 
     expect(game.setupFor('find')).toEqual({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
-    expect(game.lastSetup()).toEqual(game.setupFor('find'));
+    expect(game.lastSetup()).toBeUndefined();
   });
 
   it('keeps the played setup in ti:setup for the next visit, unchanged', () => {
@@ -352,7 +352,7 @@ describe('remembered setup', () => {
     expect(nextVisit.setupFor('find')).toEqual(europeanSetup);
     expect(nextVisit.lastSetup()).toEqual(europeanSetup);
 
-    nextVisit.send({ type: 'start', setup: nextVisit.lastSetup() });
+    nextVisit.send({ type: 'start', setup: nextVisit.lastSetup()! });
     expect(nextVisit.state).toMatchObject({ phase: 'prompt', setup: europeanSetup, deckSize: 48 });
   });
 
@@ -362,7 +362,7 @@ describe('remembered setup', () => {
     expect(gameOver(places, storage).setupFor('find')).toEqual({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10 });
 
     storage.setItem('ti:setup', 'not json');
-    expect(gameOver(places, storage).lastSetup().region).toBe('world');
+    expect(gameOver(places, storage).lastSetup()).toBeUndefined();
   });
 });
 

@@ -225,7 +225,11 @@ export const createGame = ({ places, random, clock, storage }: GameDependencies)
       return state;
     },
     setupFor: rememberedSetupFor,
-    lastSetup: () => rememberedSetupFor(readStoredSetups().lastMode),
+    lastSetup: () => {
+      const { lastMode, setups } = readStoredSetups();
+      const remembered = setups[lastMode];
+      return isStoredSetup(remembered, lastMode) ? remembered : undefined;
+    },
     choicesFor,
     poolOf,
     send,
