@@ -178,6 +178,27 @@
     "languages": {
       "en": "English",
       "de": "Deutsch"
+    },
+    "data": {
+      "title": "Your data",
+      "hint": "Everything lives on this device. Export a copy to keep it safe or move it.",
+      "export": "Export",
+      "import": "Import",
+      "reset": "Reset stats",
+      "exported": "Data exported.",
+      "invalidFile": "That file is not a Terra Incognita export. Nothing changed.",
+      "newerFile": "That file comes from a newer version of the game. Update the game and try again. Nothing changed.",
+      "importConfirm": {
+        "title": "Replace your data?",
+        "line": "Importing replaces your stats, bests, daily streak, settings and setups on this device with the file's.",
+        "choose": "Choose file"
+      },
+      "resetConfirm": {
+        "title": "Reset stats?",
+        "line": "This clears your place ratings, round history, bests and daily records, so your daily streak goes too. Settings and remembered setups stay.",
+        "confirm": "Reset stats"
+      },
+      "cancel": "Cancel"
     }
   },
   "endRound": {
@@ -278,7 +299,8 @@
     "empty": {
       "title": "No rounds yet",
       "line": "Play a round and this page fills in. Places you know well turn dark on the map."
-    }
+    },
+    "safariHint": "Add to Home Screen to keep your stats safe"
   },
   "live": {
     "place": "Place",

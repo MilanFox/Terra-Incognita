@@ -178,6 +178,27 @@
     "languages": {
       "en": "English",
       "de": "Deutsch"
+    },
+    "data": {
+      "title": "Deine Daten",
+      "hint": "Alles liegt auf diesem Gerät. Exportiere eine Kopie, um sie zu sichern oder umzuziehen.",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "reset": "Statistik zurücksetzen",
+      "exported": "Daten exportiert.",
+      "invalidFile": "Diese Datei ist kein Terra-Incognita-Export. Nichts wurde geändert.",
+      "newerFile": "Diese Datei stammt aus einer neueren Version des Spiels. Aktualisiere das Spiel und versuche es erneut. Nichts wurde geändert.",
+      "importConfirm": {
+        "title": "Deine Daten ersetzen?",
+        "line": "Beim Importieren werden Statistik, Bestwerte, Tagesserie, Einstellungen und Setups auf diesem Gerät durch die der Datei ersetzt.",
+        "choose": "Datei wählen"
+      },
+      "resetConfirm": {
+        "title": "Statistik zurücksetzen?",
+        "line": "Das löscht deine Ortsbewertungen, den Rundenverlauf, Bestwerte und Tagesrunden, also geht auch deine Tagesserie verloren. Einstellungen und gemerkte Setups bleiben.",
+        "confirm": "Statistik zurücksetzen"
+      },
+      "cancel": "Abbrechen"
     }
   },
   "endRound": {
@@ -278,7 +299,8 @@
     "empty": {
       "title": "Noch keine Runden",
       "line": "Spiel eine Runde, dann füllt sich diese Seite. Orte, die du gut kennst, werden auf der Karte dunkel."
-    }
+    },
+    "safariHint": "Zum Home-Bildschirm hinzufügen, damit deine Statistik sicher bleibt"
   },
   "live": {
     "place": "Ort",
