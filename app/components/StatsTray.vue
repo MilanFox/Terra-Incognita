@@ -22,6 +22,7 @@ const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyToRegion: [reg
 
 const zoomTilesGapPx = 12;
 const zoomTilesRoomPx = 120;
+const bubbleGapPx = 10;
 
 const { t, te, locale } = useI18n();
 const game = useGameStore();
@@ -93,6 +94,8 @@ const { dragShift, onPointerDown, onTouchStart, onTouchMove, onTouchEnd, onClick
 });
 
 const trayShift = computed(() => dragShift.value ?? (isOpen.value ? 0 : collapsedShift.value));
+const bubbleBottom = computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0));
+const openTrayLimit = computed(() => (isOpen.value && bubbleBottom.value ? `calc(100% - ${bubbleBottom.value + bubbleGapPx}px)` : undefined));
 const visibleTrayHeight = computed(() => trayHeight.value - trayShift.value);
 const hasRoomForZoomTiles = computed(() => windowHeight.value - visibleTrayHeight.value >= zoomTilesRoomPx);
 
@@ -175,7 +178,7 @@ onMounted(() => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, focusWhy: () => placeBubble.value?.focusWhy(), bubbleBottom: computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0)) });
+defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, focusWhy: () => placeBubble.value?.focusWhy(), bubbleBottom });
 </script>
 
 <template>
@@ -198,7 +201,7 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
       ref="tray"
       class="tray stats-tray"
       :class="{ 'stats-tray--open': isOpen, 'stats-tray--dragging': dragShift !== null, 'stats-tray--unpositioned': !isPositioned }"
-      :style="{ translate: `0 ${trayShift}px` }"
+      :style="{ translate: `0 ${trayShift}px`, maxHeight: openTrayLimit }"
       @pointerdown="onPointerDown"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
@@ -375,7 +378,7 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
   overscroll-behavior: contain;
   user-select: none;
   pointer-events: auto;
-  transition: translate 340ms cubic-bezier(0.2, 1.1, 0.4, 1);
+  transition: translate 340ms cubic-bezier(0.2, 1.1, 0.4, 1), max-height 340ms cubic-bezier(0.2, 1.1, 0.4, 1);
 
   &--open {
     overflow-y: auto;
