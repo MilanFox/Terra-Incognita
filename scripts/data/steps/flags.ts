@@ -9,6 +9,8 @@ import type { WikidataBinding } from '../sources/wikidata.ts';
 
 export type Credit = { id: string, file: string, artist: string | null, license: string | null, licenseUrl: string | null };
 
+export const isPlaceholderArtist = (artist: string | null) => artist === null || /\bsee file history\b/i.test(artist.replace(/[,()]/g, ''));
+
 export const maxShippedBytes = 2 * 1024 * 1024;
 
 export type FlagSources = {
@@ -74,7 +76,7 @@ export const joinFlags = (places: FlagPlace[], sources: FlagSources): FlagJoin =
     if (licence.file !== file) failures.mismatches.push(`${id}: the snapshot is of ${licence.file}, the ruling is ${file}: run npm run data:fetch -- --flags`);
     flags[id] = flagSvgName(id);
     svgs[id] = withViewBox(withoutMetadataAndComments(withLineFeeds(readFileSync(svgPath, 'utf8'))));
-    if (licence.attributionRequired) credits.push({ id, file, artist: licence.artist, license: licence.license, licenseUrl: licence.licenseUrl });
+    if (licence.attributionRequired) credits.push({ id, file, artist: isPlaceholderArtist(licence.artist) ? `Wikimedia Commons contributors, File:${file}` : licence.artist, license: licence.license, licenseUrl: licence.licenseUrl });
   }
   return { flags, svgs, credits, failures };
 };
