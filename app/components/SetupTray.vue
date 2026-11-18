@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DeckSize, Mode, RegionChoice, RoundSetup, Tier, Variant } from '#shared/game/game';
+import type { DeckSize, Mode, RegionChoice, RoundKind, RoundSetup, Tier, Variant } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ setup: RoundSetup }>();
@@ -40,6 +40,13 @@ const deckSizeOptions = computed(() => choices.value.deckSizes.map(({ value, cou
   const label = t(`setup.deckSizes.${value}`);
   return { value, label, accessibleName: accessibleName(label, count, isAvailable), isAvailable };
 }));
+
+const roundKindOptions = computed(() => choices.value.roundKinds.map(({ value, count, isAvailable }) => {
+  const label = t(`setup.roundKinds.${value}`);
+  return { value, label, detail: String(count), accessibleName: accessibleName(label, count, isAvailable), isAvailable };
+}));
+
+const isRegularMode = computed(() => ['find', 'name', 'capital', 'country'].includes(props.setup.mode));
 
 const change = (changes: Partial<RoundSetup>) => emit('update:setup', { ...props.setup, ...changes });
 
@@ -125,6 +132,14 @@ defineExpose({ element: tray });
       v-else
       class="setup-tray__rows"
     >
+      <RadioTiles
+        v-if="isRegularMode"
+        :label="$t('setup.groups.roundKind')"
+        :options="roundKindOptions"
+        :model-value="setup.roundKind ?? 'quiz'"
+        @update:model-value="change({ roundKind: $event as RoundKind })"
+      />
+
       <RadioTiles
         v-if="variantOptions.length > 1"
         :label="$t('setup.groups.variant')"

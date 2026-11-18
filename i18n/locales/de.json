@@ -52,7 +52,12 @@
       "variant": "Fragen nach",
       "region": "Region",
       "tier": "Stufe",
-      "deckSize": "Orte pro Runde"
+      "deckSize": "Orte pro Runde",
+      "roundKind": "Runde"
+    },
+    "roundKinds": {
+      "quiz": "Quiz",
+      "weak": "Schwache Orte"
     },
     "variants": {
       "flag": "Flagge",

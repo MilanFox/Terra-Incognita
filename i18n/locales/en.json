@@ -52,7 +52,12 @@
       "variant": "Ask by",
       "region": "Region",
       "tier": "Tier",
-      "deckSize": "Places per round"
+      "deckSize": "Places per round",
+      "roundKind": "Round"
+    },
+    "roundKinds": {
+      "quiz": "Quiz",
+      "weak": "Weak ones"
     },
     "variants": {
       "flag": "Flag",
