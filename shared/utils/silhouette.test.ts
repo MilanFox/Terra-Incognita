@@ -36,8 +36,8 @@ describe('a silhouette', () => {
     expect(southernmostY).toBeCloseTo(chile.height);
   });
 
-  it('draws France, the Netherlands and Norway from their mainland frame only', () => {
-    for (const id of ['FRA', 'NLD', 'NOR']) {
+  it('draws the framed places from their mainland frame only', () => {
+    for (const id of ['CHL', 'ECU', 'FRA', 'GNQ', 'JPN', 'NLD', 'NOR', 'NZL', 'PRT', 'USA']) {
       const { bbox, silhouetteFrame } = places.find(place => place.id === id)!;
       const framed = silhouetteOf(id);
       const unframed = drawSilhouette(ownLandById.get(id)!, bbox);

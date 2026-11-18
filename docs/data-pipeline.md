@@ -111,7 +111,7 @@ The pipeline flags candidates, outlined in red with the reason under the label, 
 
 The owner's review result goes into `data/curated/places.json`: `"silhouette": false` on each place ruled unreadable. `places.json` in `public/data/` carries `silhouette: boolean`, false only for those places, so today it is true everywhere. The app drops places with `silhouette: false` from the silhouette variant of Name that country.
 
-A place with `silhouetteFrame` in the curated file is drawn from that frame only: the sheet and the app keep the pieces of its own land with a vertex inside the frame and fit the drawing to the frame instead of the `bbox`. `FRA` (metropolitan France with Corsica), `NLD` (European Netherlands) and `NOR` (mainland Norway, without Svalbard and Jan Mayen) use it, because their own land includes far overseas parts that would leave the drawing mostly sea; `IDN` and `PHL` are drawn as they are.
+A place with `silhouetteFrame` in the curated file is drawn from that frame only: the sheet and the app keep the pieces of its own land with a vertex inside the frame and fit the drawing to the frame instead of the `bbox`. `FRA` (metropolitan France with Corsica), `NLD` (European Netherlands), `NOR` (without Svalbard and Jan Mayen), `PRT` (without the Azores and Madeira), `CHL` (without Easter Island, Juan Fernández and San Félix), `NZL` (North, South and Stewart Island), `USA` (contiguous 48), `JPN` (main islands, without the Ryukyu and Ogasawara Islands), `GNQ` (Río Muni and Bioko) and `ECU` (without the Galápagos) use it, because their own land includes far islands or overseas parts that would leave the drawing mostly sea; `IDN` and `PHL` are drawn as they are.
 
 ## Build check
 
