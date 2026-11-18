@@ -11,6 +11,7 @@ const game = useGameStore();
 
 const gapCells = computed(() => props.state.gapPlaceIds.map((placeId): ProgressCell => (props.state.foundPlaceIds.includes(placeId) ? 'right' : 'pending')));
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
+const shownTap = computed(() => (props.isMarked ? null : props.state.lastTap));
 </script>
 
 <template>
@@ -38,27 +39,27 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     <template #card="{ isShown }">
       <div
         v-show="isShown"
-        :key="state.lastTap ? `${state.foundPlaceIds.length}-${state.tapsLeft}` : 'prompt'"
+        :key="shownTap ? `${state.foundPlaceIds.length}-${state.tapsLeft}` : 'prompt'"
         class="tile missing-card"
-        :class="state.lastTap && `missing-card--${state.lastTap.kind}`"
+        :class="shownTap && `missing-card--${shownTap.kind}`"
       >
-        <template v-if="state.lastTap?.kind === 'hit'">
+        <template v-if="shownTap?.kind === 'hit'">
           <p class="kicker">
             {{ $t('missing.found') }}
           </p>
 
           <p class="missing-card__place">
-            {{ placeName(state.lastTap.placeId) }}
+            {{ placeName(shownTap.placeId) }}
           </p>
         </template>
 
-        <template v-else-if="state.lastTap">
+        <template v-else-if="shownTap">
           <p class="kicker">
             {{ $t('missing.notHere') }}
           </p>
 
           <p class="missing-card__place">
-            {{ state.lastTap.kind === 'sea' ? $t('missing.sea') : $t('missing.youTapped', { place: placeName(state.lastTap.placeId) }) }}
+            {{ shownTap.kind === 'sea' ? $t('missing.sea') : $t('missing.youTapped', { place: placeName(shownTap.placeId) }) }}
           </p>
         </template>
 
