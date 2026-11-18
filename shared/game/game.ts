@@ -9,10 +9,12 @@ import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
 import type { DailyCell, DailyRecord, RoundSummary } from './records';
+import { createWayfinder } from './wayfinder';
+import type { WayfinderState } from './wayfinder';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-export type Mode = 'find' | 'name' | 'capital' | 'country' | 'fill' | 'missing';
+export type Mode = 'find' | 'name' | 'capital' | 'country' | 'fill' | 'missing' | 'wayfinder';
 
 export type Variant = 'flag' | 'name' | 'both' | 'map' | 'silhouette';
 export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
@@ -28,6 +30,7 @@ export interface Place {
   capitals?: string[]
   silhouette?: boolean
   microstate?: Record<Tier, boolean>
+  mainlandNeighbours?: string[]
 }
 
 export interface RoundSetup {
@@ -98,7 +101,7 @@ const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
 const optionCount = 4;
-const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000, capital: 15000, country: 15000, fill: fillBudgetPerPlaceMs, missing: missingTimeLimitMs / gapCount };
+const promptBudgetsMs: Partial<Record<Mode, number>> = { find: 8000, name: 15000, capital: 15000, country: 15000, fill: fillBudgetPerPlaceMs, missing: missingTimeLimitMs / gapCount };
 const typedModes: Mode[] = ['name', 'capital', 'country'];
 const noMapModes: Mode[] = ['country'];
 const setupStorageKey = 'ti:setup';
@@ -135,15 +138,16 @@ export type GameState
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
     | { phase: 'fill', setup: RoundSetup, deckSize: number, score: number, filledPlaceIds: string[], filledLandPlaceIds: string[], lastInput: FillInput | null, inputCount: number, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
     | { phase: 'missing', setup: RoundSetup, gapPlaceIds: string[], foundPlaceIds: string[], tapsLeft: number, lastTap: MissingTap | null, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
-    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null };
+    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null }
+    | WayfinderState;
 
-type Phase = GameState['phase'];
+type Phase = Exclude<GameState, WayfinderState>['phase'];
 
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
-const modes: Mode[] = ['find', 'name', 'capital', 'country', 'fill', 'missing'];
-const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], fill: ['map'], missing: ['map'] };
+const modes: Mode[] = ['find', 'name', 'capital', 'country', 'fill', 'missing', 'wayfinder'];
+const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], fill: ['map'], missing: ['map'], wayfinder: ['map'] };
 const flagVariants: Variant[] = ['flag', 'both'];
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
@@ -218,6 +222,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   const records = createRecords(storage);
   const matcher = createMatcher(names);
   const capitalMatcher = createCapitalMatcher(names, places);
+  const wayfinder = createWayfinder({ places, matcher, random, clock, storage, dataVersion: version.dataVersion });
 
   let phase: Phase = 'home';
   let setup = firstTimeSetup('find');
@@ -526,7 +531,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     return now - startedAt - stoppedMs - (stoppedSince === null ? 0 : now - stoppedSince);
   };
 
-  const timeLimitMs = () => (setup.timed ? promptBudgetsMs[setup.mode] * deck.length : Infinity);
+  const timeLimitMs = () => (setup.timed ? promptBudgetsMs[setup.mode]! * deck.length : Infinity);
 
   const isRoundInPlay = () => phase === 'prompt' || phase === 'verdict' || phase === 'fill' || phase === 'missing';
 
@@ -595,7 +600,24 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     if (foundPlaceIds.length === deck.length || tapsUsed >= tapBudgetOf(setup.easy)) finish();
   };
 
+  const sendToWayfinder = (event: GameEvent) => {
+    if (wayfinder.state?.phase === 'wayfinderResults' && (event.type === 'start' || event.type === 'startDaily')) wayfinder.send({ type: 'leave' });
+    if (wayfinder.state) {
+      wayfinder.send(event);
+      return true;
+    }
+    if (event.type !== 'start' || event.setup.mode !== 'wayfinder') return false;
+    if (phase === 'home' || phase === 'results') {
+      phase = 'home';
+      state = snapshot();
+      wayfinder.start(event.setup);
+      rememberSetup(wayfinder.state!.setup);
+    }
+    return true;
+  };
+
   const send = (event: GameEvent) => {
+    if (sendToWayfinder(event)) return;
     const isInRound = isRoundInPlay();
     if (isInRound && timeLeftMs() === 0) runOut();
     else if (event.type === 'hide' && isInRound) hide();
@@ -629,13 +651,15 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     persistRound();
   };
 
-  resumeStoredRound();
-  state = snapshot();
-  persistRound();
+  if (!wayfinder.resume()) {
+    resumeStoredRound();
+    state = snapshot();
+    persistRound();
+  }
 
   return {
     get state() {
-      return state;
+      return wayfinder.state ?? state;
     },
     setupFor: rememberedSetupFor,
     lastSetup: () => {

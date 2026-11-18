@@ -21,6 +21,7 @@ const capitalSubtitleId = useId();
 const countrySubtitleId = useId();
 const fillSubtitleId = useId();
 const missingSubtitleId = useId();
+const wayfinderSubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -34,6 +35,7 @@ const capitalModeTile = useTemplateRef<HTMLButtonElement>('capitalModeTile');
 const countryModeTile = useTemplateRef<HTMLButtonElement>('countryModeTile');
 const fillModeTile = useTemplateRef<HTMLButtonElement>('fillModeTile');
 const missingModeTile = useTemplateRef<HTMLButtonElement>('missingModeTile');
+const wayfinderModeTile = useTemplateRef<HTMLButtonElement>('wayfinderModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -47,8 +49,8 @@ const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday:
 const playAgainSummary = computed(() => props.lastSetup && [
   t(`setup.regions.${props.lastSetup.region}`),
   t(`setup.tiers.${props.lastSetup.tier}`),
-  t(`setup.playAgain.deckSizes.${props.lastSetup.deckSize}`),
-].join(' · '));
+  props.lastSetup.mode === 'wayfinder' ? null : t(`setup.playAgain.deckSizes.${props.lastSetup.deckSize}`),
+].filter(Boolean).join(' · '));
 
 const measure = () => {
   if (!tray.value || !grid.value) return;
@@ -94,7 +96,7 @@ defineExpose({
   focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile, fill: fillModeTile, missing: missingModeTile })[mode].value?.focus({ preventScroll: true });
+    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile, fill: fillModeTile, missing: missingModeTile, wayfinder: wayfinderModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -433,6 +435,31 @@ defineExpose({
               :id="missingSubtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.missing.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="wayfinderModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.wayfinder.name')"
+          :aria-describedby="wayfinderSubtitleId"
+          @click="emit('openSetup', 'wayfinder')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="wayfinder" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.wayfinder.name') }}</span>
+
+            <span
+              :id="wayfinderSubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.wayfinder.subtitle') }}</span>
           </span>
         </button>
       </div>

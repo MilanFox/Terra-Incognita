@@ -7,7 +7,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
 type RegionChoice = 'world' | 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal' | 'missed';
+type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal' | 'missed' | 'start' | 'target' | 'named';
 
 interface PlaceProperties {
   id: string
@@ -33,6 +33,12 @@ interface ResultPlace {
   outcome: 'right' | 'wrong' | 'missed'
 }
 
+interface RouteMarks {
+  startId: string
+  targetId: string
+  namedPlaceIds: string[]
+}
+
 const props = withDefaults(defineProps<{
   selectedPlaceId?: string | null
   verdict?: Verdict | null
@@ -46,7 +52,10 @@ const props = withDefaults(defineProps<{
   foundPlaceIds?: string[]
   highlightedPlaceId?: string | null
   keyboardInset?: number
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0 });
+  route?: RouteMarks | null
+  landShown?: number
+  topInset?: number
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string] }>();
 
 const { t, locale } = useI18n();
@@ -91,14 +100,40 @@ const colours = {
   sand: '#d6cdbd',
 };
 const landTones = ['#ece6d6', '#e8e1d0', '#efeadc', '#e5dfcd'];
+const routeColours = {
+  start: '#6fa8a1',
+  startOutline: '#3f7570',
+  target: '#e39a80',
+  targetOutline: '#a85a40',
+  named: '#cdb27a',
+  namedOutline: '#8c7b56',
+};
+const routeMaxZoom = 5.5;
+const zoomTilesWidthPx = 50;
+
+const channelsOf = (hex: string) => [1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16));
+
+const mixedColour = (from: string, to: string, amount: number) => {
+  if (amount >= 1) return to;
+  const [fromChannels, toChannels] = [channelsOf(from), channelsOf(to)];
+  return `rgb(${fromChannels.map((channel, index) => Math.round(channel + (toChannels[index]! - channel) * amount)).join(', ')})`;
+};
 
 const status: ExpressionSpecification = ['to-string', ['feature-state', 'status']];
 const isCursor: ExpressionSpecification = ['boolean', ['feature-state', 'cursor'], false];
-const landFill: ExpressionSpecification = ['match', ['get', 'tone'], 1, landTones[1]!, 2, landTones[2]!, 3, landTones[3]!, landTones[0]!];
+const landFillAt = (landShown: number): ExpressionSpecification => {
+  const tones = landTones.map(tone => mixedColour(colours.water, tone, landShown));
+  return ['match', ['get', 'tone'], 1, tones[1]!, 2, tones[2]!, 3, tones[3]!, tones[0]!];
+};
+const landFill = landFillAt(1);
 const fadeState: ExpressionSpecification = ['coalesce', ['feature-state', 'fade'], 0];
 const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeState, 0, colours.green, 1, landFill];
-const placeFill: ExpressionSpecification = ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, landFill]];
-const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 0]];
+const placeFillOver = (land: ExpressionSpecification): ExpressionSpecification => ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, 'start', routeColours.start, 'target', routeColours.target, 'named', routeColours.named, land]];
+const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 'start', 1.2, 'named', 0.6, 0]];
+const statusBorderColour: ExpressionSpecification = ['match', status, 'start', routeColours.startOutline, 'named', routeColours.namedOutline, colours.ink];
+const isRouteMark: ExpressionSpecification = ['match', status, ['start', 'target', 'named'], true, false];
+const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', ['any', isCursor, ['==', status, 'selected']], colours.ink, ['match', status, 'start', routeColours.startOutline, 'target', routeColours.targetOutline, 'named', routeColours.namedOutline, mixedColour(colours.water, colours.border, landShown)]];
+const targetOutlineFilterFor = (targetId: string | undefined): FilterSpecification => ['==', ['get', 'id'], targetId ?? ''];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
 
@@ -137,22 +172,23 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
   },
   layers: [
     { id: 'water', type: 'background', paint: { 'background-color': colours.water } },
-    { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFill } },
+    { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchName, 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
     { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': dimColour, 'fill-opacity': 0.7 } },
-    { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': colours.border, 'line-width': 0.6 } },
-    { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': colours.ink, 'line-width': statusBorderWidth } },
+    { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': mixedColour(colours.water, colours.border, props.landShown), 'line-width': 0.6 } },
+    { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': statusBorderColour, 'line-width': statusBorderWidth } },
+    { id: 'place-target-outline', type: 'line', source: 'places', filter: targetOutlineFilterFor(props.route?.targetId), layout: { 'line-join': 'round' }, paint: { 'line-color': routeColours.targetOutline, 'line-width': 2.6, 'line-dasharray': [2, 1.2] } },
     {
       id: 'speck',
       type: 'circle',
       source: 'specks',
       paint: {
-        'circle-radius': ['case', isSpeckMarked, cursorSpeckRadius, 1],
-        'circle-color': placeFill,
+        'circle-radius': ['case', ['any', isSpeckMarked, isRouteMark], cursorSpeckRadius, 1],
+        'circle-color': placeFillOver(landFillAt(props.landShown)),
         'circle-opacity': speckOpacity,
-        'circle-stroke-width': ['case', isCursor, 2, isSpeckMarked, 1, 0.5],
-        'circle-stroke-color': ['case', isSpeckMarked, colours.ink, colours.border],
+        'circle-stroke-width': ['case', isCursor, 2, isSpeckMarked, 1, ['==', status, 'target'], 2, isRouteMark, 1, 0.5],
+        'circle-stroke-color': speckStrokeAt(props.landShown),
         'circle-stroke-opacity': speckOpacity,
       },
     },
@@ -207,6 +243,8 @@ let labelPoints = new Map<string, [number, number]>();
 const isAtMinZoom = ref(false);
 const isAtMaxZoom = ref(false);
 let cursorPlaceId: string | null = null;
+let markedRoute: RouteMarks | null = null;
+let hasLoaded = false;
 let lastSelectedPlaceId: string | null = null;
 
 const pickPlaceId = (point: MapMouseEvent['point']) => {
@@ -259,6 +297,11 @@ const boundsOf = (placeId: string) => {
     return [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]] as [[number, number], [number, number]];
   }).sort(([[west1, south1], [east1, north1]], [[west2, south2], [east2, north2]]) => (east2 - west2) * (north2 - south2) - (east1 - west1) * (north1 - south1))[0];
 };
+
+const boundsAround = (placeBounds: [[number, number], [number, number]][]): [[number, number], [number, number]] => [
+  [Math.min(...placeBounds.map(([[west]]) => west)), Math.min(...placeBounds.map(([[, south]]) => south))],
+  [Math.max(...placeBounds.map(([, [east]]) => east)), Math.max(...placeBounds.map(([, [, north]]) => north))],
+];
 
 const flyTo = (placeId: string) => {
   const bounds = boundsOf(placeId);
@@ -316,14 +359,41 @@ const flyToRegion = () => {
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
-    const west = Math.min(...resultBounds.map(([[placeWest]]) => placeWest));
-    const south = Math.min(...resultBounds.map(([[, placeSouth]]) => placeSouth));
-    const east = Math.max(...resultBounds.map(([, [placeEast]]) => placeEast));
-    const north = Math.max(...resultBounds.map(([, [, placeNorth]]) => placeNorth));
-    map.fitBounds([[west, south], [east, north]], { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: props.frameInset } });
+    map.fitBounds(boundsAround(resultBounds), { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: props.frameInset } });
     return;
   }
   map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: props.frameInset } });
+};
+
+const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds] : []);
+
+const routeStatusesOf = (route: RouteMarks | null): [string, PlaceStatus][] => (route
+  ? [...route.namedPlaceIds.map((placeId): [string, PlaceStatus] => [placeId, 'named']), [route.startId, 'start'], [route.targetId, 'target']]
+  : []);
+
+const markRoute = (route: RouteMarks | null) => {
+  if (!hasLoaded) return;
+  for (const [placeId] of routeStatusesOf(markedRoute)) setPlaceStatus(placeId, null);
+  for (const [placeId, placeStatus] of routeStatusesOf(route)) setPlaceStatus(placeId, placeStatus);
+  map?.setFilter('place-target-outline', targetOutlineFilterFor(route?.targetId));
+  markedRoute = route;
+};
+
+const fitRoute = () => {
+  const placeBounds = routePlaceIdsOf(props.route).map(boundsOf).filter(bounds => !!bounds);
+  if (!map || placeBounds.length === 0) return;
+  const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
+  const top = Math.max(0, Math.min(props.topInset + keyboardGapPx, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
+  map.fitBounds(boundsAround(placeBounds), { duration: reducedMotionDuration(flightMs), maxZoom: routeMaxZoom, padding: { ...flightPadding, top, bottom, right: flightPadding.right + zoomTilesWidthPx } });
+};
+
+const showLand = () => {
+  if (!map || !hasLoaded) return;
+  const placeFillShown = placeFillOver(landFillAt(props.landShown));
+  map.setPaintProperty('place-fill', 'fill-color', placeFillShown);
+  map.setPaintProperty('speck', 'circle-color', placeFillShown);
+  map.setPaintProperty('speck', 'circle-stroke-color', speckStrokeAt(props.landShown));
+  map.setPaintProperty('place-border', 'line-color', mixedColour(colours.water, colours.border, props.landShown));
 };
 
 const dimOutsidePool = () => {
@@ -450,6 +520,9 @@ watch(() => props.isRoundPlay, applyRoundPlay);
 watch([() => props.isRoundPlay, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
+watch(() => routePlaceIdsOf(props.route).join(), () => markRoute(props.route), { flush: 'post' });
+watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
+watch(() => props.landShown, showLand);
 watch(() => [props.frameRegion, props.frameInset], flyToRegion);
 
 onMounted(async () => {
@@ -492,9 +565,13 @@ onMounted(async () => {
   });
   map.once('idle', () => emit('drawn'));
   map.once('load', () => {
+    hasLoaded = true;
+    showLand();
     for (const { placeId, outcome } of props.resultPlaces ?? []) setPlaceStatus(placeId, outcome);
     applyHighlight(props.highlightedPlaceId);
     if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
+    markRoute(props.route);
+    fitRoute();
   });
   if (props.tier !== shownTier) swapTierMap(props.tier);
 });

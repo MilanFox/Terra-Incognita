@@ -121,6 +121,11 @@
       "name": "Atlantis",
       "subtitle": "What's missing",
       "help": "Ten places have been wiped off the map. Tap where you think each one belongs: a hit names the place, a tap on the wrong land shows which place you hit, and a tap on the sea is a miss. You have 10 taps (30 with Easy mode), and with Timed on, 90 seconds. The round ends when all ten are found, the taps run out or the time is up."
+    },
+    "wayfinder": {
+      "name": "Wayfinder",
+      "subtitle": "Shortest distance",
+      "help": "Link the start and the target by typing the places in between, in any order, in English or German. As many places as the shortest route needs are free; each one beyond that costs one of your five detours, and the round ends when they're spent. Only borders on the mainland count: exclaves, overseas parts and islands don't link places."
     }
   },
   "round": {
@@ -293,5 +298,26 @@
     "newBest": "New best · {tier} · {timing}",
     "timed": "Timed",
     "untimed": "Untimed"
+  },
+  "wayfinder": {
+    "play": "Play",
+    "route": "Route {number}",
+    "detoursLeft": "{count} detour left | {count} detours left",
+    "to": "to",
+    "named": "Named places",
+    "complete": "Route complete",
+    "outOfDetours": "Out of detours",
+    "rejected": {
+      "named": "{place} is already named",
+      "start": "{place} is the start",
+      "target": "{place} is the target"
+    },
+    "endLine": "The route you're on is lost, and an ended round doesn't count for your bests.",
+    "live": {
+      "route": "Route {number}: from {start} to {target}. {detours}.",
+      "entry": "{place}. {detours}.",
+      "complete": "{place}. Route complete. Press Next.",
+      "outOfDetours": "{place}. Out of detours. Press Next."
+    }
   }
 }
