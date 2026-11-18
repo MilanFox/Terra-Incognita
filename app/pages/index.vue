@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { JumpToOptions } from 'maplibre-gl';
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
 import type StatsTray from '~/components/StatsTray.vue';
+import type { StatsView } from '~/components/StatsTray.vue';
 import type AboutTray from '~/components/AboutTray.vue';
 import type { AboutSectionId } from '~/components/AboutTray.vue';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
@@ -14,7 +16,7 @@ import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncemen
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
 import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
 
-type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup };
+type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup } | { tray: 'stats', view: StatsView, camera: JumpToOptions };
 
 const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
@@ -220,12 +222,25 @@ const swapSetupForAboutTiers = () => {
   setupDraft.value = null;
 };
 
+const swapStatsForAbout = (section: AboutSectionId, view: StatsView) => {
+  const map = worldMap.value?.getMap();
+  if (!map) return;
+  openAbout(section, { tray: 'stats', view, camera: { center: map.getCenter(), zoom: map.getZoom(), padding: map.getPadding() } });
+  isStatsOpen.value = false;
+};
+
 const closeAbout = async () => {
   const opener = aboutOpener.value;
   aboutOpeningSection.value = null;
   if (opener.tray === 'setup') setupDraft.value = opener.setup;
+  if (opener.tray === 'stats') isStatsOpen.value = true;
   await nextTick();
   if (opener.tray === 'setup') setupTray.value?.focusAboutTiers();
+  else if (opener.tray === 'stats') {
+    aboutOpener.value = { tray: 'home' };
+    worldMap.value?.getMap()?.jumpTo(opener.camera);
+    statsTray.value?.focusWhy();
+  }
   else homeTray.value?.focusAbout();
 };
 
@@ -400,6 +415,7 @@ onMounted(game.load);
         <StatsTray
           v-if="isShellReady && game.state.phase === 'home' && isStatsOpen"
           ref="statsTray"
+          :restored-view="aboutOpener.tray === 'stats' ? aboutOpener.view : undefined"
           :map-canvas="worldMap?.getMap()?.getCanvas()"
           :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
           :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
@@ -407,6 +423,7 @@ onMounted(game.load);
           @zoom-out="worldMap?.zoomOut()"
           @fly-to-region="worldMap?.flyToRegion($event)"
           @announce="announce"
+          @why="swapStatsForAbout"
           @close="closeStats"
         />
       </Transition>
@@ -416,6 +433,7 @@ onMounted(game.load);
           v-if="isShellReady && game.state.phase === 'home' && aboutOpeningSection"
           ref="aboutTray"
           :opening-section="aboutOpeningSection"
+          :opening-place-id="aboutOpener.tray === 'stats' ? aboutOpener.view.bubblePlaceId : undefined"
           :back-label="aboutOpener.tray === 'home' ? undefined : $t(`about.backTo.${aboutOpener.tray}`)"
           :map-canvas="worldMap?.getMap()?.getCanvas()"
           :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
