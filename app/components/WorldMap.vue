@@ -495,6 +495,10 @@ const flyToRegion = (region = props.frameRegion) => {
   map.fitBounds(regionFrames[region], { ...cameraMotion(flightMs), padding: regionFramePadding });
 };
 
+const flyToBounds = (bounds: [[number, number], [number, number]]) => {
+  map?.fitBounds(bounds, { ...cameraMotion(flightMs), padding: { ...regionFramePadding, right: regionFramePadding.right + zoomTilesWidthPx } });
+};
+
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
 
 const namedStatusOf = (placeId: string, route: RouteMarks): PlaceStatus => {
@@ -770,6 +774,7 @@ defineExpose({
   getMap: () => map,
   flyTo,
   flyToRegion,
+  flyToBounds,
   reveal: followCursor,
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),

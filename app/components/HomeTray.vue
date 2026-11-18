@@ -8,7 +8,7 @@ import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
 const props = defineProps<{ lastSetup?: RoundSetup, todaysDaily?: DailyRecord, streak: Streak }>();
-const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [], stats: [] }>();
+const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [], stats: [], about: [] }>();
 
 const liftMs = 180;
 
@@ -41,6 +41,7 @@ const wayfinderModeTile = useTemplateRef<HTMLButtonElement>('wayfinderModeTile')
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 const statsTile = useTemplateRef<HTMLButtonElement>('statsTile');
+const aboutLink = useTemplateRef<HTMLButtonElement>('aboutLink');
 
 const isOpen = ref(false);
 const isLaunching = ref(false);
@@ -104,6 +105,11 @@ defineExpose({
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusStats: () => statsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
+  focusAbout: async () => {
+    isOpen.value = true;
+    await nextTick();
+    aboutLink.value?.focus();
+  },
 });
 </script>
 
@@ -476,6 +482,15 @@ defineExpose({
             >{{ $t('modes.wayfinder.subtitle') }}</span>
           </span>
         </button>
+
+        <button
+          ref="aboutLink"
+          type="button"
+          class="home-tray__about"
+          @click="emit('about')"
+        >
+          {{ $t('about.open') }}
+        </button>
       </div>
     </div>
   </section>
@@ -579,6 +594,21 @@ defineExpose({
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
     gap: 12px;
     margin-top: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  }
+
+  &__about {
+    grid-column: 1 / -1;
+    justify-self: center;
+    min-height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    color: $color-muted;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 }
 

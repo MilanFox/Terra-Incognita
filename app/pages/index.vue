@@ -2,6 +2,8 @@
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
 import type StatsTray from '~/components/StatsTray.vue';
+import type AboutTray from '~/components/AboutTray.vue';
+import type { AboutSectionId } from '~/components/AboutTray.vue';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
@@ -26,6 +28,7 @@ const wayfinderScreen = useTemplateRef<{ cardBottom: number }>('wayfinderScreen'
 const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
 const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
 const statsTray = useTemplateRef<InstanceType<typeof StatsTray>>('statsTray');
+const aboutTray = useTemplateRef<InstanceType<typeof AboutTray>>('aboutTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const dailyDraft = ref<DailyVariant | null>(null);
@@ -38,6 +41,8 @@ const { height: wayfinderAnswerTrayHeight } = useElementSize(() => wayfinderAnsw
 const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderResultsTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 const isStatsOpen = ref(false);
+const aboutOpeningSection = ref<AboutSectionId | null>(null);
+const isAboutOpen = computed(() => aboutOpeningSection.value !== null);
 
 usePlayFeedback(() => game.state);
 
@@ -68,10 +73,10 @@ const landShown = useWayfinderLandFade(() => game.state);
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
-const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value && !isStatsOpen.value);
+const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value && !isStatsOpen.value && !isAboutOpen.value);
 const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
-const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
+const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 'home' ? (isAboutOpen.value ? 'dependencies' : game.homeTier) : game.state.setup.tier));
 const poolPlaceIds = computed(() => {
   if (game.state.phase === 'missing') {
     const { gapPlaceIds, foundPlaceIds: foundGapIds, setup } = game.state;
@@ -104,6 +109,7 @@ const frameInset = computed(() => {
   if (dailyDraft.value) return dailySetupTrayHeight.value;
   if (game.state.phase === 'wayfinderResults') return wayfinderResultsTrayHeight.value;
   if (isStatsOpen.value) return statsTray.value?.peekHeight ?? 0;
+  if (isAboutOpen.value) return aboutTray.value?.trayHeight ?? 0;
   return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
 });
 
@@ -200,6 +206,16 @@ const closeStats = async () => {
   homeTray.value?.focusStats();
 };
 
+const openAbout = (section: AboutSectionId = 'intro') => {
+  aboutOpeningSection.value = section;
+};
+
+const closeAbout = async () => {
+  aboutOpeningSection.value = null;
+  await nextTick();
+  homeTray.value?.focusAbout();
+};
+
 const leave = async () => {
   const wasDaily = game.state.phase === 'results' && game.state.dailyDate !== null;
   game.send({ type: 'leave' });
@@ -215,7 +231,7 @@ onMounted(game.load);
   <main class="home">
     <Transition name="tray">
       <HomeTray
-        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen && !isStatsOpen"
+        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen && !isStatsOpen && !isAboutOpen"
         ref="homeTray"
         :last-setup="game.lastSetup"
         :todays-daily="game.todaysDaily"
@@ -225,6 +241,7 @@ onMounted(game.load);
         @open-daily="openDaily"
         @settings="isSettingsOpen = true"
         @stats="isStatsOpen = true"
+        @about="openAbout()"
         @interact="stopDrift"
       />
     </Transition>
@@ -361,9 +378,9 @@ onMounted(game.load);
 
     <div
       class="home__map-scope"
-      :role="isStatsOpen ? 'dialog' : undefined"
-      :aria-modal="isStatsOpen || undefined"
-      :aria-labelledby="isStatsOpen ? statsTray?.titleId : undefined"
+      :role="isStatsOpen || isAboutOpen ? 'dialog' : undefined"
+      :aria-modal="isStatsOpen || isAboutOpen || undefined"
+      :aria-labelledby="isStatsOpen ? statsTray?.titleId : isAboutOpen ? aboutTray?.titleId : undefined"
     >
       <Transition name="tray">
         <StatsTray
@@ -380,6 +397,21 @@ onMounted(game.load);
         />
       </Transition>
 
+      <Transition name="tray">
+        <AboutTray
+          v-if="isShellReady && game.state.phase === 'home' && aboutOpeningSection"
+          ref="aboutTray"
+          :opening-section="aboutOpeningSection"
+          :map-canvas="worldMap?.getMap()?.getCanvas()"
+          :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+          :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+          @zoom-in="worldMap?.zoomIn()"
+          @zoom-out="worldMap?.zoomOut()"
+          @fly-to="worldMap?.flyToBounds($event)"
+          @close="closeAbout"
+        />
+      </Transition>
+
       <WorldMap
         v-if="game.isReady"
         ref="worldMap"
@@ -392,13 +424,13 @@ onMounted(game.load);
         :frame-inset="frameInset"
         :inert="isMapInert"
         :is-round-play="isRoundPlay"
-        :is-stats-map="isStatsOpen"
+        :is-stats-map="isStatsOpen || isAboutOpen"
         :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : 0"
         :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : markedPlaceId"
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
-        :is-names-only="isStatsOpen && statsTray?.isSpecialPage"
+        :is-names-only="isAboutOpen || (isStatsOpen && statsTray?.isSpecialPage)"
         :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
         :route="routeMarks"
         :land-shown="landShown"
@@ -406,7 +438,7 @@ onMounted(game.load);
         :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : wayfinderScreen?.cardBottom ?? 0"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
-        @cursor="announce(statsTray?.placeLabel($event) ?? '')"
+        @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : statsTray?.placeLabel($event) ?? '')"
         @announce="announce"
       />
 
