@@ -4,6 +4,7 @@ import { isLearnSetup } from '#shared/game/game';
 import type { Mode, RoundSetup } from '#shared/game/game';
 import type { DailyRecord } from '#shared/game/records';
 import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
 const props = defineProps<{ lastSetup?: RoundSetup, todaysDaily?: DailyRecord, streak: Streak }>();
@@ -13,7 +14,7 @@ const liftMs = 180;
 
 const { locale, t } = useI18n();
 const { now, shown: nextDailyShown, spoken: nextDailySpoken } = useNextDailyCountdown();
-const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+const isMotionReduced = useReducedMotion();
 
 const gridId = useId();
 const subtitleId = useId();
@@ -85,7 +86,7 @@ const { start: startPlay } = useTimeoutFn(() => emit('playAgain'), liftMs, { imm
 
 const launch = () => {
   if (isLaunching.value) return;
-  if (prefersReducedMotion.value) {
+  if (isMotionReduced.value) {
     emit('playAgain');
     return;
   }
@@ -581,7 +582,7 @@ defineExpose({
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .home-tray {
     transition-duration: 120ms;
   }

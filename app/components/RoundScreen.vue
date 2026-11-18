@@ -347,7 +347,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
   from { opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .prompt-card--right,
   .prompt-card--wrong {
     animation: none;

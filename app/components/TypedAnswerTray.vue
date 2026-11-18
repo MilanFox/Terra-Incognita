@@ -195,7 +195,7 @@ defineExpose({
   88% { transform: translateX(-2px); }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .typed-answer--rejected {
     animation: none;
   }

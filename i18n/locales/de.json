@@ -196,6 +196,18 @@
       "en": "English",
       "de": "Deutsch"
     },
+    "accessibility": {
+      "title": "Barrierefreiheit",
+      "reduceMotion": {
+        "label": "Bewegung reduzieren",
+        "hint": "Keine Drehungen, kein Wackeln, keine Kartenflüge.",
+        "choices": {
+          "system": "System",
+          "on": "An",
+          "off": "Aus"
+        }
+      }
+    },
     "data": {
       "title": "Deine Daten",
       "hint": "Alles liegt auf diesem Gerät. Exportiere eine Kopie, um sie zu sichern oder umzuziehen.",

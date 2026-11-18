@@ -1,11 +1,12 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { Ref } from 'vue';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 
 const degreesPerSecond = 4;
 const touchEvents = ['pointerdown', 'wheel', 'keydown'] as const;
 
 export const useHomeDrift = (getMap: () => MapLibreMap | undefined, isDrifting: Ref<boolean>) => {
-  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const isMotionReduced = useReducedMotion();
   let frame = 0;
   let isStoppedForVisit = false;
   let stopListening = () => {};
@@ -23,7 +24,7 @@ export const useHomeDrift = (getMap: () => MapLibreMap | undefined, isDrifting: 
 
   const start = () => {
     const map = getMap();
-    if (!map || isStoppedForVisit || prefersReducedMotion.value) return;
+    if (!map || isStoppedForVisit || isMotionReduced.value) return;
     stop();
     const container = map.getCanvasContainer();
     for (const eventName of touchEvents) container.addEventListener(eventName, stopForVisit, { passive: true });
@@ -52,6 +53,11 @@ export const useHomeDrift = (getMap: () => MapLibreMap | undefined, isDrifting: 
       isStoppedForVisit = false;
     }
   }, { immediate: true });
+
+  watch(isMotionReduced, (isReduced) => {
+    if (isReduced) stop();
+    else if (isDrifting.value) start();
+  });
 
   onBeforeUnmount(stop);
 

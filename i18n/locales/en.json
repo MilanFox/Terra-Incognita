@@ -196,6 +196,18 @@
       "en": "English",
       "de": "Deutsch"
     },
+    "accessibility": {
+      "title": "Accessibility",
+      "reduceMotion": {
+        "label": "Reduce motion",
+        "hint": "No flips, shakes or map flights.",
+        "choices": {
+          "system": "System",
+          "on": "On",
+          "off": "Off"
+        }
+      }
+    },
     "data": {
       "title": "Your data",
       "hint": "Everything lives on this device. Export a copy to keep it safe or move it.",

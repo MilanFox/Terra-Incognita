@@ -5,6 +5,7 @@ import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLa
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
@@ -319,6 +320,7 @@ const swapTierMap = async (nextTier: Tier) => {
 let placeNamePopup: Popup | undefined;
 let placeNameTimer: ReturnType<typeof setTimeout> | undefined;
 const canHover = useMediaQuery('(hover: hover)');
+const isMotionReduced = useReducedMotion();
 
 const hidePlaceName = () => {
   clearTimeout(placeNameTimer);
@@ -377,10 +379,9 @@ const boundsOf = (placeId: string) => {
 const flyTo = (placeId: string) => {
   const bounds = boundsOf(placeId);
   if (!map || !bounds) return;
-  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
   const top = Math.max(0, Math.min(flightPadding.top, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
-  map.fitBounds(bounds, { duration, maxZoom: flightMaxZoom, padding: { ...flightPadding, top, bottom } });
+  map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: flightMaxZoom, padding: { ...flightPadding, top, bottom } });
 };
 
 watch(() => props.verdict, (verdict, previousVerdict) => {
@@ -449,13 +450,12 @@ const flyToRegion = (region = props.frameRegion) => {
   if (!map || !region) return;
   framedRegion = region;
   padAboveTray(map);
-  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
-    map.fitBounds(boundsAround(resultBounds), { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60 } });
+    map.fitBounds(boundsAround(resultBounds), { ...cameraMotion(flightMs), maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60 } });
     return;
   }
-  map.fitBounds(regionFrames[region], { duration, padding: regionFramePadding });
+  map.fitBounds(regionFrames[region], { ...cameraMotion(flightMs), padding: regionFramePadding });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
@@ -485,7 +485,7 @@ const fitRoute = () => {
   if (!map || placeBounds.length === 0) return;
   const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
   const top = Math.max(0, Math.min(props.topInset + keyboardGapPx, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
-  map.fitBounds(boundsAround(placeBounds), { duration: reducedMotionDuration(flightMs), maxZoom: routeMaxZoom, padding: { ...flightPadding, top, bottom, right: flightPadding.right + zoomTilesWidthPx } });
+  map.fitBounds(boundsAround(placeBounds), { ...cameraMotion(flightMs), maxZoom: routeMaxZoom, padding: { ...flightPadding, top, bottom, right: flightPadding.right + zoomTilesWidthPx } });
 };
 
 const showLand = () => {
@@ -502,7 +502,8 @@ const dimOutsidePool = () => {
   for (const layer of ['place-dim', 'speck-dim']) map.setFilter(layer, dimmedFilterFor(props.poolPlaceIds));
 };
 
-const reducedMotionDuration = (duration: number) => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : duration;
+// essential: MapLibre would otherwise follow the system's reduced-motion setting and override the player's choice.
+const cameraMotion = (durationMs: number) => ({ duration: isMotionReduced.value ? 0 : durationMs, essential: true });
 
 const setCursorState = (placeId: string, isOn: boolean) => {
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { cursor: isOn });
@@ -525,8 +526,8 @@ const followCursor = (placeId: string) => {
   if (isInView) return;
   // On stats the tray is the map's own bottom padding, so the camera centre already sits above it.
   map.easeTo(props.isStatsMap
-    ? { center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], duration: reducedMotionDuration(300) }
-    : { center: map.unproject([x, y - (top - bottom) / 2]), duration: reducedMotionDuration(300) });
+    ? { center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], ...cameraMotion(300) }
+    : { center: map.unproject([x, y - (top - bottom) / 2]), ...cameraMotion(300) });
 };
 
 const bringIntoView = (placeId: string) => {
@@ -539,7 +540,7 @@ const bringIntoView = (placeId: string) => {
   const shiftedX = Math.min(Math.max(x, cursorFollowMarginPx), clientWidth - cursorFollowMarginPx);
   const shiftedY = Math.min(Math.max(y, top), Math.max(top, bottom));
   if (shiftedX === x && shiftedY === y) return;
-  map.panBy([x - shiftedX, y - shiftedY], { duration: reducedMotionDuration(300) });
+  map.panBy([x - shiftedX, y - shiftedY], cameraMotion(300));
 };
 
 const placeCursor = (placeId: string, shouldAnnounce: boolean) => {
@@ -586,7 +587,7 @@ const neighbourInDirection = ([directionX, directionY]: [number, number]) => {
 const zoomBy = (step: number) => {
   if (!map) return;
   const zoom = Math.min(maxZoom, Math.max(minZoom, map.getZoom() + step));
-  map.easeTo({ zoom, duration: reducedMotionDuration(250) });
+  map.easeTo({ zoom, ...cameraMotion(250) });
 };
 
 const isKeyboardPlay = computed(() => props.isRoundPlay || props.isStatsMap);

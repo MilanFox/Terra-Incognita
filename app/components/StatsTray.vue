@@ -459,7 +459,7 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .stats-tray__page {
     animation: none;
   }
