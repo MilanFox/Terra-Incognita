@@ -15,6 +15,7 @@ export type FlagLicence = {
   artist: string | null
   attributionRequired: boolean
   licenseUrl: string | null
+  sha1: string
 };
 
 export type FlagPlace = { id: string, qid: string | undefined };
