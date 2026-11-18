@@ -4,6 +4,7 @@ import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
+import { boundsAround } from '#shared/utils/boundsAround';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
@@ -90,7 +91,7 @@ const regionFrames: Record<RegionChoice, [[number, number], [number, number]]> =
   'South America': [[-82, -56], [-34, 13]],
   'Oceania': [[112, -48], [190, 12]],
 };
-const regionFramePadding = { top: 20, left: 20, right: 20 };
+const regionFramePadding = { top: 20, bottom: 20, left: 20, right: 20 };
 const dimmedNone: FilterSpecification = ['==', ['get', 'id'], ''];
 
 const colours = {
@@ -301,18 +302,17 @@ const boundsOf = (placeId: string) => {
     return longitude === undefined || latitude === undefined ? undefined : [[longitude, latitude], [longitude, latitude]] as [[number, number], [number, number]];
   }
   const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
-  // The largest piece only, so places crossing the antimeridian or owning far islands still frame their main land.
-  return polygons.map((polygon) => {
+  const [labelLongitude, labelLatitude] = labelPoints.get(placeId) ?? [];
+  // The piece under the label point, else the largest, so places crossing the antimeridian or owning far islands (Denmark's Greenland) still frame their main land.
+  const holdsLabel = ([[west, south], [east, north]]: [[number, number], [number, number]]) => labelLongitude! >= west && labelLongitude! <= east && labelLatitude! >= south && labelLatitude! <= north;
+  const pieces = polygons.map((polygon) => {
     const longitudes = polygon[0]!.map(([longitude]) => longitude!);
     const latitudes = polygon[0]!.map(([, latitude]) => latitude!);
     return [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]] as [[number, number], [number, number]];
-  }).sort(([[west1, south1], [east1, north1]], [[west2, south2], [east2, north2]]) => (east2 - west2) * (north2 - south2) - (east1 - west1) * (north1 - south1))[0];
+  });
+  const labelledPiece = pieces.find(holdsLabel);
+  return labelledPiece ?? pieces.sort(([[west1, south1], [east1, north1]], [[west2, south2], [east2, north2]]) => (east2 - west2) * (north2 - south2) - (east1 - west1) * (north1 - south1))[0];
 };
-
-const boundsAround = (placeBounds: [[number, number], [number, number]][]): [[number, number], [number, number]] => [
-  [Math.min(...placeBounds.map(([[west]]) => west)), Math.min(...placeBounds.map(([[, south]]) => south))],
-  [Math.max(...placeBounds.map(([, [east]]) => east)), Math.max(...placeBounds.map(([, [, north]]) => north))],
-];
 
 const flyTo = (placeId: string) => {
   const bounds = boundsOf(placeId);
@@ -391,10 +391,10 @@ const flyToRegion = (region = props.frameRegion) => {
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
-    map.fitBounds(boundsAround(resultBounds), { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: 0 } });
+    map.fitBounds(boundsAround(resultBounds), { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60 } });
     return;
   }
-  map.fitBounds(regionFrames[region], { duration, padding: { ...regionFramePadding, bottom: 0 } });
+  map.fitBounds(regionFrames[region], { duration, padding: regionFramePadding });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds] : []);
