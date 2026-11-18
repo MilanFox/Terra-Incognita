@@ -47,6 +47,7 @@ defineExpose({ more: computed(() => page.value?.more ?? null) });
     :tiles="tiles"
     :more-id="moreId"
     :is-expanded="isExpanded"
+    :has-heatmap="false"
   >
     <StatsRoundLists
       :mode="mode"

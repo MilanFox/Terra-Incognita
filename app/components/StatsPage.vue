@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HeadlineTile } from '~/components/StatsHeadlineTiles.vue';
 
-defineProps<{ name: string, subtitle: string, isEmpty: boolean, tiles: HeadlineTile[], moreId: string, isExpanded: boolean }>();
+withDefaults(defineProps<{ name: string, subtitle: string, isEmpty: boolean, tiles: HeadlineTile[], moreId: string, isExpanded: boolean, hasHeatmap?: boolean }>(), { hasHeatmap: true });
 
 const more = useTemplateRef<HTMLElement>('more');
 
@@ -25,7 +25,7 @@ defineExpose({ more });
       </p>
 
       <p class="stats-page__empty-line">
-        {{ $t('stats.empty.line') }}
+        {{ $t(hasHeatmap ? 'stats.empty.line' : 'stats.empty.lineWithoutMap') }}
       </p>
     </div>
 

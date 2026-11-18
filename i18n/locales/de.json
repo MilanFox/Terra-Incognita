@@ -315,7 +315,8 @@
     },
     "empty": {
       "title": "Noch keine Runden",
-      "line": "Spiel eine Runde, dann füllt sich diese Seite. Orte, die du gut kennst, werden auf der Karte dunkel."
+      "line": "Spiel eine Runde, dann füllt sich diese Seite. Orte, die du gut kennst, werden auf der Karte dunkel.",
+      "lineWithoutMap": "Spiel eine Runde, dann füllt sich diese Seite."
     },
     "safariHint": "Zum Home-Bildschirm hinzufügen, damit deine Statistik sicher bleibt",
     "regionsTitle": "Regionen",

@@ -315,7 +315,8 @@
     },
     "empty": {
       "title": "No rounds yet",
-      "line": "Play a round and this page fills in. Places you know well turn dark on the map."
+      "line": "Play a round and this page fills in. Places you know well turn dark on the map.",
+      "lineWithoutMap": "Play a round and this page fills in."
     },
     "safariHint": "Add to Home Screen to keep your stats safe",
     "regionsTitle": "Regions",
