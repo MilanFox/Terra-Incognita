@@ -111,6 +111,11 @@
       "name": "Sighting",
       "subtitle": "Benenne das Land",
       "help": "Oben erscheint eine Flagge oder ein Umriss, und du schreibst auf der Tastatur darunter den Namen des Orts, auf Deutsch oder Englisch. Die Karte verrät nichts, bis du antwortest, dann fliegt sie zum Ort. Kleine Tippfehler werden verziehen; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
+    },
+    "fill": {
+      "name": "Here Be Dragons",
+      "subtitle": "Fülle die Karte",
+      "help": "Schreib die Orte deiner gewählten Region und Stufe, in beliebiger Reihenfolge und auf Deutsch oder Englisch, und jeder genannte Ort füllt sich auf der Karte. Kleine Tippfehler werden verziehen; ein falscher, schon gefüllter oder nicht zur Runde gehörender Name wackelt nur, ohne Abzug. Wer einen Ort nennt, füllt auch das in ihn eingegliederte Land dieser Stufe. Die Runde endet, wenn die Karte voll ist, die Zeit abläuft oder du sie beendest; dein Ergebnis sind die gefüllten Orte von allen. Eine mit „Runde beenden“ beendete Runde zählt weder für deine Statistik noch für Bestwerte."
     }
   },
   "round": {
@@ -238,5 +243,29 @@
     "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
     "findName": "Finde auf der Karte: {place}",
     "timeLeft": "{time} übrig."
+  },
+  "fill": {
+    "progress": "{count} von {total} gefüllt",
+    "score": "{count} gefüllt",
+    "prompt": "Nenne irgendeinen Ort auf der Karte",
+    "endLine": "Ungefüllte Orte bleiben leer, und eine beendete Runde zählt weder für deine Statistik noch für Bestwerte.",
+    "input": {
+      "filled": "Gefüllt: {place}",
+      "duplicate": "Schon gefüllt: {place}",
+      "outside": "Gehört nicht zu dieser Runde",
+      "ambiguous": "Welcher genau? Schreib weiter",
+      "none": "Kein Ort mit diesem Namen"
+    },
+    "live": {
+      "filled": "Gefüllt: {place}. {count} von {total}.",
+      "duplicate": "Schon gefüllt: {place}.",
+      "outside": "Gehört nicht zu dieser Runde.",
+      "ambiguous": "Welcher genau? Schreib weiter.",
+      "none": "Kein Ort mit diesem Namen.",
+      "start": "Nenne irgendeinen Ort auf der Karte. {total} zu füllen."
+    },
+    "results": {
+      "unreached": "Nicht erreicht"
+    }
   }
 }

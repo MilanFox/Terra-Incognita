@@ -19,6 +19,7 @@ const subtitleId = useId();
 const nameSubtitleId = useId();
 const capitalSubtitleId = useId();
 const countrySubtitleId = useId();
+const fillSubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -30,6 +31,7 @@ const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const nameModeTile = useTemplateRef<HTMLButtonElement>('nameModeTile');
 const capitalModeTile = useTemplateRef<HTMLButtonElement>('capitalModeTile');
 const countryModeTile = useTemplateRef<HTMLButtonElement>('countryModeTile');
+const fillModeTile = useTemplateRef<HTMLButtonElement>('fillModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -90,7 +92,7 @@ defineExpose({
   focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile })[mode].value?.focus({ preventScroll: true });
+    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile, fill: fillModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -379,6 +381,31 @@ defineExpose({
               :id="countrySubtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.country.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="fillModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.fill.name')"
+          :aria-describedby="fillSubtitleId"
+          @click="emit('openSetup', 'fill')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="fill" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.fill.name') }}</span>
+
+            <span
+              :id="fillSubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.fill.subtitle') }}</span>
           </span>
         </button>
       </div>

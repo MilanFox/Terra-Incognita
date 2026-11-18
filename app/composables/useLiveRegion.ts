@@ -41,6 +41,7 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
   watch(() => {
     const current = state();
     if (current.phase === 'verdict') return `verdict-${current.promptNumber}`;
+    if (current.phase === 'fill') return `fill-${current.inputCount}`;
     if (current.phase === 'prompt') return `prompt-${current.promptNumber}-${current.wrongTapPlaceIds.length}-${current.unresolvedAnswers.length}`;
     return current.phase;
   }, () => {
@@ -57,6 +58,12 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
       else if (answer.outcome === 'missed') announce(t('typed.live.missed', { answer: nameOf(answer.placeId) }));
       else if (isTypedMode(current.setup.mode)) announce(t('typed.live.wrong', { typed: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
       else announce(t('live.wrong', { tapped: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
+    }
+    else if (current.phase === 'fill') {
+      const { lastInput } = current;
+      if (!lastInput) announce(t('fill.live.start', { total: current.deckSize }));
+      else if (lastInput.kind === 'filled') announce(t('fill.live.filled', { place: nameOf(lastInput.placeId), count: current.score, total: current.deckSize }));
+      else announce(t(`fill.live.${lastInput.kind}`, { place: 'placeId' in lastInput ? nameOf(lastInput.placeId) : '' }));
     }
     else if (current.phase === 'prompt') {
       const lastUnresolved = current.unresolvedAnswers.at(-1);
