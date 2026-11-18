@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
+import type { PlaceRatings } from '#shared/game/stats';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
@@ -17,15 +18,17 @@ const setupTray = useTemplateRef('setupTray');
 const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
 const typedAnswerTray = useTemplateRef('typedAnswerTray');
+const statsTray = useTemplateRef<{ titleId: string, peekHeight: number, placeRatings: PlaceRatings | null }>('statsTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const dailyDraft = ref<DailyVariant | null>(null);
 const traySetup = computed(() => setupDraft.value ?? (dailyDraft.value ? dailySetupOf(dailyDraft.value) : null));
-const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element);
-const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element);
+const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element, undefined, { box: 'border-box' });
+const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element, undefined, { box: 'border-box' });
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const { height: typedAnswerTrayHeight } = useElementSize(() => typedAnswerTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
+const isStatsOpen = ref(false);
 
 usePlayFeedback(() => game.state);
 
@@ -42,7 +45,7 @@ const isRoundPlay = computed(() => (game.state.phase === 'prompt' || game.state.
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
-const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value);
+const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value && !isStatsOpen.value);
 const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
 const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
@@ -67,6 +70,7 @@ const resultPlaces = computed(() => {
 const frameInset = computed(() => {
   if (setupDraft.value) return setupTrayHeight.value;
   if (dailyDraft.value) return dailySetupTrayHeight.value;
+  if (isStatsOpen.value) return statsTray.value?.peekHeight ?? 0;
   return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
 });
 
@@ -142,6 +146,12 @@ const closeSettings = async () => {
   homeTray.value?.focusSettings();
 };
 
+const closeStats = async () => {
+  isStatsOpen.value = false;
+  await nextTick();
+  homeTray.value?.focusStats();
+};
+
 const leave = async () => {
   const wasDaily = game.state.phase === 'results' && game.state.dailyDate !== null;
   game.send({ type: 'leave' });
@@ -157,7 +167,7 @@ onMounted(game.load);
   <main class="home">
     <Transition name="tray">
       <HomeTray
-        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen"
+        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen && !isStatsOpen"
         ref="homeTray"
         :last-setup="game.lastSetup"
         :todays-daily="game.todaysDaily"
@@ -166,6 +176,7 @@ onMounted(game.load);
         @open-setup="openSetup"
         @open-daily="openDaily"
         @settings="isSettingsOpen = true"
+        @stats="isStatsOpen = true"
         @interact="stopDrift"
       />
     </Transition>
@@ -237,33 +248,54 @@ onMounted(game.load);
       />
     </Transition>
 
-    <WorldMap
-      v-if="game.isReady"
-      ref="worldMap"
-      :verdict="verdict"
-      :result-places="resultPlaces"
-      :fade="answerFade"
-      :tier="shownTier"
-      :pool-place-ids="poolPlaceIds"
-      :frame-region="frameRegion"
-      :frame-inset="frameInset"
-      :inert="isMapInert"
-      :is-round-play="isRoundPlay"
-      :found-place-ids="foundPlaceIds"
-      :highlighted-place-id="highlightedPlaceId"
-      :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : 0"
-      @drawn="isMapDrawn = true"
-      @tap="handleTap"
-      @announce="announce"
-    />
-
     <div
-      class="visually-hidden"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
+      class="home__map-scope"
+      :role="isStatsOpen ? 'dialog' : undefined"
+      :aria-modal="isStatsOpen || undefined"
+      :aria-labelledby="isStatsOpen ? statsTray?.titleId : undefined"
     >
-      {{ liveMessage }}
+      <Transition name="tray">
+        <StatsTray
+          v-if="isShellReady && game.state.phase === 'home' && isStatsOpen"
+          ref="statsTray"
+          :map-canvas="worldMap?.getMap()?.getCanvas()"
+          :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+          :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+          @zoom-in="worldMap?.zoomIn()"
+          @zoom-out="worldMap?.zoomOut()"
+          @close="closeStats"
+        />
+      </Transition>
+
+      <WorldMap
+        v-if="game.isReady"
+        ref="worldMap"
+        :verdict="verdict"
+        :result-places="resultPlaces"
+        :fade="answerFade"
+        :tier="shownTier"
+        :pool-place-ids="poolPlaceIds"
+        :frame-region="frameRegion"
+        :frame-inset="frameInset"
+        :inert="isMapInert"
+        :is-round-play="isRoundPlay"
+        :found-place-ids="foundPlaceIds"
+        :highlighted-place-id="highlightedPlaceId"
+        :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : 0"
+        :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
+        @drawn="isMapDrawn = true"
+        @tap="handleTap"
+        @announce="announce"
+      />
+
+      <div
+        class="visually-hidden"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{ liveMessage }}
+      </div>
     </div>
 
     <StartupLoader
@@ -277,5 +309,10 @@ onMounted(game.load);
 .home {
   position: fixed;
   inset: 0;
+
+  &__map-scope {
+    position: absolute;
+    inset: 0;
+  }
 }
 </style>

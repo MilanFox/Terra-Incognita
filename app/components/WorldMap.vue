@@ -3,6 +3,7 @@ import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { PlaceRatings, Rating } from '#shared/game/stats';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
@@ -46,6 +47,7 @@ const props = withDefaults(defineProps<{
   foundPlaceIds?: string[]
   highlightedPlaceId?: string | null
   keyboardInset?: number
+  placeRatings: PlaceRatings | null
 }>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string] }>();
 
@@ -91,10 +93,13 @@ const colours = {
   sand: '#d6cdbd',
 };
 const landTones = ['#ece6d6', '#e8e1d0', '#efeadc', '#e5dfcd'];
+const ratingColours: Record<Rating, string> = { noData: '#fdfcf8', weak: '#a9d4b2', shaky: '#6aa77a', solid: '#2f7d4a' };
 
 const status: ExpressionSpecification = ['to-string', ['feature-state', 'status']];
 const isCursor: ExpressionSpecification = ['boolean', ['feature-state', 'cursor'], false];
-const landFill: ExpressionSpecification = ['match', ['get', 'tone'], 1, landTones[1]!, 2, landTones[2]!, 3, landTones[3]!, landTones[0]!];
+const toneFill: ExpressionSpecification = ['match', ['get', 'tone'], 1, landTones[1]!, 2, landTones[2]!, 3, landTones[3]!, landTones[0]!];
+const rating: ExpressionSpecification = ['to-string', ['feature-state', 'rating']];
+const landFill: ExpressionSpecification = ['match', rating, 'noData', ratingColours.noData, 'weak', ratingColours.weak, 'shaky', ratingColours.shaky, 'solid', ratingColours.solid, toneFill];
 const fadeState: ExpressionSpecification = ['coalesce', ['feature-state', 'fade'], 0];
 const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeState, 0, colours.green, 1, landFill];
 const placeFill: ExpressionSpecification = ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, landFill]];
@@ -300,6 +305,15 @@ watch(() => props.resultPlaces, (resultPlaces, previousResultPlaces) => {
   for (const { placeId, outcome } of resultPlaces ?? []) setPlaceStatus(placeId, outcome);
 });
 
+watch(() => props.placeRatings, (placeRatings, previousRatings) => {
+  for (const placeId of Object.keys(previousRatings ?? {})) {
+    for (const source of placeSources) map?.removeFeatureState({ source, id: placeId }, 'rating');
+  }
+  for (const [placeId, placeRating] of Object.entries(placeRatings ?? {})) {
+    for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { rating: placeRating });
+  }
+});
+
 watch(() => props.fade, (fadeAmount = 0) => {
   const placeId = props.verdict?.placeId;
   if (!placeId) return;
@@ -311,8 +325,15 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 });
 
+// fitBounds can't frame above a tray taller than the free map: the centre it needs falls off the map and nothing moves. The tray goes into the map's own padding instead, without a visible jump.
+const padAboveTray = (shownMap: MapLibreMap) => {
+  const { clientWidth, clientHeight } = shownMap.getContainer();
+  shownMap.jumpTo({ center: shownMap.unproject([clientWidth / 2, (clientHeight - props.frameInset) / 2]), padding: { top: 0, right: 0, bottom: props.frameInset, left: 0 } });
+};
+
 const flyToRegion = () => {
   if (!map || !props.frameRegion) return;
+  padAboveTray(map);
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
@@ -320,10 +341,10 @@ const flyToRegion = () => {
     const south = Math.min(...resultBounds.map(([[, placeSouth]]) => placeSouth));
     const east = Math.max(...resultBounds.map(([, [placeEast]]) => placeEast));
     const north = Math.max(...resultBounds.map(([, [, placeNorth]]) => placeNorth));
-    map.fitBounds([[west, south], [east, north]], { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: props.frameInset } });
+    map.fitBounds([[west, south], [east, north]], { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: 0 } });
     return;
   }
-  map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: props.frameInset } });
+  map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: 0 } });
 };
 
 const dimOutsidePool = () => {
