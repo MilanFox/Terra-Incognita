@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import type { Streak } from '#shared/game/daily';
 import type { AllGamesStats } from '#shared/game/stats';
+import { shouldShowSafariHint } from '#shared/utils/safariHint';
 
 const props = defineProps<{ stats: AllGamesStats, streak: Streak, moreId: string, isExpanded: boolean }>();
 
 const { t } = useI18n();
 const more = useTemplateRef<HTMLElement>('more');
+const isSafariHintShown = ref(false);
+
+onMounted(() => {
+  isSafariHintShown.value = shouldShowSafariHint({ userAgent: navigator.userAgent, isInstalled: matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true });
+});
 
 const tiles = computed(() => [
   { label: t('stats.roundsPlayed'), value: String(props.stats.roundsPlayed) },
@@ -41,6 +47,13 @@ defineExpose({ more });
     <StatsHeadlineTiles :tiles="tiles" />
 
     <RatingLegend />
+
+    <p
+      v-if="isSafariHintShown"
+      class="stats-page__hint"
+    >
+      {{ $t('stats.safariHint') }}
+    </p>
 
     <div
       :id="moreId"
@@ -91,6 +104,12 @@ defineExpose({ more });
     margin: 0;
     font-size: 14px;
     line-height: 1.4;
+  }
+
+  &__hint {
+    margin: 0;
+    color: $color-muted;
+    font-size: 14px;
   }
 
   &__more {

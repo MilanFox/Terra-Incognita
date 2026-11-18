@@ -6,6 +6,8 @@ import type { Streak } from '#shared/game/daily';
 import type { NamesFile, PlaceNames } from '#shared/game/matcher';
 import type { DailyRecord } from '#shared/game/records';
 import { createStats } from '#shared/game/stats';
+import { createYourData } from '#shared/game/your-data';
+import type { YourData } from '#shared/game/your-data';
 import type { Stats } from '#shared/game/stats';
 import { drawSilhouette } from '#shared/utils/silhouette';
 import type { Bbox } from '#shared/utils/silhouette';
@@ -31,6 +33,7 @@ export const useGameStore = defineStore('game', () => {
   let ownLandLoad: Promise<void> | undefined;
   let game: Game | undefined;
   let stats: Stats | undefined;
+  let yourData: YourData | undefined;
 
   const load = async () => {
     const [places, placeNames, version] = await Promise.all([
@@ -40,6 +43,7 @@ export const useGameStore = defineStore('game', () => {
     ]);
     game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage });
     stats = createStats({ places, storage: localStorage });
+    yourData = createYourData({ storage: localStorage, version, clock: Date.now });
     names.value = placeNames;
     shippedPlacesById = new Map(places.map(place => [place.id, place]));
     state.value = game.state;
@@ -103,6 +107,12 @@ export const useGameStore = defineStore('game', () => {
 
   const allGamesStats = () => stats!.allGames();
 
+  const exportData = () => yourData!.exportData();
+
+  const importData = (text: string) => yourData!.importData(text);
+
+  const resetStats = () => yourData!.resetStats();
+
   const loadOwnLand = () => {
     ownLandLoad ??= fetchJson<FeatureCollection<Polygon | MultiPolygon, { id: string }>>('/data/map-dependencies.geojson').then(({ features }) => {
       ownLandById.value = new Map(features.map(({ properties, geometry }) => [properties.id, geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates]));
@@ -115,5 +125,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, exportData, importData, resetStats };
 });
