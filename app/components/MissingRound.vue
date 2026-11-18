@@ -3,8 +3,8 @@ import { gapCount } from '#shared/game/missing';
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: Extract<GameState, { phase: 'missing' }>, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
-const emit = defineEmits<{ zoomIn: [], zoomOut: [] }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'missing' }>, isMarked: boolean, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const emit = defineEmits<{ confirm: [], zoomIn: [], zoomOut: [] }>();
 
 const { locale } = useI18n();
 const game = useGameStore();
@@ -72,6 +72,15 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         <p class="missing-card__taps">
           {{ $t('missing.taps', { count: state.tapsLeft }, state.tapsLeft) }}
         </p>
+
+        <button
+          v-if="isMarked"
+          type="button"
+          class="tile missing-card__confirm"
+          @click="emit('confirm')"
+        >
+          {{ $t('round.confirm') }}
+        </button>
       </div>
     </template>
   </RoundChrome>
@@ -95,6 +104,16 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 
   &--sea {
     background: $color-sand;
+  }
+
+  &__confirm {
+    justify-self: end;
+    min-height: 48px;
+    margin-top: 10px;
+    padding: 0 20px;
+    font-family: $font-serif;
+    font-size: 19px;
+    font-weight: 800;
   }
 
   &__taps {

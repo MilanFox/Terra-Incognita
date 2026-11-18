@@ -27,6 +27,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const isSoundOn = ref(true);
   const language = ref<Language>('en');
   const reduceMotion = ref<MotionChoice>('system');
+  const isTwoStepSelectOn = ref(false);
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
 
@@ -36,6 +37,7 @@ export const useSettingsStore = defineStore('settings', () => {
       sound: isSoundOn.value,
       language: language.value,
       reduceMotion: reduceMotion.value,
+      twoStepSelect: isTwoStepSelectOn.value,
     }));
   };
 
@@ -50,6 +52,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (typeof stored.sound === 'boolean') isSoundOn.value = stored.sound;
     if (languages.includes(stored.language as Language)) language.value = stored.language as Language;
     if (motionChoices.includes(stored.reduceMotion as MotionChoice)) reduceMotion.value = stored.reduceMotion as MotionChoice;
+    if (typeof stored.twoStepSelect === 'boolean') isTwoStepSelectOn.value = stored.twoStepSelect;
   };
 
   const setSound = (isOn: boolean) => {
@@ -67,5 +70,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, load, setSound, setLanguage, setReduceMotion };
+  const setTwoStepSelect = (isOn: boolean) => {
+    isTwoStepSelectOn.value = isOn;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isTwoStepSelectOn, load, setSound, setLanguage, setReduceMotion, setTwoStepSelect };
 });

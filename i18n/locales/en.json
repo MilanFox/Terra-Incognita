@@ -145,6 +145,7 @@
     "youTapped": "You tapped: {place}",
     "flag": "Flag of the place to find",
     "next": "Next",
+    "confirm": "Confirm",
     "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left",
     "clock": "Time left"
   },
@@ -206,6 +207,10 @@
           "on": "On",
           "off": "Off"
         }
+      },
+      "twoStepSelect": {
+        "label": "Two-step select",
+        "hint": "A first tap marks the place; tap again or press Confirm to answer."
       }
     },
     "data": {

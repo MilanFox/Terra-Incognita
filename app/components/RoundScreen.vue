@@ -3,8 +3,8 @@ import { isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
-const emit = defineEmits<{ next: [], dontKnow: [], zoomIn: [], zoomOut: [] }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isMarked: boolean, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const emit = defineEmits<{ next: [], confirm: [], dontKnow: [], zoomIn: [], zoomOut: [] }>();
 
 const { locale, t } = useI18n();
 const game = useGameStore();
@@ -147,6 +147,15 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
           @click="emit('dontKnow')"
         >
           {{ $t('typed.dontKnow') }}
+        </button>
+
+        <button
+          v-if="state.phase === 'prompt' && isMarked"
+          type="button"
+          class="tile prompt-card__confirm"
+          @click="emit('confirm')"
+        >
+          {{ $t('round.confirm') }}
         </button>
 
         <template v-if="state.phase === 'verdict'">
@@ -317,7 +326,8 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
     cursor: pointer;
   }
 
-  &__next {
+  &__next,
+  &__confirm {
     justify-self: end;
     min-height: 48px;
     margin-top: 10px;

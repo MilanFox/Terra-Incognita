@@ -237,6 +237,13 @@ onMounted(() => title.value?.focus());
           :model-value="settings.reduceMotion"
           @update:model-value="settings.setReduceMotion($event)"
         />
+
+        <SettingsSwitch
+          :label="$t('settings.accessibility.twoStepSelect.label')"
+          :hint="$t('settings.accessibility.twoStepSelect.hint')"
+          :is-on="settings.isTwoStepSelectOn"
+          @toggle="settings.setTwoStepSelect(!settings.isTwoStepSelectOn)"
+        />
       </div>
 
       <p
