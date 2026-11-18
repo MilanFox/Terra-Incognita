@@ -9,6 +9,7 @@ import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
 import type { DailyCell, DailyRecord, RoundSummary } from './records';
+import { createStats } from './stats';
 import { createWayfinder } from './wayfinder';
 import type { WayfinderState } from './wayfinder';
 
@@ -19,6 +20,7 @@ export type Mode = 'find' | 'name' | 'capital' | 'country' | 'fill' | 'missing' 
 export type Variant = 'flag' | 'name' | 'both' | 'map' | 'silhouette';
 export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
 export type DeckSize = 10 | 'all';
+export type RoundKind = 'quiz' | 'weak';
 export type RegionChoice = Region | 'world';
 
 export interface Place {
@@ -41,6 +43,7 @@ export interface RoundSetup {
   deckSize: DeckSize
   easy: boolean
   timed: boolean
+  roundKind?: RoundKind
 }
 
 export interface Choice<Value> {
@@ -54,6 +57,7 @@ export interface SetupChoices {
   regions: Choice<RegionChoice>[]
   tiers: Choice<Tier>[]
   deckSizes: Choice<DeckSize>[]
+  roundKinds: Choice<RoundKind>[]
   playCount: number
 }
 
@@ -104,8 +108,12 @@ const optionCount = 4;
 const promptBudgetsMs: Partial<Record<Mode, number>> = { find: 8000, name: 15000, capital: 15000, country: 15000, fill: fillBudgetPerPlaceMs, missing: missingTimeLimitMs / gapCount };
 const typedModes: Mode[] = ['name', 'capital', 'country'];
 const noMapModes: Mode[] = ['country'];
+const regularModes: Mode[] = ['find', 'name', 'capital', 'country'];
+const roundKinds: RoundKind[] = ['quiz', 'weak'];
 const setupStorageKey = 'ti:setup';
 const roundStorageKey = 'ti:round';
+
+type WeakPlaceIdsByScope = Map<string, Set<string>>;
 
 export type Outcome = 'right' | 'wrong' | 'missed';
 export type ProgressCell = Outcome | 'current' | 'pending';
@@ -174,7 +182,8 @@ const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
     && typeof stored.easy === 'boolean' && typeof stored.timed === 'boolean'
     && regionChoices.includes(stored.region as RegionChoice)
     && tiersInOrder.includes(stored.tier as Tier)
-    && deckSizeChoices.includes(stored.deckSize as DeckSize);
+    && deckSizeChoices.includes(stored.deckSize as DeckSize)
+    && (stored.roundKind === undefined || roundKinds.includes(stored.roundKind));
 };
 
 interface StoredRound {
@@ -249,26 +258,44 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   let lastFillInput: FillInput | null = null;
   let fillInputCount = 0;
 
-  const poolOf = (poolSetup: RoundSetup) => places
+  const stats = createStats({ places, storage });
+
+  const weakPlaceIdsOf = ({ mode, variant }: RoundSetup) => new Set(Object.entries(stats.placeRatings({ mode, variant }))
+    .filter(([, rating]) => rating === 'weak' || rating === 'shaky')
+    .map(([placeId]) => placeId));
+
+  const isInWeakPool = (poolSetup: RoundSetup, weakPlaceIdsByScope: WeakPlaceIdsByScope) => {
+    if (poolSetup.roundKind !== 'weak' || !regularModes.includes(poolSetup.mode)) return () => true;
+    const scope = `${poolSetup.mode}:${poolSetup.variant}`;
+    const weakPlaceIds = weakPlaceIdsByScope.get(scope) ?? weakPlaceIdsOf(poolSetup);
+    weakPlaceIdsByScope.set(scope, weakPlaceIds);
+    return ({ id }: Place) => weakPlaceIds.has(id);
+  };
+
+  const poolOf = (poolSetup: RoundSetup, weakPlaceIdsByScope: WeakPlaceIdsByScope = new Map()) => places
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
     .filter(place => !flagVariants.includes(poolSetup.variant) || place.flag !== null)
     .filter(place => poolSetup.mode !== 'capital' || (place.capitals?.length ?? 0) > 0)
     .filter(place => poolSetup.variant !== 'silhouette' || place.silhouette !== false)
     .filter(place => poolSetup.mode !== 'missing' || !place.microstate?.[poolSetup.tier])
+    .filter(isInWeakPool(poolSetup, weakPlaceIdsByScope))
     .map(({ id }) => id);
 
-  const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
+  const poolSizeOf = (poolSetup: RoundSetup, weakPlaceIdsByScope?: WeakPlaceIdsByScope) => poolOf(poolSetup, weakPlaceIdsByScope).length;
 
   const choiceOf = <Value>(value: Value, count: number): Choice<Value> => ({ value, count, isAvailable: count >= minimumPoolSize });
 
   const choicesFor = (chosen: RoundSetup): SetupChoices => {
-    const poolSize = poolSizeOf(chosen);
+    const weakPlaceIdsByScope: WeakPlaceIdsByScope = new Map();
+    const sizeOf = (poolSetup: RoundSetup) => poolSizeOf(poolSetup, weakPlaceIdsByScope);
+    const poolSize = sizeOf(chosen);
     return {
-      variants: variantChoicesByMode[chosen.mode].map(variant => choiceOf(variant, poolSizeOf({ ...chosen, variant }))),
-      regions: regionChoices.map(region => choiceOf(region, poolSizeOf({ ...chosen, region }))),
-      tiers: tiersInOrder.map(tier => choiceOf(tier, poolSizeOf({ ...chosen, tier }))),
+      variants: variantChoicesByMode[chosen.mode].map(variant => choiceOf(variant, sizeOf({ ...chosen, variant }))),
+      regions: regionChoices.map(region => choiceOf(region, sizeOf({ ...chosen, region }))),
+      tiers: tiersInOrder.map(tier => choiceOf(tier, sizeOf({ ...chosen, tier }))),
       deckSizes: deckSizeChoices.map(deckSize => choiceOf(deckSize, deckSize === 'all' ? poolSize : Math.min(deckSize, poolSize))),
+      roundKinds: roundKinds.map(roundKind => choiceOf(roundKind, sizeOf({ ...chosen, roundKind }))),
       playCount: Math.min(chosen.mode === 'missing' ? gapCount : chosen.deckSize === 'all' ? poolSize : chosen.deckSize, poolSize),
     };
   };
@@ -286,7 +313,8 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const rememberedSetupFor = (mode: Mode) => {
     const remembered = readStoredSetups().setups[mode];
-    return isStoredSetup(remembered, mode) ? remembered : firstTimeSetup(mode);
+    if (!isStoredSetup(remembered, mode)) return firstTimeSetup(mode);
+    return remembered.roundKind === 'weak' && poolSizeOf(remembered) < minimumPoolSize ? { ...remembered, roundKind: 'quiz' as const } : remembered;
   };
 
   const rememberSetup = (rememberedSetup: RoundSetup) => {
