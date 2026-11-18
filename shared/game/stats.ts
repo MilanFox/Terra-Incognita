@@ -1,4 +1,4 @@
-import { deepestTierPlayed } from './game';
+import { deepestTierPlayed, isEligibleFor, variantChoicesByMode } from './game';
 import type { DeckSize, KeyValueStorage, Mode, Place, Region, RegionChoice, RoundSetup, Tier, Variant } from './game';
 import { bestKeyOf, createRecords } from './records';
 import type { PersonalBests, PlaceRecords, RoundSummary } from './records';
@@ -49,6 +49,7 @@ export interface SetupBest {
   easy: boolean
   timed?: boolean
   deckSize: number
+  deckChoice?: DeckSize
   plays: number
   score: number
   fastestPerfectMs: number | null
@@ -95,6 +96,9 @@ const isInScope = (modeVariant: string, { mode, variant }: StatsScope) => {
   return regularModes.includes(recordedMode as Mode) && (!mode || recordedMode === mode) && (!variant || recordedVariant === variant);
 };
 
+const isEligibleInScope = (place: Place, { mode, variant }: StatsScope) => (mode ? [mode] : regularModes)
+  .some(scopedMode => variantChoicesByMode[scopedMode].some(scopedVariant => (!variant || scopedVariant === variant) && isEligibleFor(place, { mode: scopedMode, variant: scopedVariant })));
+
 const isPerfect = ({ score, deckSize }: RoundSummary) => score === deckSize;
 
 // The log keeps how many places a round had, not the deck choice: up to 10 places, either choice can lie behind it.
@@ -133,7 +137,7 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
       for (const [placeId, { recent }] of Object.entries(byPlaceId)) pooledAnswers.set(placeId, [...pooledAnswers.get(placeId) ?? [], ...recent]);
     }
     return Object.fromEntries(places
-      .filter(place => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier))
+      .filter(place => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier) && isEligibleInScope(place, scope))
       .map(({ id }) => [id, ratingOf(pooledAnswers.get(id) ?? [])]));
   };
 
@@ -187,7 +191,7 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
       .filter(([key]) => key in bests)
       .sort(([, first], [, second]) => second.plays - first.plays || second.latest.date - first.latest.date)
       .slice(0, shownBestCount)
-      .map(([key, { latest, plays }]) => ({ ...pickSetup(latest), plays, ...bests[key]! }));
+      .map(([key, { latest, plays }]) => ({ ...pickSetup(latest), ...(regularModes.includes(latest.mode) && { deckChoice: key.split(':')[4] === 'all' ? 'all' : 10 }), plays, ...bests[key]! }));
   };
 
   const wayfinderBests = (rounds: RoundSummary[]): SetupBest[] => {

@@ -233,6 +233,15 @@ describe('region counts', () => {
     const total = stats.regionCounts().reduce((sum, { weak, shaky, solid, unplayed }) => sum + weak + shaky + solid + unplayed, 0);
     expect(total).toBe(places.length);
   });
+
+  it('counts only the places in the pool of the scope\'s variant', () => {
+    const stats = createStats({ places: shippedPlaces as Place[], storage: memoryStorage() });
+    const unplayedInOceania = (scope: Parameters<typeof stats.regionCounts>[0]) => stats.regionCounts(scope).find(({ region }) => region === 'Oceania')!.unplayed;
+
+    expect(unplayedInOceania({ mode: 'country', variant: 'silhouette' })).toBe(5);
+    expect(unplayedInOceania({ mode: 'country', variant: 'flag' })).toBe(14);
+    expect(unplayedInOceania({ mode: 'country' })).toBe(14);
+  });
 });
 
 describe('place details', () => {
@@ -345,13 +354,13 @@ describe('mode stats', () => {
     playTaking({ easy: true }, 5_000);
     playTaking({ region: 'Africa', deckSize: 10 }, 60_000);
 
-    const oceania = { region: 'Oceania', tier: 'sovereign', easy: false, deckSize: 5 };
+    const oceania = { region: 'Oceania', tier: 'sovereign', easy: false, deckSize: 5, deckChoice: 'all' };
     expect(stats.modeStats({ mode: 'find' }).bests).toEqual([
       { ...oceania, variant: 'flag', plays: 4, score: 5, fastestPerfectMs: 30_000 },
       { ...oceania, variant: 'name', plays: 3, score: 4, fastestPerfectMs: null },
       { ...oceania, variant: 'both', plays: 2, score: 5, fastestPerfectMs: 25_000 },
-      { variant: 'flag', region: 'Europe', tier: 'sovereign', easy: false, deckSize: 10, plays: 2, score: 10, fastestPerfectMs: 50_000 },
-      { variant: 'flag', region: 'Africa', tier: 'sovereign', easy: false, deckSize: 10, plays: 1, score: 10, fastestPerfectMs: 60_000 },
+      { variant: 'flag', region: 'Europe', tier: 'sovereign', easy: false, deckSize: 10, deckChoice: 10, plays: 2, score: 10, fastestPerfectMs: 50_000 },
+      { variant: 'flag', region: 'Africa', tier: 'sovereign', easy: false, deckSize: 10, deckChoice: 10, plays: 1, score: 10, fastestPerfectMs: 60_000 },
     ]);
     expect(stats.modeStats({ mode: 'find', variant: 'flag' }).bests.map(({ region, easy }) => `${region}${easy ? ' easy' : ''}`)).toEqual(['Oceania', 'Europe', 'Africa', 'Oceania easy']);
   });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { variantChoicesByMode } from '#shared/game/game';
-import type { Mode, RegionChoice, Tier, Variant } from '#shared/game/game';
+import type { DeckSize, Mode, RegionChoice, Tier, Variant } from '#shared/game/game';
 import type { RoundSummary } from '#shared/game/records';
 import type { SetupBest } from '#shared/game/stats';
 import { useDurationText } from '~/composables/useDurationText';
@@ -10,6 +10,7 @@ interface ShownSetup {
   region: RegionChoice
   tier: Tier
   easy: boolean
+  deckChoice?: DeckSize
   timed?: boolean
   daily?: boolean
 }
@@ -26,13 +27,14 @@ const dateFormat = computed(() => new Intl.DateTimeFormat(locale.value, { day: '
 
 const isWayfinder = computed(() => props.mode === 'wayfinder');
 
-const setupLine = ({ variant, region, tier, easy, timed, daily }: ShownSetup) => isWayfinder.value
+const setupLine = ({ variant, region, tier, deckChoice, easy, timed, daily }: ShownSetup) => isWayfinder.value
   ? t(easy ? 'setup.easy' : 'stats.bests.normal')
   : [
       daily && t('daily.title'),
       hasVariants.value && t(`setup.variants.${variant}`),
       !daily && t(`setup.regions.${region}`),
       !daily && t(`setup.tiers.${tier}`),
+      deckChoice && t(`setup.playAgain.deckSizes.${deckChoice}`),
       timed && t('setup.timed'),
       easy && t('setup.easy'),
     ].filter(Boolean).join(' · ');

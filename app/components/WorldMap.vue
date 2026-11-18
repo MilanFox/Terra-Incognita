@@ -411,6 +411,7 @@ watch([() => props.highlightedPlaceId, () => props.keyboardInset], ([placeId]) =
 }, { flush: 'post' });
 
 watch(() => props.resultPlaces, (resultPlaces, previousResultPlaces) => {
+  if (props.keyboardInset > 0) for (const { placeId } of resultPlaces ?? []) if (!previousResultPlaces?.some(previous => previous.placeId === placeId)) bringIntoView(placeId);
   for (const { placeId } of previousResultPlaces ?? []) setPlaceStatus(placeId, null);
   for (const { placeId, outcome } of resultPlaces ?? []) setPlaceStatus(placeId, outcome);
 });
@@ -526,6 +527,19 @@ const followCursor = (placeId: string) => {
   map.easeTo(props.isStatsMap
     ? { center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], duration: reducedMotionDuration(300) }
     : { center: map.unproject([x, y - (top - bottom) / 2]), duration: reducedMotionDuration(300) });
+};
+
+const bringIntoView = (placeId: string) => {
+  const lngLat = labelPoints.get(placeId);
+  if (!map || !lngLat) return;
+  const { x, y } = map.project(lngLat);
+  const { clientWidth, clientHeight } = map.getContainer();
+  const top = Math.min(flightPadding.top, clientHeight / 2.5) + cursorFollowMarginPx;
+  const bottom = clientHeight - props.keyboardInset - cursorFollowMarginPx;
+  const shiftedX = Math.min(Math.max(x, cursorFollowMarginPx), clientWidth - cursorFollowMarginPx);
+  const shiftedY = Math.min(Math.max(y, top), Math.max(top, bottom));
+  if (shiftedX === x && shiftedY === y) return;
+  map.panBy([x - shiftedX, y - shiftedY], { duration: reducedMotionDuration(300) });
 };
 
 const placeCursor = (placeId: string, shouldAnnounce: boolean) => {

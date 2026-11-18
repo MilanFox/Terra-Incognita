@@ -163,7 +163,7 @@ export type GameState
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
     | { phase: 'fill', setup: RoundSetup, deckSize: number, score: number, filledPlaceIds: string[], filledLandPlaceIds: string[], lastInput: FillInput | null, inputCount: number, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
     | { phase: 'missing', setup: RoundSetup, gapPlaceIds: string[], foundPlaceIds: string[], tapsLeft: number, lastTap: MissingTap | null, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
-    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null, learning?: LearningResults }
+    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], wrongTapCount?: number, isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null, learning?: LearningResults }
     | WayfinderState;
 
 type Phase = Exclude<GameState, WayfinderState>['phase'];
@@ -174,6 +174,10 @@ const deckSizeChoices: DeckSize[] = [10, 'all'];
 const modes: Mode[] = ['find', 'name', 'capital', 'country', 'fill', 'missing', 'wayfinder'];
 export const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], fill: ['map'], missing: ['map'], wayfinder: ['map'] };
 const flagVariants: Variant[] = ['flag', 'both'];
+
+export const isEligibleFor = (place: Place, { mode, variant }: { mode: Mode, variant: Variant }) => (!flagVariants.includes(variant) || place.flag !== null)
+  && (mode !== 'capital' || (place.capitals?.length ?? 0) > 0)
+  && (variant !== 'silhouette' || place.silhouette !== false);
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
 interface StoredSetups {
@@ -296,9 +300,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   const poolOf = (poolSetup: RoundSetup, weakPlaceIdsByScope: WeakPlaceIdsByScope = new Map()) => places
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
-    .filter(place => !flagVariants.includes(poolSetup.variant) || place.flag !== null)
-    .filter(place => poolSetup.mode !== 'capital' || (place.capitals?.length ?? 0) > 0)
-    .filter(place => poolSetup.variant !== 'silhouette' || place.silhouette !== false)
+    .filter(place => isEligibleFor(place, poolSetup))
     .filter(place => poolSetup.mode !== 'missing' || !place.microstate?.[poolSetup.tier])
     .filter(isInWeakPool(poolSetup, weakPlaceIdsByScope))
     .map(({ id }) => id);
@@ -423,7 +425,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       const { firstAnswers, learnedPlaceIds, answerCount } = learningLoop;
       return { phase, setup, deckSize: firstAnswers.length, score, answers: [...firstAnswers], missedPlaceIds: [], isComplete, elapsedMs, isNewBest, dailyDate, learning: { learnedCount: learnedPlaceIds.length, answerCount } };
     }
-    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: setup.mode === 'missing' ? gapResults() : [...answers], missedPlaceIds: missedPlaceIdsOf(), isComplete, elapsedMs, isNewBest, dailyDate };
+    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: setup.mode === 'missing' ? gapResults() : [...answers], missedPlaceIds: missedPlaceIdsOf(), ...(setup.mode === 'missing' && { wrongTapCount: tapsUsed - foundPlaceIds.length }), isComplete, elapsedMs, isNewBest, dailyDate };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
     const promptNumber = learningLoop ? learningLoop.answerCount - answers.length + 1 : promptIndex + 1;
     const learning = learningLoop && { learnedCount: learningLoop.learnedPlaceIds.length, isEverythingLearned: learningLoop.everythingLearnedAt === promptNumber - 1, previousOutcome: learningLoop.previousOutcome };
