@@ -2,8 +2,8 @@
 import type { Mode, RoundSetup } from '#shared/game/game';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
-const props = defineProps<{ lastSetup?: RoundSetup }>();
-const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], interact: [], settings: [] }>();
+const props = defineProps<{ lastSetup?: RoundSetup, isDailyPlayed: boolean }>();
+const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [] }>();
 
 const liftMs = 180;
 
@@ -12,9 +12,11 @@ const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 const gridId = useId();
 const subtitleId = useId();
+const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
 const playAgainTile = useTemplateRef<HTMLElement>('playAgainTile');
+const dailyTile = useTemplateRef<HTMLButtonElement>('dailyTile');
 const grid = useTemplateRef<HTMLElement>('grid');
 const dateLine = useTemplateRef<HTMLElement>('dateLine');
 const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
@@ -63,6 +65,10 @@ watch(locale, () => nextTick(measure));
 
 const { start: startPlay } = useTimeoutFn(() => emit('playAgain'), liftMs, { immediate: false });
 
+const openDaily = () => {
+  if (!props.isDailyPlayed) emit('openDaily');
+};
+
 const launch = () => {
   if (isLaunching.value) return;
   if (prefersReducedMotion.value) {
@@ -81,6 +87,7 @@ defineExpose({
     modeTile.value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
+  focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
 });
 </script>
 
@@ -182,6 +189,51 @@ defineExpose({
       >
         {{ dateText }}
       </p>
+
+      <button
+        ref="dailyTile"
+        type="button"
+        class="tile mode-tile daily-tile"
+        :class="{ 'daily-tile--played': isDailyPlayed }"
+        :aria-label="$t('daily.title')"
+        :aria-describedby="dailySubtitleId"
+        :aria-disabled="isDailyPlayed || undefined"
+        @click="openDaily"
+      >
+        <span
+          class="mode-tile__glyph"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 32 32"
+            width="30"
+            height="30"
+          >
+            <circle
+              cx="16"
+              cy="16"
+              r="6"
+              fill="currentColor"
+            />
+
+            <path
+              d="M16 3v5M16 24v5M3 16h5M24 16h5M6.8 6.8l3.5 3.5M21.7 21.7l3.5 3.5M6.8 25.2l3.5-3.5M21.7 10.3l3.5-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            />
+          </svg>
+        </span>
+
+        <span class="mode-tile__text">
+          <span class="mode-tile__name">{{ $t('daily.title') }}</span>
+
+          <span
+            :id="dailySubtitleId"
+            class="mode-tile__subtitle"
+          >{{ isDailyPlayed ? $t('daily.played') : $t('daily.subtitle') }}</span>
+        </span>
+      </button>
 
       <button
         v-if="lastSetup"
@@ -351,7 +403,8 @@ defineExpose({
     letter-spacing: 0.04em;
   }
 
-  &__date + .play-again-tile {
+  &__date + .daily-tile,
+  .daily-tile + .play-again-tile {
     margin-top: 12px;
   }
 
@@ -382,11 +435,25 @@ defineExpose({
   background: $color-mustard;
   text-align: left;
 
-  &.play-again-tile {
+  &.play-again-tile,
+  &.daily-tile {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     width: 100%;
     min-height: 0;
+  }
+
+  &.daily-tile {
+    background: $color-green;
+    color: $color-surface;
+
+    &.daily-tile--played {
+      background: $color-sand;
+      color: $color-ink;
+      box-shadow: none;
+      cursor: default;
+      transform: none;
+    }
   }
 
   &--launching {

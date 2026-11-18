@@ -1,13 +1,15 @@
+import { berlinDateOf, dailyDeckSize, drawDaily } from './daily';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
-import type { RoundSummary } from './records';
+import type { DailyRecord, RoundSummary } from './records';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
 export type Mode = 'find';
 
 export type Variant = 'flag' | 'name' | 'both';
+export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
 export type DeckSize = 10 | 'all';
 export type RegionChoice = Region | 'world';
 
@@ -61,6 +63,7 @@ export interface GameDependencies {
 
 export type GameEvent
   = | { type: 'start', setup: RoundSetup }
+    | { type: 'startDaily', variant: DailyVariant }
     | { type: 'tap', placeId?: string }
     | { type: 'next' }
     | { type: 'tick' }
@@ -105,13 +108,14 @@ interface RoundInPlay {
   isConfirmingEnd: boolean
   isPaused: boolean
   pausesLeft: number
+  dailyDate: string | null
 }
 
 export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
-    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean };
+    | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null };
 
 type Phase = GameState['phase'];
 
@@ -119,15 +123,19 @@ const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
 const variantChoices: Variant[] = ['flag', 'name', 'both'];
+const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
 interface StoredSetups {
   lastMode: Mode
   setups: Partial<Record<Mode, RoundSetup>>
+  dailyVariant?: DailyVariant
 }
 
 const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier);
 
 const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
+
+export const dailySetupOf = (variant: DailyVariant): RoundSetup => ({ mode: 'find', variant, region: 'world', tier: 'sovereign', deckSize: dailyDeckSize, easy: false, timed: false });
 
 const isStoredSetup = (value: unknown, mode: Mode): value is RoundSetup => {
   const stored = value as Partial<RoundSetup> | null;
@@ -150,6 +158,7 @@ interface StoredRound {
   pausedAt: number | null
   pausesUsed: number
   dataVersion: number
+  dailyDate?: string | null
 }
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === 'string');
@@ -191,6 +200,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
   let pausesUsed = 0;
   let elapsedMs = 0;
   let isNewBest = false;
+  let dailyDate: string | null = null;
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
@@ -230,9 +240,20 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
   };
 
   const rememberSetup = (rememberedSetup: RoundSetup) => {
-    const { setups } = readStoredSetups();
-    storage.setItem(setupStorageKey, JSON.stringify({ lastMode: rememberedSetup.mode, setups: { ...setups, [rememberedSetup.mode]: rememberedSetup } }));
+    const stored = readStoredSetups();
+    storage.setItem(setupStorageKey, JSON.stringify({ ...stored, lastMode: rememberedSetup.mode, setups: { ...stored.setups, [rememberedSetup.mode]: rememberedSetup } }));
   };
+
+  const rememberDailyVariant = (variant: DailyVariant) => {
+    storage.setItem(setupStorageKey, JSON.stringify({ ...readStoredSetups(), dailyVariant: variant }));
+  };
+
+  const rememberedDailyVariant = (): DailyVariant => {
+    const remembered = readStoredSetups().dailyVariant;
+    return remembered && dailyVariants.includes(remembered) ? remembered : 'name';
+  };
+
+  const todaysDaily = (): DailyRecord | undefined => records.dailyRecords()[berlinDateOf(clock())];
 
   const answeredAs = (tappedPlaceId: string) => {
     let tapped = placesById.get(tappedPlaceId)!;
@@ -247,9 +268,9 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
-    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest };
+    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest, dailyDate };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
-    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
+    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft(), dailyDate };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
@@ -259,7 +280,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       return;
     }
     // A round read back on relaunch counts as hidden since its last write, if the app never got to hide it.
-    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, dataVersion: version.dataVersion };
+    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, dataVersion: version.dataVersion, dailyDate };
     storage.setItem(roundStorageKey, JSON.stringify(round));
   };
 
@@ -294,6 +315,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     hiddenAt = stored!.hiddenAt ?? null;
     pausedAt = stored!.pausedAt ?? null;
     pausesUsed = stored!.pausesUsed!;
+    dailyDate = typeof stored!.dailyDate === 'string' ? stored!.dailyDate : null;
     phase = 'prompt';
     // A relaunch is a return from the background.
     hide();
@@ -304,9 +326,10 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
 
   let state = snapshot();
 
-  const start = (roundSetup: RoundSetup) => {
+  const begin = (roundSetup: RoundSetup, roundDeck: string[], roundDailyDate: string | null) => {
     setup = roundSetup;
-    deck = shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize);
+    deck = roundDeck;
+    dailyDate = roundDailyDate;
     answers = [];
     wrongTapPlaceIds = [];
     promptIndex = 0;
@@ -318,7 +341,18 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     pausedAt = null;
     pausesUsed = 0;
     phase = 'prompt';
+  };
+
+  const start = (roundSetup: RoundSetup) => {
+    begin(roundSetup, shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize), null);
     rememberSetup(roundSetup);
+  };
+
+  const startDaily = (variant: DailyVariant) => {
+    const date = berlinDateOf(clock());
+    begin(dailySetupOf(variant), drawDaily(poolOf(dailySetupOf('flag')), date), date);
+    records.recordDaily({ date, variant, score: 0, deckSize: deck.length, elapsedMs: 0, complete: false });
+    rememberDailyVariant(variant);
   };
 
   const answer = (tappedPlaceId: string) => {
@@ -384,7 +418,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
       deckSize: deck.length,
       timed: setup.timed,
       easy: setup.easy,
-      daily: false,
+      daily: dailyDate !== null,
       learn: false,
       score: answers.filter(({ outcome }) => outcome === 'right').length,
       complete: isComplete,
@@ -394,6 +428,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     };
     records.logRound(summary);
     isNewBest = isComplete && records.recordBest(setup, summary);
+    if (dailyDate !== null) records.recordDaily({ date: dailyDate, variant: setup.variant as DailyVariant, score: summary.score, deckSize: summary.deckSize, elapsedMs, complete: isComplete });
     phase = 'results';
   };
 
@@ -440,6 +475,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     }
     else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
     else if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
+    else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);
     else if (event.type === 'tap' && phase === 'prompt' && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
     else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
@@ -467,6 +503,8 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     choicesFor,
     poolOf,
     timeLeftMs,
+    dailyVariant: rememberedDailyVariant,
+    todaysDaily,
     send,
   };
 };

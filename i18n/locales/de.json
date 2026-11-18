@@ -22,6 +22,14 @@
     "showAll": "Alle Modi zeigen",
     "showFewer": "Weniger anzeigen"
   },
+  "daily": {
+    "title": "Tages-Challenge",
+    "subtitle": "10 Orte, heute für alle dieselben",
+    "played": "Heute gespielt · morgen gibt es eine neue",
+    "line": "Finde 10 Orte auf der Weltkarte. Heute bekommen alle dieselben Orte, und du hast einen Versuch.",
+    "hard": "Schwer",
+    "hardOptionName": "{name}, schwer"
+  },
   "setup": {
     "title": "{mode}: Einstellungen",
     "close": "Schließen",

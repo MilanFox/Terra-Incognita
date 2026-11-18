@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { createGame, deepestTierPlayed } from '#shared/game/game';
-import type { DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
+import type { DailyVariant, DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
+import type { DailyRecord } from '#shared/game/records';
 
 type Locale = 'en' | 'de';
 type PlaceNames = Record<string, Record<Locale, { name: string }>>;
@@ -16,6 +17,7 @@ export const useGameStore = defineStore('game', () => {
   const lastSetup = shallowRef<RoundSetup>();
   const homeTier = ref<Tier>('sovereign');
   const timeLeftMs = ref<number | null>(null);
+  const todaysDaily = shallowRef<DailyRecord>();
   let game: Game | undefined;
 
   const load = async () => {
@@ -30,13 +32,17 @@ export const useGameStore = defineStore('game', () => {
     homeTier.value = deepestTierPlayed(localStorage);
     lastSetup.value = game.lastSetup();
     timeLeftMs.value = game.timeLeftMs();
+    todaysDaily.value = game.todaysDaily();
     isReady.value = true;
   };
 
   const send = (event: GameEvent) => {
     if (!game) return;
     game.send(event);
-    if (game.state.phase === 'home') homeTier.value = deepestTierPlayed(localStorage);
+    if (game.state.phase === 'home') {
+      homeTier.value = deepestTierPlayed(localStorage);
+      todaysDaily.value = game.todaysDaily();
+    }
     state.value = game.state;
     lastSetup.value = game.lastSetup();
     timeLeftMs.value = game.timeLeftMs();
@@ -50,6 +56,10 @@ export const useGameStore = defineStore('game', () => {
 
   const play = (setup: RoundSetup) => send({ type: 'start', setup });
 
+  const playDaily = (variant: DailyVariant) => send({ type: 'startDaily', variant });
+
+  const dailyVariant = () => game!.dailyVariant();
+
   const setupFor = (mode: Mode) => game!.setupFor(mode);
 
   const poolOf = (setup: RoundSetup) => game?.poolOf(setup) ?? [];
@@ -58,5 +68,5 @@ export const useGameStore = defineStore('game', () => {
 
   const nameOf = (placeId: string, locale: string) => names.value[placeId]?.[locale as Locale]?.name ?? placeId;
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, load, send, play, setupFor, poolOf, choicesFor, nameOf };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, load, send, play, playDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf };
 });

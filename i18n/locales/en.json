@@ -22,6 +22,14 @@
     "showAll": "Show all modes",
     "showFewer": "Show fewer"
   },
+  "daily": {
+    "title": "Daily challenge",
+    "subtitle": "10 places, the same for everyone today",
+    "played": "Played today · a new one tomorrow",
+    "line": "Find 10 places on the world map. Everyone gets the same places today, and you get one attempt.",
+    "hard": "Hard",
+    "hardOptionName": "{name}, hard"
+  },
   "setup": {
     "title": "{mode}: setup",
     "close": "Close",

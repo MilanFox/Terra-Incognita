@@ -3,7 +3,7 @@ import shippedPlaces from '../../public/data/places.json';
 import shippedVersion from '../../public/data/version.json';
 import { createGame, deepestTierPlayed, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
 import type { SchemaMigration } from './migrations';
-import type { DataVersion, GameState, KeyValueStorage, Place, RoundSetup } from './game';
+import type { DailyVariant, DataVersion, GameState, KeyValueStorage, Place, RoundSetup } from './game';
 
 const places = shippedPlaces as Place[];
 
@@ -1606,5 +1606,194 @@ describe('resuming an interrupted round', () => {
     storage.setItem('ti:round', '{"deck":["XXX"]}');
     expect(boot(storage).state.phase).toBe('home');
     expect(storage.getItem('ti:round')).toBeNull();
+  });
+});
+
+describe('the daily challenge', () => {
+  const novemberMorning = Date.UTC(2026, 10, 18, 8);
+
+  const dailyGame = (moment: number, { storage = memoryStorage(), seed = 1, placesInPlay = places } = {}) => {
+    let now = moment;
+    const game = createGame({ places: placesInPlay, version: shippedVersion, random: seededRandom(seed), clock: () => now, storage });
+    const wait = (milliseconds: number) => {
+      now += milliseconds;
+    };
+    return { game, storage, wait };
+  };
+
+  const playDaily = (game: RoundGame, variant: DailyVariant, rightCount: number) => {
+    game.send({ type: 'startDaily', variant });
+    return playThrough(game, rightCount);
+  };
+
+  it('draws the same 10 sovereign places for everyone on a Berlin date, by name and by flag', () => {
+    const byName = playDaily(dailyGame(Date.UTC(2026, 10, 18, 6), { seed: 3 }).game, 'name', 10);
+    const byFlag = playDaily(dailyGame(Date.UTC(2026, 10, 18, 21), { seed: 9 }).game, 'flag', 0);
+
+    expect(byName).toHaveLength(10);
+    expect(new Set(byName).size).toBe(10);
+    expect(sovereignIds).toEqual(expect.arrayContaining(byName));
+    expect(byFlag).toEqual(byName);
+    expect(playDaily(dailyGame(Date.UTC(2026, 10, 19, 6)).game, 'name', 0)).not.toEqual(byName);
+  });
+
+  it('draws by version 1 of the documented PRNG and draw, over the pool sorted by id whatever order the places come in', () => {
+    const drawnOnNovember18 = ['LSO', 'BEL', 'LKA', 'CRI', 'BOL', 'RWA', 'MMR', 'CYP', 'LUX', 'KGZ'];
+
+    expect(playDaily(dailyGame(novemberMorning).game, 'name', 0)).toEqual(drawnOnNovember18);
+    expect(playDaily(dailyGame(novemberMorning, { placesInPlay: [...places].reverse() }).game, 'flag', 0)).toEqual(drawnOnNovember18);
+  });
+
+  it.each([
+    { when: 'in winter time', lastMomentOfDay: '2026-11-18T22:59:59.999Z', dayBefore: '2026-11-18', dayAfter: '2026-11-19' },
+    { when: 'on the night the clocks go forward', lastMomentOfDay: '2026-03-28T22:59:59.999Z', dayBefore: '2026-03-28', dayAfter: '2026-03-29' },
+    { when: 'in summer time', lastMomentOfDay: '2026-03-29T21:59:59.999Z', dayBefore: '2026-03-29', dayAfter: '2026-03-30' },
+    { when: 'on the night before the clocks go back', lastMomentOfDay: '2026-10-24T21:59:59.999Z', dayBefore: '2026-10-24', dayAfter: '2026-10-25' },
+    { when: 'on the night after the clocks went back', lastMomentOfDay: '2026-10-25T22:59:59.999Z', dayBefore: '2026-10-25', dayAfter: '2026-10-26' },
+  ])('turns the date at Berlin midnight $when', ({ lastMomentOfDay, dayBefore, dayAfter }) => {
+    const { game, storage, wait } = dailyGame(Date.parse(lastMomentOfDay));
+    game.send({ type: 'startDaily', variant: 'name' });
+    endRoundNow(game);
+    game.send({ type: 'leave' });
+
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state.phase).toBe('home');
+
+    wait(1);
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state).toMatchObject({ phase: 'prompt', dailyDate: dayAfter });
+    expect(Object.keys(storedJson(storage, 'ti:daily'))).toEqual([dayBefore, dayAfter]);
+  });
+
+  it('writes the day to ti:daily at round start, not complete, before any answer', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+    expect(game.todaysDaily()).toBeUndefined();
+
+    game.send({ type: 'startDaily', variant: 'flag' });
+
+    const startRecord = { date: '2026-11-18', variant: 'flag', score: 0, deckSize: 10, elapsedMs: 0, complete: false };
+    expect(storedJson(storage, 'ti:daily')).toEqual({ '2026-11-18': startRecord });
+    expect(game.todaysDaily()).toEqual(startRecord);
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 1, deckSize: 10, dailyDate: '2026-11-18', setup: { variant: 'flag' } });
+  });
+
+  it('locks the variant once started: the day takes no second start, by either variant', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+    game.send({ type: 'startDaily', variant: 'flag' });
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 1, setup: { variant: 'flag' } });
+
+    endRoundNow(game);
+    game.send({ type: 'leave' });
+    for (const variant of ['name', 'flag'] as const) {
+      game.send({ type: 'startDaily', variant });
+      expect(game.state.phase).toBe('home');
+    }
+    expect(storedJson(storage, 'ti:daily')['2026-11-18']).toMatchObject({ variant: 'flag', complete: false });
+  });
+
+  it('resumes a stored daily after a restart with the same places, and finishes it on its own date after Berlin midnight', () => {
+    const lateEvening = Date.parse('2026-11-18T22:50:00Z');
+    const { game, storage } = dailyGame(lateEvening);
+    game.send({ type: 'startDaily', variant: 'name' });
+    const firstPlaceId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: firstPlaceId });
+    game.send({ type: 'next' });
+    const before = game.state;
+
+    const { game: resumed } = dailyGame(lateEvening + 20 * 60_000, { storage, seed: 99 });
+
+    expect(resumed.state).toEqual(before);
+    const askedPlaceIds = [firstPlaceId, ...playThrough(resumed, 9)];
+    expect(askedPlaceIds).toEqual(playDaily(dailyGame(novemberMorning).game, 'flag', 0));
+    expect(resultsOf(resumed)).toMatchObject({ score: 10, isComplete: true, dailyDate: '2026-11-18' });
+    expect(storedJson(storage, 'ti:daily')).toEqual({ '2026-11-18': expect.objectContaining({ variant: 'name', score: 10, complete: true }) });
+    expect(resumed.todaysDaily()).toBeUndefined();
+  });
+
+  it('stays used up when a restart finds no stored round: no redraw, no replay', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+    game.send({ type: 'startDaily', variant: 'name' });
+    storage.removeItem('ti:round');
+
+    const { game: restarted } = dailyGame(novemberMorning + 60_000, { storage });
+    expect(restarted.state.phase).toBe('home');
+    restarted.send({ type: 'startDaily', variant: 'name' });
+
+    expect(restarted.state.phase).toBe('home');
+    expect(restarted.todaysDaily()).toMatchObject({ variant: 'name', complete: false });
+  });
+
+  it('completes the day when every prompt is answered, at any score', () => {
+    const { game, storage, wait } = dailyGame(novemberMorning);
+    game.send({ type: 'startDaily', variant: 'flag' });
+    wait(30_000);
+
+    playThrough(game, 0);
+
+    expect(resultsOf(game)).toMatchObject({ score: 0, isComplete: true, dailyDate: '2026-11-18' });
+    expect(storedJson(storage, 'ti:daily')).toEqual({ '2026-11-18': { date: '2026-11-18', variant: 'flag', score: 0, deckSize: 10, elapsedMs: 30_000, complete: true } });
+  });
+
+  it('leaves the day used up and incomplete on End round', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+    game.send({ type: 'startDaily', variant: 'name' });
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+    game.send({ type: 'next' });
+
+    endRoundNow(game);
+
+    expect(resultsOf(game)).toMatchObject({ score: 1, isComplete: false, missedPlaceIds: expect.any(Array) });
+    expect(storedJson(storage, 'ti:daily')['2026-11-18']).toMatchObject({ score: 1, deckSize: 10, complete: false });
+    game.send({ type: 'leave' });
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state.phase).toBe('home');
+  });
+
+  it('counts like a normal round of its setup and is logged daily: true', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+
+    const askedPlaceIds = playDaily(game, 'name', 7);
+
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ mode: 'find', variant: 'name', region: 'world', tier: 'sovereign', deckSize: 10, timed: false, easy: false, daily: true, learn: false, score: 7, complete: true })]);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ 'find:name:world:sovereign:10:normal': { score: 7, fastestPerfectMs: null } });
+    expect(Object.keys(storedJson(storage, 'ti:places')['find:name']).sort()).toEqual([...askedPlaceIds].sort());
+    expect(resultsOf(game).isNewBest).toBe(true);
+
+    game.send({ type: 'leave' });
+    playRound(game, { variant: 'name' }, 7);
+    expect(resultsOf(game).isNewBest).toBe(false);
+    expect(storedJson(storage, 'ti:rounds')[1]).toMatchObject({ daily: false });
+  });
+
+  it('is untimed and never Easy mode, and records the elapsed time without the time in the background', () => {
+    const { game, storage, wait } = dailyGame(novemberMorning);
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state).toMatchObject({ setup: { timed: false, easy: false }, pausesLeft: 0, attemptsLeft: 1 });
+    expect(game.timeLeftMs()).toBeNull();
+
+    wait(5000);
+    game.send({ type: 'hide' });
+    wait(600_000);
+    game.send({ type: 'show' });
+    wait(3000);
+    endRoundNow(game);
+
+    expect(storedJson(storage, 'ti:daily')['2026-11-18'].elapsedMs).toBe(8000);
+  });
+
+  it('remembers the variant last played for the next day, apart from the remembered Find on the map setup', () => {
+    const { game, storage } = dailyGame(novemberMorning);
+    expect(game.dailyVariant()).toBe('name');
+
+    playDaily(game, 'flag', 3);
+
+    expect(game.dailyVariant()).toBe('flag');
+    expect(game.lastSetup()).toBeUndefined();
+    game.send({ type: 'leave' });
+    playRound(game, { variant: 'both' }, 3);
+    const nextDay = dailyGame(Date.UTC(2026, 10, 19, 8), { storage }).game;
+    expect(nextDay.dailyVariant()).toBe('flag');
+    expect(nextDay.setupFor('find')).toMatchObject({ variant: 'both' });
   });
 });

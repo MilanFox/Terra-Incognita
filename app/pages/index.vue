@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Mode, RoundSetup } from '#shared/game/game';
+import { dailySetupOf } from '#shared/game/game';
+import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
@@ -13,10 +14,14 @@ const game = useGameStore();
 const worldMap = useTemplateRef('worldMap');
 const homeTray = useTemplateRef('homeTray');
 const setupTray = useTemplateRef('setupTray');
+const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
+const dailyDraft = ref<DailyVariant | null>(null);
+const traySetup = computed(() => setupDraft.value ?? (dailyDraft.value ? dailySetupOf(dailyDraft.value) : null));
 const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element);
+const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element);
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 
@@ -33,12 +38,12 @@ watch(() => game.state, (state) => {
 const isRoundPlay = computed(() => game.state.phase === 'prompt' || game.state.phase === 'verdict');
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
-const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !setupDraft.value);
+const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value);
 const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
-const shownTier = computed(() => setupDraft.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
-const poolPlaceIds = computed(() => setupDraft.value ? game.poolOf(setupDraft.value) : null);
-const frameRegion = computed(() => setupDraft.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
+const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
+const poolPlaceIds = computed(() => traySetup.value ? game.poolOf(traySetup.value) : null);
+const frameRegion = computed(() => traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
 
@@ -53,10 +58,11 @@ const resultPlaces = computed(() => {
 
 const frameInset = computed(() => {
   if (setupDraft.value) return setupTrayHeight.value;
+  if (dailyDraft.value) return dailySetupTrayHeight.value;
   return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
 });
 
-const isMapInert = computed(() => !!setupDraft.value || isSettingsOpen.value || game.state.phase === 'results'
+const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results'
   || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && (game.state.isConfirmingEnd || game.state.isPaused)));
 
 const handleTap = (placeId?: string) => {
@@ -71,6 +77,23 @@ const closeSetup = async () => {
   setupDraft.value = null;
   await nextTick();
   homeTray.value?.focusModeTile();
+};
+
+const openDaily = () => {
+  dailyDraft.value = game.dailyVariant();
+};
+
+const closeDaily = async () => {
+  dailyDraft.value = null;
+  await nextTick();
+  homeTray.value?.focusDailyTile();
+};
+
+const playDaily = async (variant: DailyVariant) => {
+  dailyDraft.value = null;
+  game.playDaily(variant);
+  await nextTick();
+  worldMap.value?.focus();
 };
 
 const play = async (setup: RoundSetup | undefined) => {
@@ -115,11 +138,13 @@ onMounted(game.load);
   <main class="home">
     <Transition name="tray">
       <HomeTray
-        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !isSettingsOpen"
+        v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen"
         ref="homeTray"
         :last-setup="game.lastSetup"
+        :is-daily-played="!!game.todaysDaily"
         @play-again="play(game.lastSetup)"
         @open-setup="openSetup"
+        @open-daily="openDaily"
         @settings="isSettingsOpen = true"
         @interact="stopDrift"
       />
@@ -132,6 +157,16 @@ onMounted(game.load);
         v-model:setup="setupDraft"
         @play="play(setupDraft)"
         @close="closeSetup"
+      />
+    </Transition>
+
+    <Transition name="tray">
+      <DailySetupTray
+        v-if="isShellReady && game.state.phase === 'home' && dailyDraft"
+        ref="dailySetupTray"
+        v-model:variant="dailyDraft"
+        @play="playDaily(dailyDraft)"
+        @close="closeDaily"
       />
     </Transition>
 

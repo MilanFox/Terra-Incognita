@@ -1,4 +1,4 @@
-import type { Answer, KeyValueStorage, Mode, RegionChoice, RoundSetup, Tier, Variant } from './game';
+import type { Answer, DailyVariant, KeyValueStorage, Mode, RegionChoice, RoundSetup, Tier, Variant } from './game';
 
 export interface PlaceRecord {
   seen: number
@@ -36,9 +36,21 @@ export interface PersonalBest {
 
 export type PersonalBests = Record<string, PersonalBest>;
 
+export interface DailyRecord {
+  date: string
+  variant: DailyVariant
+  score: number
+  deckSize: number
+  elapsedMs: number
+  complete: boolean
+}
+
+export type DailyRecords = Record<string, DailyRecord>;
+
 const placesStorageKey = 'ti:places';
 const roundsStorageKey = 'ti:rounds';
 const bestsStorageKey = 'ti:bests';
+const dailyStorageKey = 'ti:daily';
 const recentLength = 8;
 const roundLogLength = 1000;
 
@@ -88,5 +100,11 @@ export const createRecords = (storage: KeyValueStorage) => {
     return score > previous.score || (isFasterPerfect && previous.fastestPerfectMs !== null);
   };
 
-  return { roundLog, recordAnswer, logRound, recordBest };
+  const dailyRecords = () => read<DailyRecords>(dailyStorageKey, {});
+
+  const recordDaily = (record: DailyRecord) => {
+    storage.setItem(dailyStorageKey, JSON.stringify({ ...dailyRecords(), [record.date]: record }));
+  };
+
+  return { roundLog, recordAnswer, logRound, recordBest, dailyRecords, recordDaily };
 };
