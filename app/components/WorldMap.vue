@@ -444,10 +444,11 @@ watch(() => props.fade, (fadeAmount = 0) => {
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { fade: fadeAmount });
 });
 
+// After the verdict and results watchers, so a confirmed two-step mark keeps the colour its answer gave it.
 watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
-  if (previousPlaceId) setPlaceStatus(previousPlaceId, null);
+  if (previousPlaceId && hasLoaded && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, null);
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
-});
+}, { flush: 'post' });
 
 // fitBounds can't frame above a tray taller than the free map: the centre it needs falls off the map and nothing moves. The tray goes into the map's own padding instead, without a visible jump.
 const padAboveTray = (shownMap: MapLibreMap) => {

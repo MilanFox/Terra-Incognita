@@ -246,6 +246,13 @@ onMounted(() => title.value?.focus());
         />
 
         <SettingsSwitch
+          :label="$t('settings.accessibility.twoStepSelect.label')"
+          :hint="$t('settings.accessibility.twoStepSelect.hint')"
+          :is-on="settings.isTwoStepSelectOn"
+          @toggle="settings.setTwoStepSelect(!settings.isTwoStepSelectOn)"
+        />
+
+        <SettingsSwitch
           :label="$t('settings.accessibility.waitForNext.label')"
           :hint="$t('settings.accessibility.waitForNext.hint')"
           :is-on="settings.isWaitForNextOn"

@@ -30,6 +30,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const isHighContrast = ref(false);
   const isWaitForNextOn = ref(false);
   const isSystemKeyboardOn = ref(false);
+  const isTwoStepSelectOn = ref(false);
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
 
@@ -42,6 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
       highContrast: isHighContrast.value,
       waitForNext: isWaitForNextOn.value,
       systemKeyboard: isSystemKeyboardOn.value,
+      twoStepSelect: isTwoStepSelectOn.value,
     }));
   };
 
@@ -59,6 +61,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (typeof stored.highContrast === 'boolean') isHighContrast.value = stored.highContrast;
     if (typeof stored.waitForNext === 'boolean') isWaitForNextOn.value = stored.waitForNext;
     if (typeof stored.systemKeyboard === 'boolean') isSystemKeyboardOn.value = stored.systemKeyboard;
+    if (typeof stored.twoStepSelect === 'boolean') isTwoStepSelectOn.value = stored.twoStepSelect;
   };
 
   const setSound = (isOn: boolean) => {
@@ -91,5 +94,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard };
+  const setTwoStepSelect = (isOn: boolean) => {
+    isTwoStepSelectOn.value = isOn;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, isTwoStepSelectOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard, setTwoStepSelect };
 });

@@ -10,6 +10,7 @@ import { usePlayFeedback } from '~/composables/usePlayFeedback';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
+import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
 
 const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
@@ -43,6 +44,7 @@ usePlayFeedback(() => game.state);
 const { message: liveMessage, announce } = useLiveRegion();
 useRoundAnnouncements(() => game.state, announce);
 useWayfinderAnnouncements(() => game.state, announce);
+const { markedPlaceId, tapPlace, confirmMark } = useTwoStepSelect(() => game.state);
 
 const foundPlaceIds = ref<string[]>([]);
 watch(() => game.state, (state) => {
@@ -73,7 +75,7 @@ const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 
 const poolPlaceIds = computed(() => {
   if (game.state.phase === 'missing') {
     const { gapPlaceIds, foundPlaceIds: foundGapIds, setup } = game.state;
-    return game.poolOf({ ...setup, mode: 'find', variant: 'name' }).filter(id => !gapPlaceIds.includes(id) || foundGapIds.includes(id));
+    return game.poolOf({ ...setup, mode: 'find', variant: 'name' }).filter(id => !gapPlaceIds.includes(id) || foundGapIds.includes(id) || id === markedPlaceId.value);
   }
   if (traySetup.value) return game.poolOf(traySetup.value);
   return game.state.phase === 'fill' ? game.poolOf(game.state.setup) : null;
@@ -115,7 +117,7 @@ const handleTap = async (placeId?: string) => {
     await statsTray.value?.openBubble(placeId);
     worldMap.value?.reveal(placeId);
   }
-  else if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
+  else if (game.state.phase !== 'home') tapPlace(placeId);
 };
 
 const openSetup = (mode: Mode) => {
@@ -162,6 +164,11 @@ const play = async (setup: RoundSetup | undefined) => {
 
 const next = () => {
   game.send({ type: 'next' });
+  focusAnswering();
+};
+
+const confirm = () => {
+  confirmMark();
   focusAnswering();
 };
 
@@ -247,9 +254,11 @@ onMounted(game.load);
         v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict')"
         :state="game.state"
         :fade="answerFade"
+        :is-marked="!!markedPlaceId"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
         @next="next"
+        @confirm="confirm"
         @dont-know="dontKnow"
         @zoom-in="worldMap?.zoomIn()"
         @zoom-out="worldMap?.zoomOut()"
@@ -269,8 +278,10 @@ onMounted(game.load);
       <MissingRound
         v-else-if="isShellReady && game.state.phase === 'missing'"
         :state="game.state"
+        :is-marked="!!markedPlaceId"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+        @confirm="confirm"
         @zoom-in="worldMap?.zoomIn()"
         @zoom-out="worldMap?.zoomOut()"
       />
@@ -383,7 +394,7 @@ onMounted(game.load);
         :is-round-play="isRoundPlay"
         :is-stats-map="isStatsOpen"
         :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : 0"
-        :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : null"
+        :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : markedPlaceId"
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"

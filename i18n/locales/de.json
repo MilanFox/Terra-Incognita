@@ -145,6 +145,7 @@
     "youTapped": "Getippt: {place}",
     "flag": "Flagge des gesuchten Orts",
     "next": "Weiter",
+    "confirm": "Bestätigen",
     "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche",
     "clock": "Verbleibende Zeit"
   },
@@ -210,6 +211,10 @@
       "highContrast": {
         "label": "Hoher Kontrast",
         "hint": "Dunkleres Wasser und schwarze Grenzen auf der Karte."
+      },
+      "twoStepSelect": {
+        "label": "Auswahl in zwei Schritten",
+        "hint": "Der erste Tipp markiert den Ort; tippe noch einmal oder drücke Bestätigen, um zu antworten."
       },
       "waitForNext": {
         "label": "Nach richtigen Antworten auf Weiter warten",
