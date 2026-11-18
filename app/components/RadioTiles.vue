@@ -120,7 +120,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
     justify-content: center;
     gap: 6px;
     min-height: 40px;
-    padding: 4px 10px;
+    padding: 4px;
     font-size: 14px;
     font-weight: 700;
     line-height: 1.1;
