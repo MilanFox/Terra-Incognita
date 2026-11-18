@@ -326,7 +326,7 @@ defineExpose({ element: tray, focusAboutTiers: () => aboutTiersLink.value?.focus
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 52px;
+    min-height: 40px;
     padding: 0 16px;
     font-size: 18px;
     font-weight: 700;
