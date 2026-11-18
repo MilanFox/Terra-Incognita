@@ -114,7 +114,7 @@ const dimmedFilterFor = (poolPlaceIds: string[] | null | undefined): FilterSpeci
   ? ['all', isPlace, ['!', ['in', ['get', 'id'], ['literal', poolPlaceIds]]]]
   : dimmedNone;
 
-const toneOf = (placeId: string) => [...placeId].reduce((sum, character) => sum + character.charCodeAt(0), 0) % landTones.length;
+const toneOf = (placeId: string) => [...placeId].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % 9973 % landTones.length;
 
 const fetchJson = async (url: string) => (await fetch(url)).json();
 
