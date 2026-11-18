@@ -122,6 +122,7 @@ defineExpose({ element: tray });
       />
 
       <RadioTiles
+        v-if="setup.mode !== 'missing'"
         :label="$t('setup.groups.region')"
         :options="regionOptions"
         :model-value="setup.region"
@@ -136,6 +137,7 @@ defineExpose({ element: tray });
       />
 
       <RadioTiles
+        v-if="setup.mode !== 'missing'"
         :label="$t('setup.groups.deckSize')"
         :options="deckSizeOptions"
         :model-value="setup.deckSize"

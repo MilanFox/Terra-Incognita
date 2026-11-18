@@ -492,6 +492,7 @@ onMounted(async () => {
   });
   map.once('idle', () => emit('drawn'));
   map.once('load', () => {
+    for (const { placeId, outcome } of props.resultPlaces ?? []) setPlaceStatus(placeId, outcome);
     applyHighlight(props.highlightedPlaceId);
     if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
   });

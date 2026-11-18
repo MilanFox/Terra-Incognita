@@ -19,6 +19,7 @@ const subtitleId = useId();
 const nameSubtitleId = useId();
 const capitalSubtitleId = useId();
 const countrySubtitleId = useId();
+const missingSubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -30,6 +31,7 @@ const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const nameModeTile = useTemplateRef<HTMLButtonElement>('nameModeTile');
 const capitalModeTile = useTemplateRef<HTMLButtonElement>('capitalModeTile');
 const countryModeTile = useTemplateRef<HTMLButtonElement>('countryModeTile');
+const missingModeTile = useTemplateRef<HTMLButtonElement>('missingModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -90,7 +92,7 @@ defineExpose({
   focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile })[mode].value?.focus({ preventScroll: true });
+    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile, missing: missingModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -379,6 +381,31 @@ defineExpose({
               :id="countrySubtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.country.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="missingModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.missing.name')"
+          :aria-describedby="missingSubtitleId"
+          @click="emit('openSetup', 'missing')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="missing" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.missing.name') }}</span>
+
+            <span
+              :id="missingSubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.missing.subtitle') }}</span>
           </span>
         </button>
       </div>

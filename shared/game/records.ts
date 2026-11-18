@@ -59,7 +59,7 @@ const roundLogLength = 1000;
 
 const modeVariantOf = ({ mode, variant }: RoundSetup) => `${mode}:${variant}`;
 
-const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy }: RoundSetup) => [mode, variant, region, tier, deckSize, easy ? 'easy' : 'normal'].join(':');
+const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy, timed }: RoundSetup) => [mode, variant, region, tier, deckSize, easy ? 'easy' : 'normal', ...(mode === 'missing' ? [timed ? 'timed' : 'untimed'] : [])].join(':');
 
 const noRecord = (): PlaceRecord => ({ seen: 0, correct: 0, recent: [], easySeen: 0, easyCorrect: 0 });
 

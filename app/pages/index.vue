@@ -35,10 +35,11 @@ useRoundAnnouncements(() => game.state, announce);
 const foundPlaceIds = ref<string[]>([]);
 watch(() => game.state, (state) => {
   if (state.phase === 'verdict' && state.answer.outcome === 'right') foundPlaceIds.value.push(state.answer.placeId);
+  else if (state.phase === 'missing') foundPlaceIds.value = state.foundPlaceIds;
   else if (state.phase === 'home' || state.phase === 'results') foundPlaceIds.value = [];
 });
 const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedMode(game.state.setup.mode));
-const isRoundPlay = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value);
+const isRoundPlay = computed(() => ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value) || game.state.phase === 'missing');
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
@@ -46,7 +47,13 @@ const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === '
 const { stopForVisit: stopDrift } = useHomeDrift(() => worldMap.value?.getMap(), isHomeDrifting);
 
 const shownTier = computed(() => traySetup.value?.tier ?? (game.state.phase === 'home' ? game.homeTier : game.state.setup.tier));
-const poolPlaceIds = computed(() => traySetup.value ? game.poolOf(traySetup.value) : null);
+const poolPlaceIds = computed(() => {
+  if (game.state.phase === 'missing') {
+    const { gapPlaceIds, foundPlaceIds: foundGapIds, setup } = game.state;
+    return game.poolOf({ ...setup, mode: 'find', variant: 'name' }).filter(id => !gapPlaceIds.includes(id) || foundGapIds.includes(id));
+  }
+  return traySetup.value ? game.poolOf(traySetup.value) : null;
+});
 const frameRegion = computed(() => traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
@@ -56,6 +63,7 @@ watch(verdict, (answer) => {
 });
 
 const resultPlaces = computed(() => {
+  if (game.state.phase === 'missing') return game.state.foundPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
   if (game.state.phase !== 'results') return null;
   const { answers, missedPlaceIds } = game.state;
   return [
@@ -71,7 +79,7 @@ const frameInset = computed(() => {
 });
 
 const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results'
-  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && (game.state.isConfirmingEnd || game.state.isPaused)));
+  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict' || game.state.phase === 'missing') && (game.state.isConfirmingEnd || game.state.isPaused)));
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
@@ -199,6 +207,17 @@ onMounted(game.load);
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
         @next="next"
         @dont-know="dontKnow"
+        @zoom-in="worldMap?.zoomIn()"
+        @zoom-out="worldMap?.zoomOut()"
+      />
+    </Transition>
+
+    <Transition name="drop">
+      <MissingRound
+        v-if="isShellReady && game.state.phase === 'missing'"
+        :state="game.state"
+        :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+        :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
         @zoom-in="worldMap?.zoomIn()"
         @zoom-out="worldMap?.zoomOut()"
       />
