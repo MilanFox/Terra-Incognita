@@ -20,6 +20,19 @@ const kickerText = computed(() => {
   return t('wayfinder.detoursLeft', { count: props.state.detoursLeft }, props.state.detoursLeft);
 });
 
+const revealText = computed(() => {
+  const { reveal } = props.state;
+  if (!reveal?.shortestRoute) return null;
+  if (!reveal.yourRoute) return t('wayfinder.shortest', { shortest: route.value.shortest });
+  return t('wayfinder.shortestAndYours', { shortest: route.value.shortest, yours: reveal.yourRoute.length });
+});
+
+const chipClassOf = (placeId: string) => {
+  const { reveal } = props.state;
+  if (!reveal) return null;
+  return reveal.yourRoute?.includes(placeId) ? 'route-card__chip--route' : 'route-card__chip--unused';
+};
+
 const rejectionText = computed(() => {
   const rejection = props.state.rejectedEntries.at(-1);
   if (!rejection || rejection.reason === 'none') return null;
@@ -65,6 +78,7 @@ defineExpose({ cardBottom });
         v-show="isShown"
         :key="state.routeNumber"
         class="tile route-card"
+        :class="route.outcome === 'complete' && 'route-card--complete'"
       >
         <p class="kicker">
           {{ kickerText }}
@@ -99,6 +113,7 @@ defineExpose({ cardBottom });
             v-for="placeId in route.entries"
             :key="placeId"
             class="route-card__chip"
+            :class="chipClassOf(placeId)"
           >
             {{ placeName(placeId) }}
           </li>
@@ -109,6 +124,13 @@ defineExpose({ cardBottom });
           class="route-card__rejected"
         >
           {{ rejectionText }}
+        </p>
+
+        <p
+          v-if="revealText"
+          class="route-card__reveal"
+        >
+          {{ revealText }}
         </p>
 
         <button
@@ -143,6 +165,11 @@ defineExpose({ cardBottom });
   gap: 6px;
   padding: 12px 16px 14px;
   animation: content-in 420ms ease-out;
+
+  &--complete {
+    background: $color-route-yours;
+    color: $color-ink;
+  }
 
   &__title {
     margin: 0;
@@ -188,6 +215,22 @@ defineExpose({ cardBottom });
     background: $color-route-named;
     font-size: 15px;
     font-weight: 700;
+
+    &--route {
+      border-color: $color-route-yours-outline;
+      background: $color-route-yours;
+    }
+
+    &--unused {
+      background: $color-route-unused;
+    }
+  }
+
+  &__reveal {
+    margin: 0;
+    font-family: $font-serif;
+    font-size: 18px;
+    font-weight: 800;
   }
 
   &__rejected {

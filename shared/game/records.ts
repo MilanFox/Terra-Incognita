@@ -59,7 +59,9 @@ const roundLogLength = 1000;
 
 const modeVariantOf = ({ mode, variant }: RoundSetup) => `${mode}:${variant}`;
 
-export const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy, timed }: RoundSetup) => [mode, variant, region, tier, deckSize, easy ? 'easy' : 'normal', ...(mode === 'missing' ? [timed ? 'timed' : 'untimed'] : [])].join(':');
+export const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy, timed }: RoundSetup) => (mode === 'wayfinder'
+  ? [mode, easy ? 'easy' : 'normal']
+  : [mode, variant, region, tier, deckSize, easy ? 'easy' : 'normal', ...(mode === 'missing' ? [timed ? 'timed' : 'untimed'] : [])]).join(':');
 
 const noRecord = (): PlaceRecord => ({ seen: 0, correct: 0, recent: [], easySeen: 0, easyCorrect: 0 });
 
@@ -99,7 +101,7 @@ export const createRecords = (storage: KeyValueStorage) => {
     const bests = personalBests();
     const key = bestKeyOf(setup);
     const previous: PersonalBest = bests[key] ?? { score: 0, fastestPerfectMs: null };
-    const isFasterPerfect = score === deckSize && (previous.fastestPerfectMs === null || elapsedMs < previous.fastestPerfectMs);
+    const isFasterPerfect = setup.mode !== 'wayfinder' && score === deckSize && (previous.fastestPerfectMs === null || elapsedMs < previous.fastestPerfectMs);
     const best: PersonalBest = { score: Math.max(score, previous.score), fastestPerfectMs: isFasterPerfect ? elapsedMs : previous.fastestPerfectMs };
     storage.setItem(bestsStorageKey, JSON.stringify({ ...bests, [key]: best }));
     return score > previous.score || (isFasterPerfect && previous.fastestPerfectMs !== null);

@@ -402,11 +402,20 @@
       "target": "{place} is the target"
     },
     "endLine": "The route you're on is lost, and an ended round doesn't count for your bests.",
+    "shortest": "Shortest {shortest}",
+    "shortestAndYours": "Shortest {shortest} · Yours {yours}",
+    "routes": "{count} route | {count} routes",
+    "withoutDetours": "{count} without detours",
+    "resultsLine": "{routes} · {withoutDetours}",
+    "newBest": "New best",
+    "newBestEasy": "New best · Easy mode",
     "live": {
       "route": "Route {number}: from {start} to {target}. {detours}.",
       "entry": "{place}. {detours}.",
-      "complete": "{place}. Route complete. Press Next.",
-      "outOfDetours": "{place}. Out of detours. Press Next."
+      "complete": "{place}. Route complete. {score}. Press Next.",
+      "outOfDetours": "{place}. Out of detours. One shortest route: {route}. {score}. Press Next.",
+      "completeLonger": "{place}. Route complete. Shortest {shortest}, yours {yours}. One shortest route: {route}. {score}. Press Next.",
+      "score": "{count} route completed | {count} routes completed"
     }
   }
 }

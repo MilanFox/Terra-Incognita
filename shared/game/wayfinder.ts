@@ -1,5 +1,7 @@
 import type { GameEvent, KeyValueStorage, Place, RoundSetup } from './game';
 import type { Matcher, Resolution } from './matcher';
+import { createRecords } from './records';
+import type { RoundSummary } from './records';
 
 export const detourBudget = 5;
 const minimumRouteLength = 3;
@@ -24,9 +26,14 @@ export type RejectedEntry
     | { reason: 'none' }
     | { reason: 'named' | 'start' | 'target', placeId: string };
 
+export interface RouteReveal {
+  yourRoute: string[] | null
+  shortestRoute: string[] | null
+}
+
 export type WayfinderState
-  = | { phase: 'wayfinder', setup: RoundSetup, routeNumber: number, route: Route, routes: Route[], detoursLeft: number, rejectedEntries: RejectedEntry[], isConfirmingEnd: boolean }
-    | { phase: 'wayfinderResults', setup: RoundSetup, routes: Route[], isComplete: boolean, elapsedMs: number };
+  = | { phase: 'wayfinder', setup: RoundSetup, routeNumber: number, route: Route, routes: Route[], detoursLeft: number, rejectedEntries: RejectedEntry[], isConfirmingEnd: boolean, reveal: RouteReveal | null }
+    | { phase: 'wayfinderResults', setup: RoundSetup, routes: Route[], score: number, routesWithoutDetours: number, isComplete: boolean, elapsedMs: number, isNewBest: boolean };
 
 export type MainlandGraph = ReadonlyMap<string, readonly string[]>;
 
@@ -86,6 +93,22 @@ export const linkingRoute = (graph: MainlandGraph, { start, target, entries }: P
   return chain;
 };
 
+const closestShortestRoute = (graph: MainlandGraph, { start, target, entries }: Pick<Route, 'start' | 'target' | 'entries'>) => {
+  const reached = searchFrom(graph, start);
+  if (!reached.has(target)) return null;
+  const named = new Set(entries);
+  const closest = new Map<string, { shared: number, previous: string | null }>();
+  for (const [placeId, { steps }] of reached) {
+    const previous = (graph.get(placeId) ?? [])
+      .filter(neighbour => reached.get(neighbour)?.steps === steps - 1)
+      .reduce<string | null>((best, neighbour) => (best === null || closest.get(neighbour)!.shared > closest.get(best)!.shared ? neighbour : best), null);
+    closest.set(placeId, { shared: (previous === null ? 0 : closest.get(previous)!.shared) + (named.has(placeId) ? 1 : 0), previous });
+  }
+  const between: string[] = [];
+  for (let { previous } = closest.get(target)!; previous !== null && previous !== start; ({ previous } = closest.get(previous)!)) between.unshift(previous);
+  return between;
+};
+
 const pairKeyOf = (first: string, second: string) => [first, second].sort().join('-');
 
 const isMomentOrNull = (value: unknown) => value === null || typeof value === 'number';
@@ -93,6 +116,7 @@ const isMomentOrNull = (value: unknown) => value === null || typeof value === 'n
 export const createWayfinder = ({ places, matcher, random, clock, storage, dataVersion }: WayfinderDependencies) => {
   const graph = mainlandGraphOf(places);
   const placeIds = new Set(places.map(({ id }) => id));
+  const records = createRecords(storage);
 
   let phase: 'idle' | WayfinderState['phase'] = 'idle';
   let setup = wayfinderSetup(false);
@@ -104,15 +128,27 @@ export const createWayfinder = ({ places, matcher, random, clock, storage, dataV
   let hiddenAt: number | null = null;
   let stoppedMs = 0;
   let elapsedMs = 0;
+  let isNewBest = false;
 
   const currentRoute = () => routes.at(-1)!;
 
   const detoursLeft = () => detourBudget - routes.reduce((spent, { detours }) => spent + detours, 0);
 
+  const completedRoutes = () => routes.filter(({ outcome }) => outcome === 'complete');
+
+  const revealOf = (route: Route): RouteReveal | null => {
+    if (route.outcome === 'open') return null;
+    const yourRoute = linkingRoute(graph, route)?.slice(1, -1) ?? null;
+    return { yourRoute, shortestRoute: yourRoute?.length === route.shortest ? null : closestShortestRoute(graph, route) };
+  };
+
   const snapshot = (): WayfinderState | null => {
     if (phase === 'idle') return null;
-    if (phase === 'wayfinderResults') return { phase, setup, routes: [...routes], isComplete, elapsedMs };
-    return { phase, setup, routeNumber: routes.length, route: currentRoute(), routes: [...routes], detoursLeft: detoursLeft(), rejectedEntries: [...rejectedEntries], isConfirmingEnd };
+    if (phase === 'wayfinderResults') {
+      return { phase, setup, routes: [...routes], score: completedRoutes().length, routesWithoutDetours: completedRoutes().filter(({ detours }) => detours === 0).length, isComplete, elapsedMs, isNewBest };
+    }
+    const route = currentRoute();
+    return { phase, setup, routeNumber: routes.length, route, routes: [...routes], detoursLeft: detoursLeft(), rejectedEntries: [...rejectedEntries], isConfirmingEnd, reveal: revealOf(route) };
   };
 
   let state = snapshot();
@@ -157,6 +193,25 @@ export const createWayfinder = ({ places, matcher, random, clock, storage, dataV
   const finish = () => {
     isConfirmingEnd = false;
     elapsedMs = playedMs();
+    const summary: RoundSummary = {
+      date: startedAt,
+      mode: setup.mode,
+      variant: setup.variant,
+      region: setup.region,
+      tier: setup.tier,
+      deckSize: routes.length,
+      timed: false,
+      easy: setup.easy,
+      daily: false,
+      learn: false,
+      score: completedRoutes().length,
+      complete: isComplete,
+      elapsedMs,
+      pausesUsed: 0,
+      dataVersion,
+    };
+    records.logRound(summary);
+    isNewBest = isComplete && records.recordBest(setup, summary);
     phase = 'wayfinderResults';
   };
 

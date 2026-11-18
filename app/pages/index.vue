@@ -9,7 +9,9 @@ import { useHomeDrift } from '~/composables/useHomeDrift';
 import { usePlayFeedback } from '~/composables/usePlayFeedback';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
+import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
 
+const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
 const game = useGameStore();
@@ -52,7 +54,15 @@ const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state
 const isFillRound = computed(() => game.state.phase === 'fill');
 const isRoundPlay = computed(() => ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value) || game.state.phase === 'missing');
 const isWayfinderRound = computed(() => game.state.phase === 'wayfinder');
-const routeMarks = computed(() => (game.state.phase === 'wayfinder' ? { startId: game.state.route.start, targetId: game.state.route.target, namedPlaceIds: game.state.route.entries } : null));
+const routeMarks = computed(() => {
+  if (game.state.phase !== 'wayfinder') return null;
+  const { route, reveal } = game.state;
+  return { startId: route.start, targetId: route.target, namedPlaceIds: route.entries, reveal: reveal && { routePlaceIds: reveal.yourRoute ?? [], shortestPlaceIds: reveal.shortestRoute ?? [] } };
+});
+const nameablePlaces = computed(() => (routeMarks.value
+  ? Object.fromEntries([routeMarks.value.startId, routeMarks.value.targetId, ...routeMarks.value.namedPlaceIds].map(placeId => [placeId, game.nameOf(placeId, locale.value)]))
+  : null));
+const landShown = useWayfinderLandFade(() => game.state);
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
@@ -379,7 +389,8 @@ onMounted(game.load);
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
         :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
         :route="routeMarks"
-        :land-shown="isWayfinderRound ? 0 : 1"
+        :land-shown="landShown"
+        :nameable-places="nameablePlaces"
         :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : wayfinderScreen?.cardBottom ?? 0"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
