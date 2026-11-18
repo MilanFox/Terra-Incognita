@@ -206,6 +206,10 @@
           "on": "On",
           "off": "Off"
         }
+      },
+      "chainOutlines": {
+        "label": "Island chain outlines",
+        "hint": "Dashed outlines around scattered islands. A tap inside one, or on the sea right next to a tiny island, picks the place."
       }
     },
     "data": {

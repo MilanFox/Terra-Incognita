@@ -237,6 +237,13 @@ onMounted(() => title.value?.focus());
           :model-value="settings.reduceMotion"
           @update:model-value="settings.setReduceMotion($event)"
         />
+
+        <SettingsSwitch
+          :label="$t('settings.accessibility.chainOutlines.label')"
+          :hint="$t('settings.accessibility.chainOutlines.hint')"
+          :is-on="settings.isChainOutlinesOn"
+          @toggle="settings.setChainOutlines(!settings.isChainOutlinesOn)"
+        />
       </div>
 
       <p

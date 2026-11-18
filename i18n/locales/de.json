@@ -206,6 +206,10 @@
           "on": "An",
           "off": "Aus"
         }
+      },
+      "chainOutlines": {
+        "label": "Umrisse um Inselketten",
+        "hint": "Gestrichelte Umrisse um verstreute Inseln. Ein Tipp hinein oder aufs Meer direkt neben einer winzigen Insel wählt den Ort."
       }
     },
     "data": {

@@ -29,6 +29,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const reduceMotion = ref<MotionChoice>('system');
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
+  const isChainOutlinesOn = ref(false);
 
   const save = () => {
     localStorage.setItem(storageKey, JSON.stringify({
@@ -36,6 +37,7 @@ export const useSettingsStore = defineStore('settings', () => {
       sound: isSoundOn.value,
       language: language.value,
       reduceMotion: reduceMotion.value,
+      chainOutlines: isChainOutlinesOn.value,
     }));
   };
 
@@ -50,6 +52,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (typeof stored.sound === 'boolean') isSoundOn.value = stored.sound;
     if (languages.includes(stored.language as Language)) language.value = stored.language as Language;
     if (motionChoices.includes(stored.reduceMotion as MotionChoice)) reduceMotion.value = stored.reduceMotion as MotionChoice;
+    if (typeof stored.chainOutlines === 'boolean') isChainOutlinesOn.value = stored.chainOutlines;
   };
 
   const setSound = (isOn: boolean) => {
@@ -67,5 +70,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, load, setSound, setLanguage, setReduceMotion };
+  const setChainOutlines = (isOn: boolean) => {
+    isChainOutlinesOn.value = isOn;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isChainOutlinesOn, load, setSound, setLanguage, setReduceMotion, setChainOutlines };
 });
