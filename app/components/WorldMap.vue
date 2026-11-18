@@ -83,6 +83,8 @@ const minimumFlightFramePx = 120;
 const keyboardGapPx = 16;
 const minZoom = -1;
 const maxZoom = 10;
+// MapLibre's ease-out starts the glide at linearity / 0.6 of the release speed, so 0.6 lets the map leave the finger at the finger's speed.
+const panInertia = { linearity: 0.6, deceleration: 1200, maxSpeed: 1500 };
 const cursorFollowMarginPx = 40;
 const cursorMinStepPx = 2;
 const cursorAcrossWeight = 2.5;
@@ -744,6 +746,7 @@ onMounted(async () => {
     ...(props.frameRegion && props.frameRegion !== 'world' && { bounds: regionFrames[props.frameRegion], fitBoundsOptions: { padding: { ...regionFramePadding, bottom: props.frameInset } } }),
     minZoom,
     maxZoom,
+    dragPan: panInertia,
     dragRotate: false,
     pitchWithRotate: false,
     touchPitch: false,
