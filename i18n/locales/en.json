@@ -112,6 +112,11 @@
       "subtitle": "Name that country",
       "help": "A flag or a silhouette appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
     },
+    "fill": {
+      "name": "Here Be Dragons",
+      "subtitle": "Fill the map",
+      "help": "Type the places of your chosen region and tier, in any order and in English or German, and each one you name fills in on the map. Typos are forgiven; a name that is wrong, already filled or not in this round just shakes, with no penalty. Naming a place also fills the land merged into it in this tier. The round ends when the map is full, the timer runs out or you end it, and your score is the places filled out of all of them. A round ended with End round doesn't count for your stats or bests."
+    },
     "missing": {
       "name": "Atlantis",
       "subtitle": "What's missing",
@@ -243,6 +248,30 @@
     "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
     "findName": "Find on the map: {place}",
     "timeLeft": "{time} left."
+  },
+  "fill": {
+    "progress": "{count} of {total} filled",
+    "score": "{count} filled",
+    "prompt": "Name any place on the map",
+    "endLine": "Places you haven't filled stay empty, and an ended round doesn't count for your stats or bests.",
+    "input": {
+      "filled": "Filled: {place}",
+      "duplicate": "Already filled: {place}",
+      "outside": "Not part of this round",
+      "ambiguous": "Which one? Keep typing",
+      "none": "No place by that name"
+    },
+    "live": {
+      "filled": "Filled: {place}. {count} of {total}.",
+      "duplicate": "Already filled: {place}.",
+      "outside": "Not part of this round.",
+      "ambiguous": "Which one? Keep typing.",
+      "none": "No place by that name.",
+      "start": "Name any place on the map. {total} to fill."
+    },
+    "results": {
+      "unreached": "Unreached"
+    }
   },
   "missing": {
     "prompt": "Tap where the missing places belong",

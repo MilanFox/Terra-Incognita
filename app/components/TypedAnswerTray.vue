@@ -2,7 +2,7 @@
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }> }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' | 'fill' }> }>();
 const emit = defineEmits<{ next: [] }>();
 
 const game = useGameStore();
@@ -15,7 +15,10 @@ const isRejected = ref(false);
 
 const outcome = computed(() => (props.state.phase === 'verdict' ? props.state.answer.outcome : null));
 const submitKey = computed(() => (outcome.value === 'wrong' || outcome.value === 'missed' ? 'next' : 'submit'));
-const unresolvedCount = computed(() => (props.state.phase === 'prompt' ? props.state.unresolvedAnswers.length : 0));
+const unresolvedCount = computed(() => {
+  if (props.state.phase === 'fill') return props.state.lastInput && props.state.lastInput.kind !== 'filled' ? props.state.inputCount : 0;
+  return props.state.phase === 'prompt' ? props.state.unresolvedAnswers.length : 0;
+});
 
 const replaceSelection = (text: string, start: number, end: number) => {
   input.value!.setRangeText(text, start, end, 'end');
@@ -25,13 +28,13 @@ const replaceSelection = (text: string, start: number, end: number) => {
 
 const type = (text: string) => {
   const field = input.value;
-  if (props.state.phase !== 'prompt' || !field) return;
+  if (props.state.phase === 'verdict' || !field) return;
   replaceSelection(text, field.selectionStart ?? field.value.length, field.selectionEnd ?? field.value.length);
 };
 
 const erase = () => {
   const field = input.value;
-  if (props.state.phase !== 'prompt' || !field) return;
+  if (props.state.phase === 'verdict' || !field) return;
   const end = field.selectionEnd ?? field.value.length;
   const start = field.selectionStart ?? end;
   replaceSelection('', start === end ? Math.max(0, start - 1) : start, end);
@@ -42,7 +45,8 @@ const submit = () => {
   else game.send({ type: 'submit', text: typedText.value });
 };
 
-watch(() => props.state.promptNumber, () => {
+watch(() => (props.state.phase === 'fill' ? props.state.inputCount : props.state.promptNumber), () => {
+  if (props.state.phase === 'fill' && (props.state.lastInput?.kind === 'ambiguous' || props.state.lastInput?.kind === 'none')) return;
   typedText.value = '';
   isRejected.value = false;
 });
@@ -56,7 +60,7 @@ watch(unresolvedCount, async (count) => {
 
 useEventListener(document, 'keydown', (event) => {
   const { target } = event;
-  if (props.state.phase !== 'prompt' || event.ctrlKey || event.metaKey || event.altKey || !/^[\p{L}-]$/u.test(event.key)) return;
+  if (props.state.phase === 'verdict' || event.ctrlKey || event.metaKey || event.altKey || !/^[\p{L}-]$/u.test(event.key)) return;
   if (target === input.value || (target instanceof Element && target.closest('[role="dialog"], [role="alertdialog"], input, textarea'))) return;
   input.value?.focus({ preventScroll: true });
 });

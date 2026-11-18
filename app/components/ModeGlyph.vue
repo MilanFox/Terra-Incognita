@@ -61,6 +61,46 @@ defineProps<{ mode: Mode }>();
       />
     </template>
 
+    <template v-else-if="mode === 'fill'">
+      <rect
+        x="4"
+        y="4"
+        width="10"
+        height="10"
+        fill="currentColor"
+      />
+
+      <rect
+        x="18"
+        y="18"
+        width="10"
+        height="10"
+        fill="currentColor"
+      />
+
+      <rect
+        x="18"
+        y="4"
+        width="10"
+        height="10"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-dasharray="3 2.5"
+      />
+
+      <rect
+        x="4"
+        y="18"
+        width="10"
+        height="10"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-dasharray="3 2.5"
+      />
+    </template>
+
     <template v-else-if="mode === 'missing'">
       <path
         d="M3.5 4.5h12v10h-12zM16.5 14.5h12v13h-12z"

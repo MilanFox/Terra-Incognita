@@ -137,7 +137,7 @@ defineExpose({ element: tray });
       />
 
       <RadioTiles
-        v-if="setup.mode !== 'missing'"
+        v-if="setup.mode !== 'missing' && setup.mode !== 'fill'"
         :label="$t('setup.groups.deckSize')"
         :options="deckSizeOptions"
         :model-value="setup.deckSize"
@@ -161,6 +161,7 @@ defineExpose({ element: tray });
       </button>
 
       <button
+        v-if="setup.mode !== 'fill'"
         type="button"
         role="switch"
         class="tile setup-tray__switch"

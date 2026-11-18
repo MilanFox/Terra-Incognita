@@ -39,6 +39,7 @@ watch(() => game.state, (state) => {
   else if (state.phase === 'home' || state.phase === 'results') foundPlaceIds.value = [];
 });
 const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedMode(game.state.setup.mode));
+const isFillRound = computed(() => game.state.phase === 'fill');
 const isRoundPlay = computed(() => ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value) || game.state.phase === 'missing');
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
@@ -52,7 +53,8 @@ const poolPlaceIds = computed(() => {
     const { gapPlaceIds, foundPlaceIds: foundGapIds, setup } = game.state;
     return game.poolOf({ ...setup, mode: 'find', variant: 'name' }).filter(id => !gapPlaceIds.includes(id) || foundGapIds.includes(id));
   }
-  return traySetup.value ? game.poolOf(traySetup.value) : null;
+  if (traySetup.value) return game.poolOf(traySetup.value);
+  return game.state.phase === 'fill' ? game.poolOf(game.state.setup) : null;
 });
 const frameRegion = computed(() => traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
@@ -64,6 +66,7 @@ watch(verdict, (answer) => {
 
 const resultPlaces = computed(() => {
   if (game.state.phase === 'missing') return game.state.foundPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
+  if (game.state.phase === 'fill') return game.state.filledLandPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
   if (game.state.phase !== 'results') return null;
   const { answers, missedPlaceIds } = game.state;
   return [
@@ -79,7 +82,7 @@ const frameInset = computed(() => {
 });
 
 const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results'
-  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict' || game.state.phase === 'missing') && (game.state.isConfirmingEnd || game.state.isPaused)));
+  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict' || game.state.phase === 'missing' || game.state.phase === 'fill') && (game.state.isConfirmingEnd || game.state.isPaused)));
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
@@ -114,7 +117,7 @@ const playDaily = async (variant: DailyVariant) => {
   worldMap.value?.focus();
 };
 
-const focusAnswering = () => (isTypedRound.value ? typedAnswerTray.value?.focus() : worldMap.value?.focus());
+const focusAnswering = () => (isTypedRound.value || isFillRound.value ? typedAnswerTray.value?.focus() : worldMap.value?.focus());
 
 const play = async (setup: RoundSetup | undefined) => {
   setupDraft.value = null;
@@ -213,8 +216,17 @@ onMounted(game.load);
     </Transition>
 
     <Transition name="drop">
+      <FillScreen
+        v-if="isShellReady && game.state.phase === 'fill'"
+        :state="game.state"
+        :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+        :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+        @zoom-in="worldMap?.zoomIn()"
+        @zoom-out="worldMap?.zoomOut()"
+      />
+
       <MissingRound
-        v-if="isShellReady && game.state.phase === 'missing'"
+        v-else-if="isShellReady && game.state.phase === 'missing'"
         :state="game.state"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
@@ -224,8 +236,14 @@ onMounted(game.load);
     </Transition>
 
     <Transition name="tray">
+      <TypedAnswerTray
+        v-if="isShellReady && game.state.phase === 'fill'"
+        ref="typedAnswerTray"
+        :state="game.state"
+      />
+
       <ChoiceTray
-        v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound && game.state.setup.easy"
+        v-else-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound && game.state.setup.easy"
         ref="typedAnswerTray"
         :state="game.state"
       />
@@ -270,7 +288,7 @@ onMounted(game.load);
       :is-round-play="isRoundPlay"
       :found-place-ids="foundPlaceIds"
       :highlighted-place-id="highlightedPlaceId"
-      :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : 0"
+      :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : 0"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
       @announce="announce"
