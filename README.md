@@ -11,4 +11,4 @@ Terra Incognita was built with AI assistance, in three steps:
 
 1. Wayfinder map: a planning map that turned the idea's open questions into decisions, one research, prototype or grilling ticket at a time. It is a planning tool, unrelated to the game's Wayfinder mode.
 2. Spec: synthesised from the map's decisions.
-3. Tickets: the spec split into implementation tickets, worked one by one in Chartroom, a self-hosted issue tracker.
+3. Tickets: the spec split into implementation tickets in Chartroom, a self-hosted issue tracker, and built in ten milestones, each checked by hand on a phone.
