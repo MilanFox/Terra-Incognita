@@ -44,11 +44,13 @@ const durationTextOf = useDurationText();
 
 const elapsedTime = computed(() => durationTextOf(Math.round(props.state.elapsedMs / 1000)));
 
-const newBestLine = computed(() => t('record.newBest', {
-  region: t(`setup.regions.${props.state.setup.region}`),
-  tier: t(`setup.tiers.${props.state.setup.tier}`),
-  deckSize: t(`setup.deckSizes.${props.state.setup.deckSize}`),
-}));
+const newBestLine = computed(() => props.state.setup.mode === 'missing'
+  ? t('missing.newBest', { tier: t(`setup.tiers.${props.state.setup.tier}`), timing: t(props.state.setup.timed ? 'missing.timed' : 'missing.untimed') })
+  : t('record.newBest', {
+      region: t(`setup.regions.${props.state.setup.region}`),
+      tier: t(`setup.tiers.${props.state.setup.tier}`),
+      deckSize: t(`setup.deckSizes.${props.state.setup.deckSize}`),
+    }));
 
 const statTiles = computed(() => [
   { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) },

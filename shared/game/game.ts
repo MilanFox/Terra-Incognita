@@ -1,6 +1,8 @@
 import { berlinDateOf, dailyDeckSize, drawDaily, streakOf } from './daily';
 import { createCapitalMatcher, createMatcher } from './matcher';
 import type { NamesFile } from './matcher';
+import { drawGaps, gapCount, isStoredProgress, judgeTap, missingTimeLimitMs, tapBudgetOf } from './missing';
+import type { MissingTap } from './missing';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
@@ -8,7 +10,7 @@ import type { DailyCell, DailyRecord, RoundSummary } from './records';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-export type Mode = 'find' | 'name' | 'capital' | 'country';
+export type Mode = 'find' | 'name' | 'capital' | 'country' | 'missing';
 
 export type Variant = 'flag' | 'name' | 'both' | 'map' | 'silhouette';
 export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
@@ -23,6 +25,7 @@ export interface Place {
   flag: string | null
   capitals?: string[]
   silhouette?: boolean
+  microstate?: Record<Tier, boolean>
 }
 
 export interface RoundSetup {
@@ -93,7 +96,7 @@ const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
 const optionCount = 4;
-const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000, capital: 15000, country: 15000 };
+const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000, capital: 15000, country: 15000, missing: missingTimeLimitMs / gapCount };
 const typedModes: Mode[] = ['name', 'capital', 'country'];
 const noMapModes: Mode[] = ['country'];
 const setupStorageKey = 'ti:setup';
@@ -128,6 +131,7 @@ export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
+    | { phase: 'missing', setup: RoundSetup, gapPlaceIds: string[], foundPlaceIds: string[], tapsLeft: number, lastTap: MissingTap | null, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
     | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null };
 
 type Phase = GameState['phase'];
@@ -135,8 +139,8 @@ type Phase = GameState['phase'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
-const modes: Mode[] = ['find', 'name', 'capital', 'country'];
-const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'] };
+const modes: Mode[] = ['find', 'name', 'capital', 'country', 'missing'];
+const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], missing: ['map'] };
 const flagVariants: Variant[] = ['flag', 'both'];
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
@@ -153,7 +157,7 @@ export const isTypedMode = (mode: Mode) => typedModes.includes(mode);
 const isMultipleChoice = ({ mode, easy }: RoundSetup) => easy && isTypedMode(mode);
 export const isNoMapMode = (mode: Mode) => noMapModes.includes(mode);
 
-const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: variantChoicesByMode[mode][0]!, region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
+const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: variantChoicesByMode[mode][0]!, region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: mode === 'missing' });
 
 export const dailySetupOf = (variant: DailyVariant): RoundSetup => ({ mode: 'find', variant, region: 'world', tier: 'sovereign', deckSize: dailyDeckSize, easy: false, timed: false });
 
@@ -180,6 +184,8 @@ interface StoredRound {
   optionPlaceIds?: string[]
   dataVersion: number
   dailyDate?: string | null
+  foundPlaceIds?: string[]
+  tapsUsed?: number
 }
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === 'string');
@@ -229,6 +235,9 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   let elapsedMs = 0;
   let isNewBest = false;
   let dailyDate: string | null = null;
+  let foundPlaceIds: string[] = [];
+  let tapsUsed = 0;
+  let lastTap: MissingTap | null = null;
 
   const poolOf = (poolSetup: RoundSetup) => places
     .filter(place => isInTier(place, poolSetup.tier))
@@ -236,6 +245,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     .filter(place => !flagVariants.includes(poolSetup.variant) || place.flag !== null)
     .filter(place => poolSetup.mode !== 'capital' || (place.capitals?.length ?? 0) > 0)
     .filter(place => poolSetup.variant !== 'silhouette' || place.silhouette !== false)
+    .filter(place => poolSetup.mode !== 'missing' || !place.microstate?.[poolSetup.tier])
     .map(({ id }) => id);
 
   const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
@@ -249,7 +259,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       regions: regionChoices.map(region => choiceOf(region, poolSizeOf({ ...chosen, region }))),
       tiers: tiersInOrder.map(tier => choiceOf(tier, poolSizeOf({ ...chosen, tier }))),
       deckSizes: deckSizeChoices.map(deckSize => choiceOf(deckSize, deckSize === 'all' ? poolSize : Math.min(deckSize, poolSize))),
-      playCount: Math.min(chosen.deckSize === 'all' ? poolSize : chosen.deckSize, poolSize),
+      playCount: Math.min(chosen.mode === 'missing' ? gapCount : chosen.deckSize === 'all' ? poolSize : chosen.deckSize, poolSize),
     };
   };
 
@@ -306,22 +316,30 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const pausesLeft = () => (setup.timed ? pausesPerRound - pausesUsed : 0);
 
+  const scoreNow = () => (setup.mode === 'missing' ? foundPlaceIds.length : answers.filter(({ outcome }) => outcome === 'right').length);
+
+  const gapResults = (): Answer[] => foundPlaceIds.map(placeId => ({ placeId, tappedPlaceId: placeId, outcome: 'right' }));
+
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
-    const score = answers.filter(({ outcome }) => outcome === 'right').length;
-    if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest, dailyDate };
+    const score = scoreNow();
+    if (phase === 'results') {
+      const isGapRound = setup.mode === 'missing';
+      return { phase, setup, deckSize: deck.length, score, answers: isGapRound ? gapResults() : [...answers], missedPlaceIds: isGapRound ? deck.filter(id => !foundPlaceIds.includes(id)) : deck.slice(answers.length), isComplete, elapsedMs, isNewBest, dailyDate };
+    }
+    if (phase === 'missing') return { phase, setup, gapPlaceIds: [...deck], foundPlaceIds: [...foundPlaceIds], tapsLeft: tapBudgetOf(setup.easy) - tapsUsed, lastTap, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
     const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], unresolvedAnswers: [...unresolvedAnswers], optionPlaceIds: [...optionPlaceIds], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft(), dailyDate };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
   const persistRound = () => {
-    if (phase !== 'prompt' && phase !== 'verdict') {
+    if (!isRoundInPlay()) {
       storage.removeItem(roundStorageKey);
       return;
     }
     // A round read back on relaunch counts as hidden since its last write, if the app never got to hide it.
-    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, optionPlaceIds, dataVersion: version.dataVersion, dailyDate };
+    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, optionPlaceIds, dataVersion: version.dataVersion, dailyDate, foundPlaceIds, tapsUsed };
     storage.setItem(roundStorageKey, JSON.stringify(round));
   };
 
@@ -341,7 +359,8 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       && storedAnswers.every((storedAnswer: Answer, index) => isStoredAnswer(storedAnswer, storedDeck[index], placeIds))
       && isStringList(storedWrongTaps) && storedWrongTaps.every(id => placeIds.has(id))
       && typeof stored.startedAt === 'number' && typeof stored.stoppedMs === 'number' && isMomentOrNull(stored.hiddenAt) && isMomentOrNull(stored.pausedAt)
-      && Number.isInteger(stored.pausesUsed) && stored.pausesUsed! >= 0 && stored.pausesUsed! <= pausesPerRound;
+      && Number.isInteger(stored.pausesUsed) && stored.pausesUsed! >= 0 && stored.pausesUsed! <= pausesPerRound
+      && (stored.setup!.mode !== 'missing' || isStoredProgress({ gapPlaceIds: storedDeck, foundPlaceIds: stored.foundPlaceIds, tapsUsed: stored.tapsUsed, easy: stored.setup!.easy }));
     if (!isValid) {
       storage.removeItem(roundStorageKey);
       return;
@@ -357,8 +376,11 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     pausedAt = stored!.pausedAt ?? null;
     pausesUsed = stored!.pausesUsed!;
     dailyDate = typeof stored!.dailyDate === 'string' ? stored!.dailyDate : null;
+    foundPlaceIds = setup.mode === 'missing' ? stored!.foundPlaceIds! : [];
+    tapsUsed = setup.mode === 'missing' ? stored!.tapsUsed! : 0;
+    lastTap = null;
     optionPlaceIds = isStringList(stored!.optionPlaceIds) && stored!.optionPlaceIds.every(id => placeIds.has(id)) ? stored!.optionPlaceIds : optionsFor(deck[promptIndex]!);
-    phase = 'prompt';
+    phase = setup.mode === 'missing' ? 'missing' : 'prompt';
     // A relaunch is a return from the background.
     hide();
     show();
@@ -377,6 +399,9 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     unresolvedAnswers = [];
     promptIndex = 0;
     optionPlaceIds = optionsFor(deck[0]!);
+    foundPlaceIds = [];
+    tapsUsed = 0;
+    lastTap = null;
     isConfirmingEnd = false;
     isComplete = true;
     startedAt = clock();
@@ -384,11 +409,11 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     stoppedMs = 0;
     pausedAt = null;
     pausesUsed = 0;
-    phase = 'prompt';
+    phase = roundSetup.mode === 'missing' ? 'missing' : 'prompt';
   };
 
   const start = (roundSetup: RoundSetup) => {
-    begin(roundSetup, shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize), null);
+    begin(roundSetup, roundSetup.mode === 'missing' ? drawGaps(poolOf(roundSetup), random) : shuffled(poolOf(roundSetup), random).slice(0, roundSetup.deckSize === 'all' ? undefined : roundSetup.deckSize), null);
     rememberSetup(roundSetup);
   };
 
@@ -478,7 +503,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const timeLimitMs = () => (setup.timed ? promptBudgetsMs[setup.mode] * deck.length : Infinity);
 
-  const isRoundInPlay = () => phase === 'prompt' || phase === 'verdict';
+  const isRoundInPlay = () => phase === 'prompt' || phase === 'verdict' || phase === 'missing';
 
   const timeLeftMs = () => (isRoundInPlay() && setup.timed ? Math.max(0, timeLimitMs() - playedMs()) : null);
 
@@ -495,7 +520,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       easy: setup.easy,
       daily: dailyDate !== null,
       learn: false,
-      score: answers.filter(({ outcome }) => outcome === 'right').length,
+      score: scoreNow(),
       complete: isComplete,
       elapsedMs,
       pausesUsed,
@@ -533,7 +558,17 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     finish();
   };
 
-  const runOut = () => (answers.length < deck.length ? end() : finish());
+  const runOut = () => (setup.mode !== 'missing' && answers.length < deck.length ? end() : finish());
+
+  const tapGap = (tappedPlaceId: string | undefined) => {
+    if (tappedPlaceId !== undefined && !placeIds.has(tappedPlaceId)) return;
+    const tap = judgeTap(deck, foundPlaceIds, tappedPlaceId === undefined ? undefined : answeredAs(tappedPlaceId));
+    if (!tap) return;
+    tapsUsed += 1;
+    lastTap = tap;
+    if (tap.kind === 'hit') foundPlaceIds = [...foundPlaceIds, tap.placeId];
+    if (foundPlaceIds.length === deck.length || tapsUsed >= tapBudgetOf(setup.easy)) finish();
+  };
 
   const send = (event: GameEvent) => {
     const isInRound = isRoundInPlay();
@@ -551,7 +586,8 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       else return;
     }
     else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
-    else if (event.type === 'start' && (phase === 'home' || phase === 'results') && variantChoicesByMode[event.setup.mode].includes(event.setup.variant) && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
+    else if (event.type === 'tap' && phase === 'missing') tapGap(event.placeId);
+    else if (event.type === 'start' && (phase === 'home' || phase === 'results') && variantChoicesByMode[event.setup.mode].includes(event.setup.variant) && (event.setup.mode !== 'missing' || event.setup.region === 'world') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);
     else if (event.type === 'viewDaily' && phase === 'home' && todaysDaily()?.cells) viewDaily(todaysDaily()!, todaysDaily()!.cells!);
     else if (event.type === 'tap' && phase === 'prompt' && !isTypedMode(setup.mode) && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);

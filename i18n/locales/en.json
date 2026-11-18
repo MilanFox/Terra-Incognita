@@ -111,6 +111,11 @@
       "name": "Sighting",
       "subtitle": "Name that country",
       "help": "A flag or a silhouette appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
+    },
+    "missing": {
+      "name": "Atlantis",
+      "subtitle": "What's missing",
+      "help": "Ten places have been wiped off the map. Tap where you think each one belongs: a hit names the place, a tap on the wrong land shows which place you hit, and a tap on the sea is a miss. You have 10 taps (30 with Easy mode), and with Timed on, 90 seconds. The round ends when all ten are found, the taps run out or the time is up."
     }
   },
   "round": {
@@ -238,5 +243,26 @@
     "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
     "findName": "Find on the map: {place}",
     "timeLeft": "{time} left."
+  },
+  "missing": {
+    "prompt": "Tap where the missing places belong",
+    "found": "Found",
+    "foundPlace": "Found: {place}",
+    "notHere": "Not here",
+    "youTapped": "You tapped: {place}",
+    "sea": "That's the sea",
+    "score": "{found} of {total} found",
+    "taps": "{count} tap left | {count} taps left",
+    "endLine": "Gaps you haven't found count as missed.",
+    "live": {
+      "start": "Ten places are missing. Tap where they belong. {count} taps.",
+      "found": "Found: {place}. {found} of {total}.",
+      "wrongPlace": "Wrong. You tapped {place}. {taps}.",
+      "sea": "Wrong. That's the sea. {taps}."
+    },
+    "foundCount": "{found} found",
+    "newBest": "New best · {tier} · {timing}",
+    "timed": "Timed",
+    "untimed": "Untimed"
   }
 }

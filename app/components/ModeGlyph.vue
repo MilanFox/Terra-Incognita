@@ -61,6 +61,21 @@ defineProps<{ mode: Mode }>();
       />
     </template>
 
+    <template v-else-if="mode === 'missing'">
+      <path
+        d="M3.5 4.5h12v10h-12zM16.5 14.5h12v13h-12z"
+        fill="currentColor"
+      />
+
+      <path
+        d="M17 4.5h11.5v7.5M3.5 17v10.5h10"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-dasharray="3 2.5"
+      />
+    </template>
+
     <template v-else>
       <path
         d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"

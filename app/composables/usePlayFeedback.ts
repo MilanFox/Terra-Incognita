@@ -13,6 +13,13 @@ export const usePlayFeedback = (state: () => GameState) => {
     else if (phase === 'results') sound.results();
   });
 
+  watch(() => {
+    const current = state();
+    return current.phase === 'missing' ? current.lastTap : null;
+  }, (tap) => {
+    if (tap) (tap.kind === 'hit' ? sound.right : sound.wrong)();
+  });
+
   // iOS only starts an AudioContext inside a user gesture
   useEventListener(window, ['pointerdown', 'keydown'], unlockSound, { capture: true, passive: true });
 };
