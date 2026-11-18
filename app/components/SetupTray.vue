@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isLearnSetup } from '#shared/game/game';
 import type { DeckSize, Mode, RegionChoice, RoundKind, RoundSetup, Tier, Variant } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
@@ -47,6 +48,8 @@ const roundKindOptions = computed(() => choices.value.roundKinds.map(({ value, c
 }));
 
 const isRegularMode = computed(() => ['find', 'name', 'capital', 'country'].includes(props.setup.mode));
+
+const isLearn = computed(() => isLearnSetup(props.setup));
 
 const change = (changes: Partial<RoundSetup>) => emit('update:setup', { ...props.setup, ...changes });
 
@@ -182,7 +185,7 @@ defineExpose({ element: tray });
       />
 
       <RadioTiles
-        v-if="setup.mode !== 'missing' && setup.mode !== 'fill'"
+        v-if="setup.mode !== 'missing' && setup.mode !== 'fill' && !isLearn"
         :label="$t('setup.groups.deckSize')"
         :options="deckSizeOptions"
         :model-value="setup.deckSize"
@@ -193,16 +196,18 @@ defineExpose({ element: tray });
         type="button"
         role="switch"
         class="tile setup-tray__switch"
-        :aria-checked="setup.timed"
-        @click="change({ timed: !setup.timed })"
+        :class="{ 'setup-tray__switch--unavailable': isLearn }"
+        :aria-checked="setup.timed && !isLearn"
+        :aria-disabled="isLearn || undefined"
+        @click="isLearn || change({ timed: !setup.timed })"
       >
         <span>{{ $t('setup.timed') }}</span>
 
         <span
           class="setup-tray__switch-state"
-          :class="{ 'setup-tray__switch-state--on': setup.timed }"
+          :class="{ 'setup-tray__switch-state--on': setup.timed && !isLearn }"
           aria-hidden="true"
-        >{{ setup.timed ? $t('setup.on') : $t('setup.off') }}</span>
+        >{{ setup.timed && !isLearn ? $t('setup.on') : $t('setup.off') }}</span>
       </button>
 
       <button
@@ -300,6 +305,13 @@ defineExpose({ element: tray });
     padding: 0 16px;
     font-size: 18px;
     font-weight: 700;
+  }
+
+  &__switch--unavailable {
+    border-style: dashed;
+    color: $color-muted;
+    box-shadow: none;
+    cursor: not-allowed;
   }
 
   &__switch-state {

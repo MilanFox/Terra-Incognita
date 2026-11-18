@@ -58,7 +58,8 @@
     },
     "roundKinds": {
       "quiz": "Quiz",
-      "weak": "Weak ones"
+      "weak": "Weak ones",
+      "learn": "Learn"
     },
     "variants": {
       "flag": "Flag",
@@ -145,6 +146,20 @@
     "next": "Next",
     "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left",
     "clock": "Time left"
+  },
+  "learn": {
+    "learned": "{count} learned",
+    "everythingLearned": "Everything here learned",
+    "liveEverythingLearned": "Everything here learned.",
+    "results": {
+      "learned": "Learned",
+      "learnedText": "{count} place learned | {count} places learned",
+      "answers": "Answers",
+      "answersText": "{count} answer given | {count} answers given",
+      "firstTry": "Right first try",
+      "firstTryText": "{share} right on the first try",
+      "playAgain": "Learn again"
+    }
   },
   "results": {
     "title": "Round complete",

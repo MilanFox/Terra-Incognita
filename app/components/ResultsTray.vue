@@ -54,6 +54,17 @@ const newBestLine = computed(() => props.state.setup.mode === 'missing'
 
 const isFill = computed(() => props.state.setup.mode === 'fill');
 
+const learningStatTiles = computed((): { label: string, value: string, total?: number, text: string }[] | null => {
+  if (!props.state.learning) return null;
+  const { learnedCount, answerCount } = props.state.learning;
+  const firstTryShare = new Intl.NumberFormat(locale.value, { style: 'percent' }).format(props.state.deckSize === 0 ? 0 : props.state.score / props.state.deckSize);
+  return [
+    { label: t('learn.results.learned'), value: String(learnedCount), text: t('learn.results.learnedText', { count: learnedCount }, learnedCount) },
+    { label: t('learn.results.answers'), value: String(answerCount), text: t('learn.results.answersText', { count: answerCount }, answerCount) },
+    { label: t('learn.results.firstTry'), value: firstTryShare, text: t('learn.results.firstTryText', { share: firstTryShare }) },
+  ];
+});
+
 const statTiles = computed(() => (isFill.value
   ? [
       { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('fill.progress', { count: props.state.score, total: props.state.deckSize }) },
@@ -161,7 +172,7 @@ defineExpose({ element: tray });
 
     <div class="results-tray__stats">
       <div
-        v-for="(stat, index) in statTiles"
+        v-for="(stat, index) in learningStatTiles ?? statTiles"
         :key="stat.label"
         class="tile results-tray__stat"
         :style="{ '--index': index }"
@@ -198,7 +209,10 @@ defineExpose({ element: tray });
       </li>
     </ol>
 
-    <p class="results-tray__time">
+    <p
+      v-if="!state.learning"
+      class="results-tray__time"
+    >
       <span aria-hidden="true">{{ $t('record.time', { time: elapsedTime.shown }) }}</span>
 
       <span class="visually-hidden">{{ $t('record.time', { time: elapsedTime.spoken }) }}</span>
@@ -245,7 +259,7 @@ defineExpose({ element: tray });
         class="tile results-tray__play-again"
         @click="emit('playAgain')"
       >
-        {{ $t('results.playAgain') }}
+        {{ state.learning ? $t('learn.results.playAgain') : $t('results.playAgain') }}
       </button>
 
       <button

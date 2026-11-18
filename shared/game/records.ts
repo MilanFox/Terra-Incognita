@@ -91,6 +91,16 @@ export const createRecords = (storage: KeyValueStorage) => {
     storage.setItem(placesStorageKey, JSON.stringify({ ...records, [modeVariant]: { ...records[modeVariant], [placeId]: updated } }));
   };
 
+  const recordConfusion = (setup: RoundSetup, placeId: string, confusedWith: string | undefined) => {
+    if (!confusedWith) return;
+    const records = read<PlaceRecords>(placesStorageKey, {});
+    const modeVariant = modeVariantOf(setup);
+    const updated: PlaceRecord = { ...noRecord(), ...records[modeVariant]?.[placeId], confusedWith };
+    storage.setItem(placesStorageKey, JSON.stringify({ ...records, [modeVariant]: { ...records[modeVariant], [placeId]: updated } }));
+  };
+
+  const placeRecordsOf = (setup: RoundSetup): Record<string, PlaceRecord> => read<PlaceRecords>(placesStorageKey, {})[modeVariantOf(setup)] ?? {};
+
   const logRound = (summary: RoundSummary) => {
     storage.setItem(roundsStorageKey, JSON.stringify([...roundLog(), summary].slice(-roundLogLength)));
   };
@@ -113,5 +123,5 @@ export const createRecords = (storage: KeyValueStorage) => {
     storage.setItem(dailyStorageKey, JSON.stringify({ ...dailyRecords(), [record.date]: record }));
   };
 
-  return { roundLog, recordAnswer, logRound, personalBests, recordBest, dailyRecords, recordDaily };
+  return { roundLog, recordAnswer, recordConfusion, placeRecordsOf, logRound, personalBests, recordBest, dailyRecords, recordDaily };
 };
