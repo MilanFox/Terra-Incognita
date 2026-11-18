@@ -18,12 +18,18 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      meta: [{ name: 'theme-color', content: '#182640' }],
+      meta: [{ name: 'theme-color', content: '#faf8f3' }],
       link: [
         {
           rel: 'icon',
           type: 'image/x-icon',
+          sizes: '48x48',
           href: '/favicon.ico',
+        },
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          href: '/icon.svg',
         },
         {
           rel: 'apple-touch-icon',
@@ -134,8 +140,8 @@ export default defineNuxtConfig({
       display: 'standalone',
       start_url: '/',
       scope: '/',
-      background_color: '#182640',
-      theme_color: '#182640',
+      background_color: '#faf8f3',
+      theme_color: '#faf8f3',
       icons: [
         { src: '/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
         { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
