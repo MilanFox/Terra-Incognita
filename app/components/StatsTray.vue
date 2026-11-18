@@ -169,7 +169,13 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 });
 
 onMounted(() => {
-  if (props.restoredView && tray.value) tray.value.scrollTop = props.restoredView.scrollTop;
+  if (props.restoredView) {
+    const { scrollTop } = props.restoredView;
+    // Only once the tray is limited below the restored bubble: scrolled sooner, it would clamp to the taller tray's range.
+    whenever(openTrayLimit, () => {
+      if (tray.value) tray.value.scrollTop = scrollTop;
+    }, { once: true, flush: 'post' });
+  }
   else title.value?.focus({ preventScroll: true });
   measure();
   requestAnimationFrame(() => requestAnimationFrame(() => {

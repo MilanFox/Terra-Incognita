@@ -12,7 +12,7 @@ const element = useTemplateRef<HTMLElement>('element');
 const whyButton = useTemplateRef<HTMLButtonElement>('whyButton');
 const { height } = useElementSize(element, undefined, { box: 'border-box' });
 // From layout, not the on-screen rect: a bubble restored with stats rises with the tray, and a rect read mid-rise would stick.
-const bottom = computed(() => (element.value?.offsetTop ?? 0) + height.value);
+const bottom = computed(() => (height.value ? (element.value?.offsetTop ?? 0) + height.value : 0));
 
 const lines = computed(() => {
   const { recent, lifetime, easy } = props.details;

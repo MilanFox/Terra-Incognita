@@ -16,7 +16,7 @@ import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncemen
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
 import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
 
-type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup } | { tray: 'stats', view: StatsView, camera: JumpToOptions };
+type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup, scrollTop: number } | { tray: 'stats', view: StatsView, camera: JumpToOptions };
 
 const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
@@ -218,7 +218,7 @@ const openAbout = (section: AboutSectionId = 'intro', opener: AboutOpener = { tr
 
 const swapSetupForAboutTiers = () => {
   if (!setupDraft.value) return;
-  openAbout('tiers', { tray: 'setup', setup: setupDraft.value });
+  openAbout('tiers', { tray: 'setup', setup: setupDraft.value, scrollTop: setupTray.value?.element?.scrollTop ?? 0 });
   setupDraft.value = null;
 };
 
@@ -235,7 +235,10 @@ const closeAbout = async () => {
   if (opener.tray === 'setup') setupDraft.value = opener.setup;
   if (opener.tray === 'stats') isStatsOpen.value = true;
   await nextTick();
-  if (opener.tray === 'setup') setupTray.value?.focusAboutTiers();
+  if (opener.tray === 'setup') {
+    if (setupTray.value?.element) setupTray.value.element.scrollTop = opener.scrollTop;
+    setupTray.value?.focusAboutTiers();
+  }
   else if (opener.tray === 'stats') {
     aboutOpener.value = { tray: 'home' };
     worldMap.value?.getMap()?.jumpTo(opener.camera);
