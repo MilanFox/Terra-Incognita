@@ -84,5 +84,10 @@ export const useGameStore = defineStore('game', () => {
     game!.capitalsOf(placeId).flatMap(capitalId => (names.value[placeId] as PlaceNames | undefined)?.capitals?.[capitalId]?.[locale as Locale]?.name ?? []),
   );
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf };
+  const firstCapitalNameOf = (placeId: string, locale: string) => {
+    const firstCapitalId = game!.capitalsOf(placeId)[0];
+    return (firstCapitalId && (names.value[placeId] as PlaceNames | undefined)?.capitals?.[firstCapitalId]?.[locale as Locale]?.name) || placeId;
+  };
+
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf };
 });

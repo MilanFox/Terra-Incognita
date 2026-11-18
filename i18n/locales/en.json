@@ -202,9 +202,11 @@
     "promptLive": "Name the capital of {place}",
     "youTyped": "You typed the capital of {place}",
     "answer": "Capital: {capitals}",
+    "pickLabel": "Pick the capital",
     "live": {
       "right": "Right: {capitals}.",
       "wrong": "Wrong. You typed the capital of {typed}. The answer is {capitals}. Press Next.",
+      "wrongPicked": "Wrong. You picked {picked}. The answer is {capitals}. Press Next.",
       "missed": "The answer is {capitals}. Press Next.",
       "noMatch": "No capital by that name. Try again."
     }

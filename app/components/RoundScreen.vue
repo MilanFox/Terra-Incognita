@@ -98,6 +98,7 @@ useEventListener(document, 'keydown', (event) => {
 onBeforeUnmount(() => clearTimeout(flipTimer));
 
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
+const pickedName = (placeId: string) => (isCapital.value ? game.firstCapitalNameOf(placeId, locale.value) : placeName(placeId));
 const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.value);
 </script>
 
@@ -268,7 +269,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
             scope="global"
           >
             <template #place>
-              <s>{{ placeName(state.answer.tappedPlaceId) }}</s>
+              <s>{{ state.setup.easy && isTyped ? pickedName(state.answer.tappedPlaceId) : placeName(state.answer.tappedPlaceId) }}</s>
             </template>
           </i18n-t>
 

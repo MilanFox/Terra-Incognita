@@ -202,9 +202,11 @@
     "promptLive": "Nenne die Hauptstadt von {place}",
     "youTyped": "Geschrieben: die Hauptstadt von {place}",
     "answer": "Hauptstadt: {capitals}",
+    "pickLabel": "Wähle die Hauptstadt",
     "live": {
       "right": "Richtig: {capitals}.",
       "wrong": "Falsch. Du hast die Hauptstadt von {typed} geschrieben. Die Antwort ist {capitals}. Drücke Weiter.",
+      "wrongPicked": "Falsch. Du hast {picked} gewählt. Die Antwort ist {capitals}. Drücke Weiter.",
       "missed": "Die Antwort ist {capitals}. Drücke Weiter.",
       "noMatch": "Keine Hauptstadt mit diesem Namen. Versuch es nochmal."
     }

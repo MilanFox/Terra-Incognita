@@ -11,6 +11,7 @@ const labelId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const options = useTemplateRef<HTMLButtonElement[]>('options');
 
+const isCapital = computed(() => props.state.setup.mode === 'capital');
 const isAnswered = computed(() => props.state.phase === 'verdict');
 const pickedPlaceId = computed(() => (props.state.phase === 'verdict' && props.state.answer.outcome !== 'missed' ? props.state.answer.tappedPlaceId : null));
 
@@ -41,7 +42,7 @@ defineExpose({
       :id="labelId"
       class="kicker choice-tray__label"
     >
-      {{ $t('choice.label') }}
+      {{ isCapital ? $t('capital.pickLabel') : $t('choice.label') }}
     </p>
 
     <div
@@ -59,7 +60,7 @@ defineExpose({
         :aria-disabled="isAnswered"
         @click="pick(placeId)"
       >
-        <span :class="{ 'choice-tray__name--struck': stateOf(placeId) === 'wrong' }">{{ game.nameOf(placeId, locale) }}</span>
+        <span :class="{ 'choice-tray__name--struck': stateOf(placeId) === 'wrong' }">{{ isCapital ? game.firstCapitalNameOf(placeId, locale) : game.nameOf(placeId, locale) }}</span>
       </button>
     </div>
   </div>

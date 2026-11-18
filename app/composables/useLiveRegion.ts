@@ -34,6 +34,8 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
 
   const nameOf = (placeId: string) => game.nameOf(placeId, locale.value);
 
+  const pickedCapitalOf = (placeId: string) => game.firstCapitalNameOf(placeId, locale.value);
+
   const capitalNamesOf = (placeId: string) => game.capitalNamesOf(placeId, locale.value);
 
   watch(() => {
@@ -48,6 +50,7 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
       if (current.setup.mode === 'capital') {
         if (answer.outcome === 'right') announce(t('capital.live.right', { capitals: capitalNamesOf(answer.placeId) }));
         else if (answer.outcome === 'missed') announce(t('capital.live.missed', { capitals: capitalNamesOf(answer.placeId) }));
+        else if (current.setup.easy) announce(t('capital.live.wrongPicked', { picked: pickedCapitalOf(answer.tappedPlaceId), capitals: capitalNamesOf(answer.placeId) }));
         else announce(t('capital.live.wrong', { typed: nameOf(answer.tappedPlaceId), capitals: capitalNamesOf(answer.placeId) }));
       }
       else if (answer.outcome === 'right') announce(t('live.right', { place: nameOf(answer.placeId) }));
