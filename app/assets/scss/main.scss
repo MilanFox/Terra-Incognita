@@ -48,6 +48,13 @@ button.tile {
     transform: translateY(3px);
     box-shadow: 0 1px 0 $color-ink;
   }
+
+  // The pressed tile drops 3px; this keeps a press on its top edge from releasing over whatever lies above it.
+  &:active::before {
+    content: '';
+    position: absolute;
+    inset: -5px 0 0;
+  }
 }
 
 .tray {
