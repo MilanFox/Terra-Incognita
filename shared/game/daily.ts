@@ -34,3 +34,41 @@ export const drawDaily = (poolIds: readonly string[], date: string) => {
   }
   return deck.slice(0, drawCount);
 };
+
+const dayMs = 86_400_000;
+
+const shiftedDateOf = (date: string, days: number) => new Date(Date.parse(date) + days * dayMs).toISOString().slice(0, 10);
+
+export interface Streak {
+  current: number
+  longest: number
+}
+
+export const streakOf = (completeDates: ReadonlySet<string>, today: string): Streak => {
+  let current = 0;
+  let date = completeDates.has(today) ? today : shiftedDateOf(today, -1);
+  while (completeDates.has(date)) {
+    current += 1;
+    date = shiftedDateOf(date, -1);
+  }
+  let longest = 0;
+  for (const start of completeDates) {
+    if (completeDates.has(shiftedDateOf(start, -1))) continue;
+    let length = 0;
+    while (completeDates.has(shiftedDateOf(start, length))) length += 1;
+    longest = Math.max(longest, length);
+  }
+  return { current, longest };
+};
+
+export const nextBerlinMidnightOf = (moment: number) => {
+  const today = berlinDateOf(moment);
+  let before = moment;
+  let after = moment + dayMs * 1.5;
+  while (after - before > 1) {
+    const middle = Math.floor((before + after) / 2);
+    if (berlinDateOf(middle) === today) before = middle;
+    else after = middle;
+  }
+  return after;
+};

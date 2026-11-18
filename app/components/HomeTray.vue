@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import type { Streak } from '#shared/game/daily';
 import type { Mode, RoundSetup } from '#shared/game/game';
+import type { DailyRecord } from '#shared/game/records';
+import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
-const props = defineProps<{ lastSetup?: RoundSetup, isDailyPlayed: boolean }>();
+const props = defineProps<{ lastSetup?: RoundSetup, todaysDaily?: DailyRecord, streak: Streak }>();
 const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [] }>();
 
 const liftMs = 180;
 
 const { locale, t } = useI18n();
+const { now, shown: nextDailyShown, spoken: nextDailySpoken } = useNextDailyCountdown();
 const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 const gridId = useId();
@@ -28,7 +32,7 @@ const isLaunching = ref(false);
 const collapsedShift = ref(0);
 const isPositioned = ref(false);
 
-const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
+const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday: 'long', day: 'numeric', month: 'long' }).format(now.value));
 
 const playAgainSummary = computed(() => props.lastSetup && [
   t(`setup.regions.${props.lastSetup.region}`),
@@ -64,10 +68,6 @@ useResizeObserver(tray, measure);
 watch(locale, () => nextTick(measure));
 
 const { start: startPlay } = useTimeoutFn(() => emit('playAgain'), liftMs, { immediate: false });
-
-const openDaily = () => {
-  if (!props.isDailyPlayed) emit('openDaily');
-};
 
 const launch = () => {
   if (isLaunching.value) return;
@@ -194,11 +194,10 @@ defineExpose({
         ref="dailyTile"
         type="button"
         class="tile mode-tile daily-tile"
-        :class="{ 'daily-tile--played': isDailyPlayed }"
+        :class="{ 'daily-tile--played': todaysDaily }"
         :aria-label="$t('daily.title')"
         :aria-describedby="dailySubtitleId"
-        :aria-disabled="isDailyPlayed || undefined"
-        @click="openDaily"
+        @click="emit('openDaily')"
       >
         <span
           class="mode-tile__glyph"
@@ -230,8 +229,20 @@ defineExpose({
 
           <span
             :id="dailySubtitleId"
-            class="mode-tile__subtitle"
-          >{{ isDailyPlayed ? $t('daily.played') : $t('daily.subtitle') }}</span>
+            class="mode-tile__subtitle daily-tile__lines"
+          >
+            <span v-if="todaysDaily">{{ $t('daily.today', { score: todaysDaily.score, total: todaysDaily.deckSize }) }}</span>
+
+            <span v-else>{{ $t('daily.subtitle') }}</span>
+
+            <span>{{ $t('daily.streakLine', { count: streak.current }, streak.current) }}</span>
+
+            <template v-if="todaysDaily">
+              <span aria-hidden="true">{{ $t('daily.next', { time: nextDailyShown }) }}</span>
+
+              <span class="visually-hidden">{{ $t('daily.next', { time: nextDailySpoken }) }}</span>
+            </template>
+          </span>
         </span>
       </button>
 
@@ -443,6 +454,10 @@ defineExpose({
     min-height: 0;
   }
 
+  .daily-tile__lines {
+    display: grid;
+  }
+
   &.daily-tile {
     background: $color-green;
     color: $color-surface;
@@ -450,9 +465,6 @@ defineExpose({
     &.daily-tile--played {
       background: $color-sand;
       color: $color-ink;
-      box-shadow: none;
-      cursor: default;
-      transform: none;
     }
   }
 

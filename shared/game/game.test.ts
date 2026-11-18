@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import shippedPlaces from '../../public/data/places.json';
 import shippedVersion from '../../public/data/version.json';
+import { berlinDateOf, nextBerlinMidnightOf } from './daily';
 import { createGame, deepestTierPlayed, rightAnswerAdvanceMs, rightAnswerHoldMs } from './game';
 import type { SchemaMigration } from './migrations';
 import type { DailyVariant, DataVersion, GameState, KeyValueStorage, Place, RoundSetup } from './game';
@@ -1732,7 +1733,7 @@ describe('the daily challenge', () => {
     playThrough(game, 0);
 
     expect(resultsOf(game)).toMatchObject({ score: 0, isComplete: true, dailyDate: '2026-11-18' });
-    expect(storedJson(storage, 'ti:daily')).toEqual({ '2026-11-18': { date: '2026-11-18', variant: 'flag', score: 0, deckSize: 10, elapsedMs: 30_000, complete: true } });
+    expect(storedJson(storage, 'ti:daily')).toEqual({ '2026-11-18': { date: '2026-11-18', variant: 'flag', score: 0, deckSize: 10, elapsedMs: 30_000, complete: true, cells: Array(10).fill('wrong') } });
   });
 
   it('leaves the day used up and incomplete on End round', () => {
@@ -1795,5 +1796,110 @@ describe('the daily challenge', () => {
     const nextDay = dailyGame(Date.UTC(2026, 10, 19, 8), { storage }).game;
     expect(nextDay.dailyVariant()).toBe('flag');
     expect(nextDay.setupFor('find')).toMatchObject({ variant: 'both' });
+  });
+});
+
+describe('the daily streak', () => {
+  const today = Date.UTC(2026, 11, 20, 12);
+
+  const dailyRecord = (date: string, complete = true) => ({ date, variant: 'name', score: 5, deckSize: 10, elapsedMs: 1000, complete });
+
+  const gameWithDays = (dates: string[], incompleteDates: string[] = []) => {
+    const storage = memoryStorage();
+    const records = [...dates.map(date => dailyRecord(date)), ...incompleteDates.map(date => dailyRecord(date, false))];
+    storage.setItem('ti:daily', JSON.stringify(Object.fromEntries(records.map(record => [record.date, record]))));
+    let now = today;
+    const game = createGame({ places, version: shippedVersion, random: seededRandom(1), clock: () => now, storage });
+    return {
+      game, storage, setNow: (moment: number) => {
+        now = moment;
+      }
+    };
+  };
+
+  it('is zero without any daily', () => {
+    expect(gameWithDays([]).game.streak()).toEqual({ current: 0, longest: 0 });
+  });
+
+  it('counts consecutive complete Berlin dates ending today', () => {
+    expect(gameWithDays(['2026-12-18', '2026-12-19', '2026-12-20']).game.streak().current).toBe(3);
+  });
+
+  it('counts a run ending yesterday while today is unplayed', () => {
+    expect(gameWithDays(['2026-12-18', '2026-12-19']).game.streak().current).toBe(2);
+  });
+
+  it('ignores a started but unfinished today', () => {
+    expect(gameWithDays(['2026-12-18', '2026-12-19'], ['2026-12-20']).game.streak().current).toBe(2);
+  });
+
+  it('is broken by a missed day', () => {
+    expect(gameWithDays(['2026-12-16', '2026-12-17', '2026-12-19', '2026-12-20']).game.streak().current).toBe(2);
+    expect(gameWithDays(['2026-12-16', '2026-12-17', '2026-12-18']).game.streak().current).toBe(0);
+  });
+
+  it('is broken by an ended day', () => {
+    expect(gameWithDays(['2026-12-18', '2026-12-20'], ['2026-12-19']).game.streak().current).toBe(1);
+  });
+
+  it('crosses month and year boundaries', () => {
+    const { game, setNow } = gameWithDays(['2026-12-30', '2026-12-31', '2027-01-01']);
+    setNow(Date.UTC(2027, 0, 1, 12));
+    expect(game.streak().current).toBe(3);
+  });
+
+  it('follows the Berlin date, not UTC', () => {
+    const { game, setNow } = gameWithDays(['2026-12-19', '2026-12-20']);
+    setNow(Date.UTC(2026, 11, 20, 23, 30));
+    expect(game.streak().current).toBe(2);
+    setNow(Date.UTC(2026, 11, 21, 0, 30));
+    expect(game.streak().current).toBe(2);
+    setNow(Date.UTC(2026, 11, 22, 0, 30));
+    expect(game.streak().current).toBe(0);
+  });
+
+  it('reports the longest run in the records, past or present', () => {
+    const { game } = gameWithDays(['2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04', '2026-12-10', '2026-12-20']);
+    expect(game.streak()).toEqual({ current: 1, longest: 4 });
+  });
+
+  it('is never stored', () => {
+    const { game, storage } = gameWithDays(['2026-12-19', '2026-12-20']);
+    game.streak();
+    expect(Object.keys(JSON.parse(storage.getItem('ti:daily')!))).toEqual(['2026-12-19', '2026-12-20']);
+    expect(storage.getItem('ti:streak')).toBeNull();
+    expect(storage.getItem('ti:settings')).toBeNull();
+  });
+
+  it('grows when today is completed and holds when it is ended', () => {
+    const { game } = gameWithDays(['2026-12-18', '2026-12-19']);
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.streak().current).toBe(2);
+    playThrough(game, 3);
+    expect(game.streak().current).toBe(3);
+  });
+
+  it('reopens a finished daily read-only with its cells, and refuses a second round', () => {
+    const { game } = gameWithDays([]);
+    game.send({ type: 'startDaily', variant: 'flag' });
+    const askedPlaceIds = playThrough(game, 4);
+    game.send({ type: 'leave' });
+    game.send({ type: 'viewDaily' });
+    const results = resultsOf(game);
+    expect(results).toMatchObject({ score: 4, deckSize: 10, isComplete: true, dailyDate: '2026-12-20' });
+    expect(results.answers.map(({ placeId }) => placeId)).toEqual(askedPlaceIds);
+    game.send({ type: 'leave' });
+    game.send({ type: 'startDaily', variant: 'name' });
+    expect(game.state.phase).toBe('home');
+  });
+});
+
+describe('the next Berlin midnight', () => {
+  it('is the first moment of the next Berlin date, also across a clock change', () => {
+    [Date.UTC(2026, 10, 18, 8), Date.UTC(2026, 2, 28, 22, 59, 59), Date.UTC(2026, 2, 29, 12), Date.UTC(2026, 9, 25, 12)].forEach((moment) => {
+      const midnight = nextBerlinMidnightOf(moment);
+      expect(berlinDateOf(midnight - 1)).toBe(berlinDateOf(moment));
+      expect(berlinDateOf(midnight)).not.toBe(berlinDateOf(moment));
+    });
   });
 });

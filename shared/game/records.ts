@@ -43,7 +43,10 @@ export interface DailyRecord {
   deckSize: number
   elapsedMs: number
   complete: boolean
+  cells?: DailyCell[]
 }
+
+export type DailyCell = 'right' | 'wrong' | 'missed';
 
 export type DailyRecords = Record<string, DailyRecord>;
 

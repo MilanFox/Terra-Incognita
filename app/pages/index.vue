@@ -80,7 +80,8 @@ const closeSetup = async () => {
 };
 
 const openDaily = () => {
-  dailyDraft.value = game.dailyVariant();
+  if (game.todaysDaily) game.viewDaily();
+  else dailyDraft.value = game.dailyVariant();
 };
 
 const closeDaily = async () => {
@@ -126,9 +127,11 @@ const closeSettings = async () => {
 };
 
 const leave = async () => {
+  const wasDaily = game.state.phase === 'results' && game.state.dailyDate !== null;
   game.send({ type: 'leave' });
   await nextTick();
-  homeTray.value?.focus();
+  if (wasDaily) homeTray.value?.focusDailyTile();
+  else homeTray.value?.focus();
 };
 
 onMounted(game.load);
@@ -141,7 +144,8 @@ onMounted(game.load);
         v-if="isShellReady && game.state.phase === 'home' && !setupDraft && !dailyDraft && !isSettingsOpen"
         ref="homeTray"
         :last-setup="game.lastSetup"
-        :is-daily-played="!!game.todaysDaily"
+        :todays-daily="game.todaysDaily"
+        :streak="game.streak"
         @play-again="play(game.lastSetup)"
         @open-setup="openSetup"
         @open-daily="openDaily"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GameState } from '#shared/game/game';
+import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
 import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
 
@@ -9,11 +10,24 @@ const emit = defineEmits<{ playAgain: [], changeSetup: [], leave: [] }>();
 const { locale, t } = useI18n();
 const game = useGameStore();
 
+const isDaily = computed(() => props.state.dailyDate !== null);
+const isPerfectDay = computed(() => isDaily.value && props.state.score === props.state.deckSize);
+const { shown: nextDailyShown, spoken: nextDailySpoken } = useNextDailyCountdown();
+const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+const countedStreak = ref(0);
+const shownStreak = useTransition(countedStreak, { duration: computed(() => (prefersReducedMotion.value ? 0 : streakCountMs)), delay: computed(() => (prefersReducedMotion.value ? 0 : streakCountDelayMs)) });
+const shareNotice = ref('');
+
 const titleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 
+const streakCountDelayMs = 900;
+const streakCountMs = 700;
+
 type ResultOutcome = 'right' | 'wrong' | 'missed';
+
+const shareMarks: Record<ResultOutcome, string> = { right: '🟩', wrong: '🟥', missed: '⬜' };
 
 const cellMarks: Record<ResultOutcome, string> = { right: '✓', wrong: '✗', missed: '–' };
 
@@ -42,6 +56,28 @@ const statTiles = computed(() => [
   { label: t('results.unreachedCount'), value: String(props.state.missedPlaceIds.length) },
 ]);
 
+const shareText = computed(() => [
+  [t('daily.shareHeader', { date: props.state.dailyDate }), props.state.setup.variant === 'flag' ? t('daily.hard') : ''].filter(Boolean).join(' · '),
+  t('daily.shareScore', { score: props.state.score, total: props.state.deckSize }),
+  resultCells.value.map(({ outcome }) => shareMarks[outcome]).join(''),
+  t('daily.shareStreak', { count: game.streak.current }),
+].join('\n'));
+
+const share = async () => {
+  shareNotice.value = '';
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: shareText.value });
+    }
+    catch {
+      // Dismissing the share sheet is not an error.
+    }
+    return;
+  }
+  await navigator.clipboard?.writeText(shareText.value);
+  shareNotice.value = t('daily.copied');
+};
+
 const unreachedNames = computed(() => props.state.missedPlaceIds.map(placeName).join(', '));
 
 const focusableTiles = () => [...tray.value!.querySelectorAll<HTMLElement>('button')];
@@ -64,7 +100,10 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 };
 
-onMounted(() => title.value?.focus({ preventScroll: true }));
+onMounted(() => {
+  title.value?.focus({ preventScroll: true });
+  countedStreak.value = game.streak.current;
+});
 
 defineExpose({ element: tray });
 </script>
@@ -94,6 +133,23 @@ defineExpose({ element: tray });
       {{ newBestLine }}
     </p>
 
+    <div
+      v-if="isDaily"
+      class="tile results-tray__streak"
+    >
+      <span
+        class="results-tray__streak-value"
+        aria-hidden="true"
+      >{{ Math.round(shownStreak) }}</span>
+
+      <span class="visually-hidden">{{ $t('daily.streakLine', { count: game.streak.current }, game.streak.current) }}</span>
+
+      <span
+        class="kicker results-tray__stat-label"
+        aria-hidden="true"
+      >{{ $t('daily.streak') }}</span>
+    </div>
+
     <div class="results-tray__stats">
       <div
         v-for="(stat, index) in statTiles"
@@ -115,7 +171,10 @@ defineExpose({ element: tray });
       </div>
     </div>
 
-    <ol class="results-tray__cells">
+    <ol
+      class="results-tray__cells"
+      :class="{ 'results-tray__cells--daily': isDaily, 'results-tray__cells--perfect': isPerfectDay }"
+    >
       <li
         v-for="(cell, index) in resultCells"
         :key="cell.placeId"
@@ -136,6 +195,22 @@ defineExpose({ element: tray });
     </p>
 
     <p
+      v-if="isPerfectDay"
+      class="results-tray__perfect"
+    >
+      {{ $t('daily.perfect') }}
+    </p>
+
+    <p
+      v-if="isDaily"
+      class="results-tray__time"
+    >
+      <span aria-hidden="true">{{ $t('daily.next', { time: nextDailyShown }) }}</span>
+
+      <span class="visually-hidden">{{ $t('daily.next', { time: nextDailySpoken }) }}</span>
+    </p>
+
+    <p
       v-if="state.missedPlaceIds.length"
       class="results-tray__unreached"
     >
@@ -144,6 +219,16 @@ defineExpose({ element: tray });
 
     <div class="results-tray__actions">
       <button
+        v-if="isDaily && state.isComplete"
+        type="button"
+        class="tile results-tray__secondary"
+        @click="share"
+      >
+        {{ $t('daily.share') }}
+      </button>
+
+      <button
+        v-if="!isDaily"
         type="button"
         class="tile results-tray__play-again"
         @click="emit('playAgain')"
@@ -152,6 +237,7 @@ defineExpose({ element: tray });
       </button>
 
       <button
+        v-if="!isDaily"
         type="button"
         class="tile results-tray__secondary"
         @click="emit('changeSetup')"
@@ -167,6 +253,13 @@ defineExpose({ element: tray });
         {{ $t('results.home') }}
       </button>
     </div>
+
+    <p
+      class="visually-hidden"
+      role="status"
+    >
+      {{ shareNotice }}
+    </p>
   </section>
 </template>
 
@@ -240,6 +333,45 @@ defineExpose({ element: tray });
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  &__streak {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px 8px;
+    box-shadow: 0 3px 0 $color-ink;
+  }
+
+  &__streak-value {
+    font-family: $font-serif;
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  &__cells--daily {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 3px;
+
+    .result-cell {
+      width: auto;
+      min-width: 0;
+    }
+  }
+
+  &__cells--perfect {
+    padding: 6px;
+    border: 2px solid $color-ink;
+    border-radius: 4px;
+    background: $color-gold;
+  }
+
+  &__perfect {
+    justify-self: start;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
   }
 
   &__time,

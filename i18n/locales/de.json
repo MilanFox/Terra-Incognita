@@ -25,10 +25,20 @@
   "daily": {
     "title": "Tages-Challenge",
     "subtitle": "10 Orte, heute für alle dieselben",
-    "played": "Heute gespielt · morgen gibt es eine neue",
     "line": "Finde 10 Orte auf der Weltkarte. Heute bekommen alle dieselben Orte, und du hast einen Versuch.",
     "hard": "Schwer",
-    "hardOptionName": "{name}, schwer"
+    "hardOptionName": "{name}, schwer",
+    "hours": "{count} Stunde | {count} Stunden",
+    "next": "Nächste Tages-Challenge in {time}",
+    "today": "Heute: {score} von {total}",
+    "streak": "Serie",
+    "streakLine": "Serie: {count} Tag | Serie: {count} Tage",
+    "perfect": "Perfekter Tag",
+    "share": "Teilen",
+    "copied": "Ergebnis in die Zwischenablage kopiert",
+    "shareHeader": "Terra Incognita · {date}",
+    "shareScore": "{score}/{total}",
+    "shareStreak": "Serie: {count}"
   },
   "setup": {
     "title": "{mode}: Einstellungen",

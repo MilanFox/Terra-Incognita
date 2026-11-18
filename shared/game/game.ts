@@ -1,8 +1,8 @@
-import { berlinDateOf, dailyDeckSize, drawDaily } from './daily';
+import { berlinDateOf, dailyDeckSize, drawDaily, streakOf } from './daily';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
 import { createRecords } from './records';
-import type { DailyRecord, RoundSummary } from './records';
+import type { DailyCell, DailyRecord, RoundSummary } from './records';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
@@ -64,6 +64,7 @@ export interface GameDependencies {
 export type GameEvent
   = | { type: 'start', setup: RoundSetup }
     | { type: 'startDaily', variant: DailyVariant }
+    | { type: 'viewDaily' }
     | { type: 'tap', placeId?: string }
     | { type: 'next' }
     | { type: 'tick' }
@@ -255,6 +256,8 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
 
   const todaysDaily = (): DailyRecord | undefined => records.dailyRecords()[berlinDateOf(clock())];
 
+  const streak = () => streakOf(new Set(Object.values(records.dailyRecords()).filter(({ complete }) => complete).map(({ date }) => date)), berlinDateOf(clock()));
+
   const answeredAs = (tappedPlaceId: string) => {
     let tapped = placesById.get(tappedPlaceId)!;
     while (!isInTier(tapped, setup.tier) && tapped.holder && placesById.has(tapped.holder)) tapped = placesById.get(tapped.holder)!;
@@ -355,6 +358,17 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     rememberDailyVariant(variant);
   };
 
+  const viewDaily = ({ date, variant, elapsedMs: dailyElapsedMs, complete }: DailyRecord, cells: DailyCell[]) => {
+    setup = dailySetupOf(variant);
+    deck = drawDaily(poolOf(dailySetupOf('flag')), date);
+    answers = cells.flatMap((outcome, index): Answer[] => (outcome === 'missed' ? [] : [{ placeId: deck[index]!, tappedPlaceId: outcome === 'right' ? deck[index]! : '', outcome }]));
+    dailyDate = date;
+    isComplete = complete;
+    elapsedMs = dailyElapsedMs;
+    isNewBest = false;
+    phase = 'results';
+  };
+
   const answer = (tappedPlaceId: string) => {
     const placeId = deck[promptIndex]!;
     const answeredPlaceId = answeredAs(tappedPlaceId);
@@ -428,7 +442,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     };
     records.logRound(summary);
     isNewBest = isComplete && records.recordBest(setup, summary);
-    if (dailyDate !== null) records.recordDaily({ date: dailyDate, variant: setup.variant as DailyVariant, score: summary.score, deckSize: summary.deckSize, elapsedMs, complete: isComplete });
+    if (dailyDate !== null) records.recordDaily({ date: dailyDate, variant: setup.variant as DailyVariant, score: summary.score, deckSize: summary.deckSize, elapsedMs, complete: isComplete, cells: deck.map((_, index): DailyCell => answers[index]?.outcome ?? 'missed') });
     phase = 'results';
   };
 
@@ -476,6 +490,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
     else if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);
+    else if (event.type === 'viewDaily' && phase === 'home' && todaysDaily()?.cells) viewDaily(todaysDaily()!, todaysDaily()!.cells!);
     else if (event.type === 'tap' && phase === 'prompt' && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
     else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
@@ -505,6 +520,7 @@ export const createGame = ({ places, version, random, clock, storage, schemaMigr
     timeLeftMs,
     dailyVariant: rememberedDailyVariant,
     todaysDaily,
+    streak,
     send,
   };
 };
