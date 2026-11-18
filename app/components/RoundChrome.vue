@@ -2,6 +2,7 @@
 import { pausesPerRound } from '#shared/game/game';
 import type { RoundSetup } from '#shared/game/game';
 import { useDurationText } from '~/composables/useDurationText';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ state: { setup: RoundSetup, isConfirmingEnd: boolean, isPaused?: boolean, pausesLeft?: number }, endLine: string, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
@@ -14,7 +15,7 @@ const clockText = computed(() => (game.timeLeftMs === null ? null : durationText
 
 const flipOutMs = 140;
 const flipInMs = 160;
-const prefersReducedMotion = usePreferredReducedMotion();
+const isMotionReduced = useReducedMotion();
 const isConfirming = computed(() => props.state.isConfirmingEnd);
 const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
 const flipPhase = ref<'out' | 'in' | null>(null);
@@ -35,7 +36,7 @@ const showFace = async (face: 'card' | 'end') => {
 watch(isConfirming, (confirming) => {
   const face = confirming ? 'end' : 'card';
   clearTimeout(flipTimer);
-  if (prefersReducedMotion.value === 'reduce') {
+  if (isMotionReduced.value) {
     showFace(face);
     return;
   }

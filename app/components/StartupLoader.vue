@@ -74,7 +74,7 @@ const { start: startBeat } = useTimeoutFn(() => emit('revealed'), beatMs, { imme
     animation: startup-loader-pulse 1500ms ease-in-out infinite;
     animation-delay: calc(var(--cell-order) * 180ms);
 
-    @media (prefers-reduced-motion: reduce) {
+    .motion-reduced & {
       animation: none;
     }
   }

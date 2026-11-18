@@ -109,7 +109,7 @@ const inputLine = computed(() => {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .fill-card--rejected {
     animation: none;
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGameStore } from '~/stores/game';
 import { useSound } from '~/composables/useSound';
-import { useSettingsStore } from '~/stores/settings';
+import { motionChoices, useSettingsStore } from '~/stores/settings';
 import type { Language } from '~/stores/settings';
 
 const emit = defineEmits<{ close: [] }>();
@@ -16,8 +16,8 @@ const sound = useSound();
 const { t } = useI18n();
 
 const titleId = useId();
-const soundHintId = useId();
 const languageLabelId = useId();
+const accessibilityLabelId = useId();
 const dataLabelId = useId();
 const confirmTitleId = useId();
 const confirmLineId = useId();
@@ -35,6 +35,11 @@ const toggleSound = () => {
   settings.setSound(isTurningOn);
   if (isTurningOn) sound.tick();
 };
+
+const motionOptions = computed(() => motionChoices.map((choice) => {
+  const label = t(`settings.accessibility.reduceMotion.choices.${choice}`);
+  return { value: choice, label, accessibleName: label, isAvailable: true };
+}));
 
 const chooseLanguage = (language: Language) => {
   settings.setLanguage(language);
@@ -176,29 +181,12 @@ onMounted(() => title.value?.focus());
     </h2>
 
     <template v-if="!pendingConfirm">
-      <button
-        type="button"
-        role="switch"
-        class="tile settings-tray__switch"
-        :aria-checked="settings.isSoundOn"
-        :aria-describedby="soundHintId"
-        @click="toggleSound"
-      >
-        <span class="settings-tray__switch-label">{{ $t('settings.sound') }}</span>
-
-        <span
-          class="settings-tray__switch-state"
-          :class="{ 'settings-tray__switch-state--on': settings.isSoundOn }"
-          aria-hidden="true"
-        >{{ settings.isSoundOn ? $t('settings.on') : $t('settings.off') }}</span>
-      </button>
-
-      <p
-        :id="soundHintId"
-        class="settings-tray__hint"
-      >
-        {{ $t('settings.soundHint') }}
-      </p>
+      <SettingsSwitch
+        :label="$t('settings.sound')"
+        :hint="$t('settings.soundHint')"
+        :is-on="settings.isSoundOn"
+        @toggle="toggleSound"
+      />
 
       <p
         :id="languageLabelId"
@@ -228,6 +216,27 @@ onMounted(() => title.value?.focus());
         >
           {{ $t(`settings.languages.${language}`) }}
         </button>
+      </div>
+
+      <p
+        :id="accessibilityLabelId"
+        class="kicker settings-tray__group-label"
+      >
+        {{ $t('settings.accessibility.title') }}
+      </p>
+
+      <div
+        class="settings-tray__aids"
+        role="group"
+        :aria-labelledby="accessibilityLabelId"
+      >
+        <RadioTiles
+          :label="$t('settings.accessibility.reduceMotion.label')"
+          :hint="$t('settings.accessibility.reduceMotion.hint')"
+          :options="motionOptions"
+          :model-value="settings.reduceMotion"
+          @update:model-value="settings.setReduceMotion($event)"
+        />
       </div>
 
       <p
@@ -381,33 +390,6 @@ onMounted(() => title.value?.focus());
     }
   }
 
-  &__switch {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 56px;
-    padding: 0 16px;
-    font-size: 18px;
-    font-weight: 700;
-  }
-
-  &__switch-state {
-    min-width: 52px;
-    padding: 4px 10px;
-    border: 2px solid $color-ink;
-    border-radius: 4px;
-    background: $color-sand;
-    font-size: 14px;
-    text-align: center;
-
-    &--on {
-      background: $color-green;
-      color: $color-paper;
-    }
-  }
-
   &__hint {
     margin: -4px 0 0;
     color: $color-muted;
@@ -417,6 +399,19 @@ onMounted(() => title.value?.focus());
   &__group-label {
     margin-top: 8px;
     color: $color-muted;
+  }
+
+  &__aids {
+    display: grid;
+    gap: 16px;
+
+    :deep(.radio-tiles__label) {
+      color: $color-ink;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: normal;
+      text-transform: none;
+    }
   }
 
   &__data {

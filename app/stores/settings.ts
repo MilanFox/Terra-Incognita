@@ -2,8 +2,11 @@ import { defineStore } from 'pinia';
 
 export type Language = 'en' | 'de';
 
+export type MotionChoice = 'system' | 'on' | 'off';
+
 const storageKey = 'ti:settings';
 const languages: Language[] = ['en', 'de'];
+export const motionChoices: MotionChoice[] = ['system', 'on', 'off'];
 
 const readStored = (): Record<string, unknown> | null => {
   try {
@@ -23,9 +26,17 @@ const detectBrowserLanguage = (): Language =>
 export const useSettingsStore = defineStore('settings', () => {
   const isSoundOn = ref(true);
   const language = ref<Language>('en');
+  const reduceMotion = ref<MotionChoice>('system');
+  const systemMotion = usePreferredReducedMotion();
+  const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
 
   const save = () => {
-    localStorage.setItem(storageKey, JSON.stringify({ ...readStored(), sound: isSoundOn.value, language: language.value }));
+    localStorage.setItem(storageKey, JSON.stringify({
+      ...readStored(),
+      sound: isSoundOn.value,
+      language: language.value,
+      reduceMotion: reduceMotion.value,
+    }));
   };
 
   const load = () => {
@@ -38,6 +49,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     if (typeof stored.sound === 'boolean') isSoundOn.value = stored.sound;
     if (languages.includes(stored.language as Language)) language.value = stored.language as Language;
+    if (motionChoices.includes(stored.reduceMotion as MotionChoice)) reduceMotion.value = stored.reduceMotion as MotionChoice;
   };
 
   const setSound = (isOn: boolean) => {
@@ -50,5 +62,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, load, setSound, setLanguage };
+  const setReduceMotion = (chosen: MotionChoice) => {
+    reduceMotion.value = chosen;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, load, setSound, setLanguage, setReduceMotion };
 });

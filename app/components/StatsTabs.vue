@@ -1,4 +1,6 @@
 <script setup lang="ts" generic="PageId extends string">
+import { useReducedMotion } from '~/composables/useReducedMotion';
+
 const props = defineProps<{ pages: { id: PageId, name: string }[], label: string }>();
 const activePageId = defineModel<PageId>({ required: true });
 
@@ -7,7 +9,7 @@ const tabInsetPx = 4;
 const idBase = useId();
 const tablist = useTemplateRef<HTMLElement>('tablist');
 const tabs = useTemplateRef<HTMLButtonElement[]>('tabs');
-const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+const isMotionReduced = useReducedMotion();
 
 const tabIdOf = (pageId: PageId) => `${idBase}-tab-${pageId}`;
 const panelIdOf = (pageId: PageId) => `${idBase}-panel-${pageId}`;
@@ -18,7 +20,7 @@ const keepActiveTabInView = () => {
   const listBox = tablist.value.getBoundingClientRect();
   const tabBox = activeTab.getBoundingClientRect();
   const left = Math.min(0, tabBox.left - listBox.left - tabInsetPx) || Math.max(0, tabBox.right - listBox.right + tabInsetPx);
-  if (left !== 0) tablist.value.scrollBy({ left, behavior: prefersReducedMotion.value ? 'instant' : 'smooth' });
+  if (left !== 0) tablist.value.scrollBy({ left, behavior: isMotionReduced.value ? 'instant' : 'smooth' });
 };
 
 watch(activePageId, () => nextTick(keepActiveTabInView));

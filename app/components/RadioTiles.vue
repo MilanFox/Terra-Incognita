@@ -7,10 +7,11 @@ interface RadioOption {
   isAvailable: boolean
 }
 
-const props = defineProps<{ label: string, options: RadioOption[], modelValue: Value }>();
+const props = defineProps<{ label: string, hint?: string, options: RadioOption[], modelValue: Value }>();
 const emit = defineEmits<{ 'update:modelValue': [value: Value] }>();
 
 const labelId = useId();
+const hintId = useId();
 const group = useTemplateRef<HTMLElement>('group');
 
 const choose = (option: RadioOption) => {
@@ -40,11 +41,20 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
       class="kicker radio-tiles__label"
     >{{ label }}</span>
 
+    <p
+      v-if="hint"
+      :id="hintId"
+      class="radio-tiles__hint"
+    >
+      {{ hint }}
+    </p>
+
     <div
       ref="group"
       role="radiogroup"
       class="radio-tiles__options"
       :aria-labelledby="labelId"
+      :aria-describedby="hint ? hintId : undefined"
     >
       <button
         v-for="(option, index) in options"
@@ -78,6 +88,12 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 
   &__label {
     color: $color-muted;
+  }
+
+  &__hint {
+    margin: 0;
+    color: $color-muted;
+    font-size: 14px;
   }
 
   &__options {

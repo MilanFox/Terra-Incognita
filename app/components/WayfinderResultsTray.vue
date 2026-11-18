@@ -222,7 +222,7 @@ defineExpose({ element: tray });
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .wayfinder-results-tray__score {
     animation: none;
   }

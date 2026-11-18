@@ -2,6 +2,7 @@
 import type { GameState } from '#shared/game/game';
 import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
 import { useDurationText } from '~/composables/useDurationText';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'results' }> }>();
@@ -13,9 +14,9 @@ const game = useGameStore();
 const isDaily = computed(() => props.state.dailyDate !== null);
 const isPerfectDay = computed(() => isDaily.value && props.state.score === props.state.deckSize);
 const { shown: nextDailyShown, spoken: nextDailySpoken } = useNextDailyCountdown();
-const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+const isMotionReduced = useReducedMotion();
 const countedStreak = ref(0);
-const shownStreak = useTransition(countedStreak, { duration: computed(() => (prefersReducedMotion.value ? 0 : streakCountMs)), delay: computed(() => (prefersReducedMotion.value ? 0 : streakCountDelayMs)) });
+const shownStreak = useTransition(countedStreak, { duration: computed(() => (isMotionReduced.value ? 0 : streakCountMs)), delay: computed(() => (isMotionReduced.value ? 0 : streakCountDelayMs)) });
 const shareNotice = ref('');
 
 const titleId = useId();
@@ -470,7 +471,7 @@ defineExpose({ element: tray });
   from { transform: rotateX(90deg); }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .results-tray__stat,
   .result-cell {
     animation: none;

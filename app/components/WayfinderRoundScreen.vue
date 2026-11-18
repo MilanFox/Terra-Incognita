@@ -254,7 +254,7 @@ defineExpose({ cardBottom });
   from { opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
+.motion-reduced {
   .route-card {
     animation: none;
   }
