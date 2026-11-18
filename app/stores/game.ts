@@ -80,5 +80,9 @@ export const useGameStore = defineStore('game', () => {
 
   const nameOf = (placeId: string, locale: string) => (names.value[placeId] as PlaceNames | undefined)?.[locale as Locale]?.name ?? placeId;
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf };
+  const capitalNamesOf = (placeId: string, locale: string) => new Intl.ListFormat(locale, { type: 'disjunction' }).format(
+    game!.capitalsOf(placeId).flatMap(capitalId => (names.value[placeId] as PlaceNames | undefined)?.capitals?.[capitalId]?.[locale as Locale]?.name ?? []),
+  );
+
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf };
 });

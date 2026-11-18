@@ -1,5 +1,5 @@
 import { berlinDateOf, dailyDeckSize, drawDaily, streakOf } from './daily';
-import { createMatcher } from './matcher';
+import { createCapitalMatcher, createMatcher } from './matcher';
 import type { NamesFile } from './matcher';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
@@ -8,7 +8,7 @@ import type { DailyCell, DailyRecord, RoundSummary } from './records';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-export type Mode = 'find' | 'name';
+export type Mode = 'find' | 'name' | 'capital';
 
 export type Variant = 'flag' | 'name' | 'both' | 'map';
 export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
@@ -21,6 +21,7 @@ export interface Place {
   region: Region
   holder?: string
   flag: string | null
+  capitals?: string[]
 }
 
 export interface RoundSetup {
@@ -89,8 +90,8 @@ export const pausesPerRound = 3;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
-const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000 };
-const typedModes: Mode[] = ['name'];
+const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000, capital: 15000 };
+const typedModes: Mode[] = ['name', 'capital'];
 const setupStorageKey = 'ti:setup';
 const roundStorageKey = 'ti:round';
 
@@ -129,8 +130,8 @@ type Phase = GameState['phase'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
-const modes: Mode[] = ['find', 'name'];
-const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'] };
+const modes: Mode[] = ['find', 'name', 'capital'];
+const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'] };
 const flagVariants: Variant[] = ['flag', 'both'];
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
@@ -198,6 +199,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   const placesById = new Map(places.map(place => [place.id, place]));
   const records = createRecords(storage);
   const matcher = createMatcher(names);
+  const capitalMatcher = createCapitalMatcher(names, places);
 
   let phase: Phase = 'home';
   let setup = firstTimeSetup('find');
@@ -222,6 +224,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
     .filter(place => !flagVariants.includes(poolSetup.variant) || place.flag !== null)
+    .filter(place => poolSetup.mode !== 'capital' || (place.capitals?.length ?? 0) > 0)
     .map(({ id }) => id);
 
   const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
@@ -405,7 +408,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const submit = (text: string) => {
     const placeId = deck[promptIndex]!;
-    const judged = matcher.judge(text, placeId);
+    const judged = (setup.mode === 'capital' ? capitalMatcher : matcher).judge(text, placeId);
     if (judged.verdict === 'ambiguous' || judged.verdict === 'none') {
       unresolvedAnswers = [...unresolvedAnswers, judged.verdict];
       return;
@@ -550,6 +553,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     },
     choicesFor,
     poolOf,
+    capitalsOf: (placeId: string) => placesById.get(placeId)?.capitals ?? [],
     timeLeftMs,
     dailyVariant: rememberedDailyVariant,
     todaysDaily,

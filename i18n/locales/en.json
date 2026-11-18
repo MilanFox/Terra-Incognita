@@ -100,6 +100,11 @@
       "name": "The Surveyor",
       "subtitle": "Name on the map",
       "help": "A place lights up on the map and you type its name on the keyboard below, in English or German. Small typos are forgiven, and if your answer could mean more than one place, keep typing. You get one try per place; “I don't know” shows you the answer and counts as missed."
+    },
+    "capital": {
+      "name": "Ports of Call",
+      "subtitle": "Name the capital",
+      "help": "A place lights up on the map and is named, and you type its capital on the keyboard below, in English or German. If a place has several capitals, any of them counts. Small typos are forgiven, and if your answer could mean more than one capital, keep typing. You get one try per place; “I don't know” shows you the answer and counts as missed."
     }
   },
   "round": {
@@ -186,6 +191,18 @@
       "wrong": "Wrong. You typed {typed}. The answer is {answer}. Press Next.",
       "missed": "The answer is {answer}. Press Next.",
       "noMatch": "No place by that name. Try again."
+    }
+  },
+  "capital": {
+    "prompt": "Name the capital",
+    "promptLive": "Name the capital of {place}",
+    "youTyped": "You typed the capital of {place}",
+    "answer": "Capital: {capitals}",
+    "live": {
+      "right": "Right: {capitals}.",
+      "wrong": "Wrong. You typed the capital of {typed}. The answer is {capitals}. Press Next.",
+      "missed": "The answer is {capitals}. Press Next.",
+      "noMatch": "No capital by that name. Try again."
     }
   },
   "zoom": {

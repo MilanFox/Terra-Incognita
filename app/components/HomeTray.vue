@@ -17,6 +17,7 @@ const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 const gridId = useId();
 const subtitleId = useId();
 const nameSubtitleId = useId();
+const capitalSubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -26,6 +27,7 @@ const grid = useTemplateRef<HTMLElement>('grid');
 const dateLine = useTemplateRef<HTMLElement>('dateLine');
 const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const nameModeTile = useTemplateRef<HTMLButtonElement>('nameModeTile');
+const capitalModeTile = useTemplateRef<HTMLButtonElement>('capitalModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -86,7 +88,7 @@ defineExpose({
   focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    (mode === 'name' ? nameModeTile : modeTile).value?.focus({ preventScroll: true });
+    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -325,6 +327,31 @@ defineExpose({
               :id="nameSubtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.name.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="capitalModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.capital.name')"
+          :aria-describedby="capitalSubtitleId"
+          @click="emit('openSetup', 'capital')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="capital" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.capital.name') }}</span>
+
+            <span
+              :id="capitalSubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.capital.subtitle') }}</span>
           </span>
         </button>
       </div>
