@@ -103,9 +103,11 @@ const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
 
 // MapLibre only allows ['zoom'] as the input of a top-level interpolate, so the per-place cut-off sits inside each stop.
-const speckOpacity = ['interpolate', ['linear'], ['zoom'],
-  ...Array.from({ length: highestSpeckZoom + 1 }, (_, stop) => [stop, ['max', 0, ['min', 1, ['-', ['get', 'speckZoom'], stop]]]]).flat(),
+const speckOpacityWithin = (extraZoom: number) => ['interpolate', ['linear'], ['zoom'],
+  ...Array.from({ length: highestSpeckZoom + extraZoom + 1 }, (_, stop) => [stop, ['max', 0, ['min', 1, ['-', ['+', ['get', 'speckZoom'], extraZoom], stop]]]]).flat(),
 ] as ExpressionSpecification;
+const speckOpacity = speckOpacityWithin(0);
+const highlightSpeckExtraZoom = 3;
 
 const dimColour = colours.water;
 const dimmedFilterFor = (poolPlaceIds: string[] | null | undefined): FilterSpecification => poolPlaceIds
@@ -152,6 +154,20 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
         'circle-stroke-width': ['case', isCursor, 2, isSpeckMarked, 1, 0.5],
         'circle-stroke-color': ['case', isSpeckMarked, colours.ink, colours.border],
         'circle-stroke-opacity': speckOpacity,
+      },
+    },
+    {
+      id: 'speck-highlight',
+      type: 'circle',
+      source: 'specks',
+      filter: dimmedNone,
+      paint: {
+        'circle-radius': cursorSpeckRadius,
+        'circle-color': colours.mustard,
+        'circle-opacity': speckOpacityWithin(highlightSpeckExtraZoom),
+        'circle-stroke-width': 1,
+        'circle-stroke-color': colours.ink,
+        'circle-stroke-opacity': speckOpacityWithin(highlightSpeckExtraZoom),
       },
     },
     {
@@ -267,10 +283,13 @@ watch(() => props.verdict, (verdict, previousVerdict) => {
 });
 
 // After the verdict and results watchers, so a place they just cleared or coloured is not overwritten.
-watch(() => props.highlightedPlaceId, (placeId, previousPlaceId) => {
+const applyHighlight = (placeId: string | null | undefined, previousPlaceId?: string | null) => {
   if (previousPlaceId && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, null);
   if (placeId) setPlaceStatus(placeId, 'selected');
-}, { flush: 'post' });
+  map?.setFilter('speck-highlight', placeId ? ['==', ['get', 'id'], placeId] : dimmedNone);
+};
+
+watch(() => props.highlightedPlaceId, applyHighlight, { flush: 'post' });
 
 watch([() => props.highlightedPlaceId, () => props.keyboardInset], ([placeId]) => {
   if (placeId) flyTo(placeId);
@@ -472,6 +491,10 @@ onMounted(async () => {
     if (stripeColour && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1, stripeColour), { pixelRatio: window.devicePixelRatio || 1 });
   });
   map.once('idle', () => emit('drawn'));
+  map.once('load', () => {
+    applyHighlight(props.highlightedPlaceId);
+    if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
+  });
   if (props.tier !== shownTier) swapTierMap(props.tier);
 });
 
