@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { dailySetupOf, isTypedMode } from '#shared/game/game';
+import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
@@ -39,7 +39,7 @@ watch(() => game.state, (state) => {
 });
 const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedMode(game.state.setup.mode));
 const isRoundPlay = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value);
-const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value ? game.state.placeId : null));
+const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value);
@@ -50,6 +50,10 @@ const poolPlaceIds = computed(() => traySetup.value ? game.poolOf(traySetup.valu
 const frameRegion = computed(() => traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
+
+watch(verdict, (answer) => {
+  if (answer?.outcome === 'right' && game.state.phase === 'verdict' && isNoMapMode(game.state.setup.mode)) worldMap.value?.flyTo(answer.placeId);
+});
 
 const resultPlaces = computed(() => {
   if (game.state.phase !== 'results') return null;

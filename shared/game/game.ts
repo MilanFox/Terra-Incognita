@@ -8,9 +8,9 @@ import type { DailyCell, DailyRecord, RoundSummary } from './records';
 
 export type Tier = 'sovereign' | 'defacto' | 'dependencies';
 export type Region = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-export type Mode = 'find' | 'name';
+export type Mode = 'find' | 'name' | 'country';
 
-export type Variant = 'flag' | 'name' | 'both' | 'map';
+export type Variant = 'flag' | 'name' | 'both' | 'map' | 'silhouette';
 export type DailyVariant = Extract<Variant, 'name' | 'flag'>;
 export type DeckSize = 10 | 'all';
 export type RegionChoice = Region | 'world';
@@ -21,6 +21,7 @@ export interface Place {
   region: Region
   holder?: string
   flag: string | null
+  silhouette?: boolean
 }
 
 export interface RoundSetup {
@@ -89,8 +90,9 @@ export const pausesPerRound = 3;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
-const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000 };
-const typedModes: Mode[] = ['name'];
+const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000, country: 15000 };
+const typedModes: Mode[] = ['name', 'country'];
+const noMapModes: Mode[] = ['country'];
 const setupStorageKey = 'ti:setup';
 const roundStorageKey = 'ti:round';
 
@@ -129,8 +131,8 @@ type Phase = GameState['phase'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
-const modes: Mode[] = ['find', 'name'];
-const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'] };
+const modes: Mode[] = ['find', 'name', 'country'];
+const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], country: ['flag'] };
 const flagVariants: Variant[] = ['flag', 'both'];
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
@@ -143,6 +145,8 @@ interface StoredSetups {
 const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier);
 
 export const isTypedMode = (mode: Mode) => typedModes.includes(mode);
+
+export const isNoMapMode = (mode: Mode) => noMapModes.includes(mode);
 
 const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: variantChoicesByMode[mode][0]!, region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
 
@@ -222,6 +226,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     .filter(place => isInTier(place, poolSetup.tier))
     .filter(place => poolSetup.region === 'world' || place.region === poolSetup.region)
     .filter(place => !flagVariants.includes(poolSetup.variant) || place.flag !== null)
+    .filter(place => poolSetup.variant !== 'silhouette' || place.silhouette !== false)
     .map(({ id }) => id);
 
   const poolSizeOf = (poolSetup: RoundSetup) => poolOf(poolSetup).length;
@@ -519,7 +524,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       else return;
     }
     else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
-    else if (event.type === 'start' && (phase === 'home' || phase === 'results') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
+    else if (event.type === 'start' && (phase === 'home' || phase === 'results') && variantChoicesByMode[event.setup.mode].includes(event.setup.variant) && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);
     else if (event.type === 'viewDaily' && phase === 'home' && todaysDaily()?.cells) viewDaily(todaysDaily()!, todaysDaily()!.cells!);
     else if (event.type === 'tap' && phase === 'prompt' && !isTypedMode(setup.mode) && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
