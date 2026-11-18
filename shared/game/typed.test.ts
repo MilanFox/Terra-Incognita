@@ -276,3 +276,123 @@ describe('timed typed rounds', () => {
     expect(resultsOf(game)).toMatchObject({ isComplete: false, score: 0, answers: [] });
   });
 });
+
+describe('Easy mode in a typed mode', () => {
+  const regionOf = (placeId: string) => places.find(({ id }) => id === placeId)!.region;
+  const startEasy = (changes: Partial<RoundSetup> = {}, seed = 1, storage = memoryStorage()) => startTyped({ seed, storage, changes: { easy: true, ...changes } });
+  const optionsOf = (game: RoundGame) => promptOf(game).optionPlaceIds;
+
+  it('offers the right answer and three other places of the round\'s pool, and no options with Easy mode off', () => {
+    const game = startEasy({ region: 'Europe' });
+    const pool = game.poolOf(promptOf(game).setup);
+    const options = optionsOf(game);
+
+    expect(options).toHaveLength(4);
+    expect(new Set(options).size).toBe(4);
+    expect(options).toContain(promptedPlaceId(game));
+    for (const option of options) expect(pool).toContain(option);
+    expect(optionsOf(startTyped())).toEqual([]);
+  });
+
+  it('takes the wrong options from the right answer\'s region where the pool holds enough', () => {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const game = startEasy({ tier: 'dependencies' }, seed);
+      const placeId = promptedPlaceId(game);
+
+      for (const option of optionsOf(game)) expect(regionOf(option)).toBe(regionOf(placeId));
+    }
+  });
+
+  it('stays inside a one-region pool, even for its smallest region', () => {
+    const game = startEasy({ region: 'Oceania' });
+    const pool = game.poolOf(promptOf(game).setup);
+
+    expect(optionsOf(game)).toHaveLength(4);
+    for (const option of optionsOf(game)) expect(pool).toContain(option);
+  });
+
+  it('varies with the injected random and repeats for the same one', () => {
+    expect(optionsOf(startEasy({}, 3))).toEqual(optionsOf(startEasy({}, 3)));
+    expect(new Set(Array.from({ length: 10 }, (_, seed) => optionsOf(startEasy({}, seed)).join())).size).toBeGreaterThan(1);
+  });
+
+  it('takes a pick as the one attempt: right at once', () => {
+    const game = startEasy();
+    const placeId = promptedPlaceId(game);
+
+    game.send({ type: 'pick', placeId });
+
+    expect(game.state).toMatchObject({ phase: 'verdict', score: 1, answer: { placeId, tappedPlaceId: placeId, outcome: 'right' } });
+  });
+
+  it('counts a wrong option as wrong at once, naming it and remembering the confusion', () => {
+    const storage = memoryStorage();
+    const game = startEasy({}, 1, storage);
+    const placeId = promptedPlaceId(game);
+    const wrongOption = optionsOf(game).find(option => option !== placeId)!;
+
+    game.send({ type: 'pick', placeId: wrongOption });
+
+    expect(game.state).toMatchObject({ phase: 'verdict', score: 0, attemptsLeft: 1, answer: { placeId, tappedPlaceId: wrongOption, outcome: 'wrong' } });
+    expect(storedPlaces(storage)['name:map'][placeId]).toMatchObject({ confusedWith: wrongOption });
+  });
+
+  it('ignores a place that is not among the options, typing, and a second pick', () => {
+    const game = startEasy();
+    const placeId = promptedPlaceId(game);
+    const notAnOption = places.map(({ id }) => id).find(id => !optionsOf(game).includes(id))!;
+
+    game.send({ type: 'pick', placeId: notAnOption });
+    game.send({ type: 'submit', text: nameOf(placeId) });
+    expect(game.state.phase).toBe('prompt');
+
+    game.send({ type: 'pick', placeId });
+    game.send({ type: 'pick', placeId: optionsOf(game)[0] ?? placeId });
+    expect(game.state).toMatchObject({ phase: 'verdict', score: 1 });
+  });
+
+  it('ignores a pick with Easy mode off', () => {
+    const game = startTyped();
+
+    game.send({ type: 'pick', placeId: promptedPlaceId(game) });
+
+    expect(game.state.phase).toBe('prompt');
+  });
+
+  it('offers new options on the next prompt', () => {
+    const game = startEasy();
+    const first = promptedPlaceId(game);
+
+    game.send({ type: 'pick', placeId: optionsOf(game).find(option => option !== first)! });
+    game.send({ type: 'next' });
+
+    expect(optionsOf(game)).toContain(promptedPlaceId(game));
+    expect(promptedPlaceId(game)).not.toBe(first);
+  });
+
+  it('records the round and its answers as easy', () => {
+    const storage = memoryStorage();
+    const game = startEasy({ deckSize: 10 }, 1, storage);
+    const placeId = promptedPlaceId(game);
+
+    game.send({ type: 'pick', placeId });
+    for (let prompt = 1; prompt < 10; prompt += 1) {
+      game.send({ type: 'next' });
+      game.send({ type: 'pick', placeId: promptedPlaceId(game) });
+    }
+    game.send({ type: 'next' });
+
+    expect(game.state).toMatchObject({ phase: 'results', score: 10, setup: { easy: true } });
+    expect(JSON.parse(storage.getItem('ti:rounds')!)).toEqual([expect.objectContaining({ mode: 'name', easy: true, complete: true, score: 10 })]);
+    expect(storedPlaces(storage)['name:map'][placeId]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 1 });
+    expect(Object.keys(JSON.parse(storage.getItem('ti:bests')!))).toEqual(['name:map:world:sovereign:10:easy']);
+  });
+
+  it('keeps the same options when the round is resumed', () => {
+    const storage = memoryStorage();
+    const game = startEasy({}, 1, storage);
+    const resumed = createGame({ places, names, version: shippedVersion, random: seededRandom(99), clock: () => Date.UTC(2026, 10, 17), storage });
+
+    expect(optionsOf(resumed as RoundGame)).toEqual(optionsOf(game));
+  });
+});

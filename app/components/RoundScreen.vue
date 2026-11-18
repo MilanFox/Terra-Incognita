@@ -252,7 +252,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         <template v-if="state.phase === 'verdict'">
           <i18n-t
             v-if="state.answer.outcome === 'wrong'"
-            :keypath="isTyped ? 'typed.youTyped' : 'round.youTapped'"
+            :keypath="state.setup.easy && isTyped ? 'choice.youPicked' : isTyped ? 'typed.youTyped' : 'round.youTapped'"
             tag="p"
             class="prompt-card__tapped"
             scope="global"
