@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { pausesPerRound } from '#shared/game/game';
 
-defineProps<{ pausesLeft: number }>();
+const props = defineProps<{ pausesLeft: number }>();
 const emit = defineEmits<{ resume: [] }>();
 
+const { t } = useI18n();
+
 const resumeTile = useTemplateRef<HTMLButtonElement>('resumeTile');
-const titleId = useId();
-const pausesLeftId = useId();
+const dialogName = computed(() => [t('pause.title'), t('pause.left', { count: props.pausesLeft, total: pausesPerRound })].join(' · '));
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
@@ -29,20 +30,14 @@ onMounted(() => resumeTile.value?.focus());
         class="tile pause-dialog"
         role="dialog"
         aria-modal="true"
-        :aria-labelledby="`${titleId} ${pausesLeftId}`"
+        :aria-label="dialogName"
         @keydown="handleKeydown"
       >
-        <h2
-          :id="titleId"
-          class="pause-dialog__title"
-        >
+        <h2 class="pause-dialog__title">
           {{ $t('pause.title') }}
         </h2>
 
-        <p
-          :id="pausesLeftId"
-          class="pause-dialog__left"
-        >
+        <p class="pause-dialog__left">
           {{ $t('pause.left', { count: pausesLeft, total: pausesPerRound }) }}
         </p>
 

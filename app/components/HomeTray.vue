@@ -267,12 +267,14 @@ defineExpose({
 
             <span v-else>{{ $t('daily.subtitle') }}</span>
 
+            <span class="visually-hidden"> · </span>
+
             <span>{{ $t('daily.streakLine', { count: streak.current }, streak.current) }}</span>
 
             <template v-if="todaysDaily">
               <span aria-hidden="true">{{ $t('daily.next', { time: nextDailyShown }) }}</span>
 
-              <span class="visually-hidden">{{ $t('daily.next', { time: nextDailySpoken }) }}</span>
+              <span class="visually-hidden">· {{ $t('daily.next', { time: nextDailySpoken }) }}</span>
             </template>
           </span>
         </span>

@@ -1,5 +1,6 @@
 import { isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { GameState } from '#shared/game/game';
+import { withoutDoubledFullStops } from '#shared/utils/spokenText';
 import { useGameStore } from '~/stores/game';
 
 const flushDelayMs = 50;
@@ -17,7 +18,7 @@ export const useLiveRegion = () => {
     pending.push(text);
     clearTimeout(flushTimer);
     flushTimer = setTimeout(async () => {
-      const spoken = pending.join(' ');
+      const spoken = withoutDoubledFullStops(pending.join(' '));
       pending = [];
       message.value = '';
       await nextTick();

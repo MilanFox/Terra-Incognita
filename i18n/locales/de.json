@@ -133,7 +133,7 @@
         "rulings": "Korrekturen und Festlegungen: von Hand für dieses Spiel erstellt, wie oben beschrieben.",
         "version": "Datenversion {dataVersion} · erstellt am {builtAt}",
         "licences": "Lizenzen",
-        "flagOf": "Flagge von {place}",
+        "flagOf": "Flagge: {place}",
         "flagCredit": "{flag}: {artist}, {licence}, über Wikimedia Commons",
         "commonsContributors": "Mitwirkende von Wikimedia Commons"
       }
@@ -417,13 +417,13 @@
   },
   "capital": {
     "prompt": "Nenne die Hauptstadt",
-    "promptLive": "Nenne die Hauptstadt von {place}",
-    "youTyped": "Geschrieben: die Hauptstadt von {place}",
+    "promptLive": "Nenne die Hauptstadt: {place}",
+    "youTyped": "Du hast die Hauptstadt eines anderen Orts geschrieben: {place}",
     "answer": "Hauptstadt: {capitals}",
     "pickLabel": "Wähle die Hauptstadt",
     "live": {
       "right": "Richtig: {capitals}.",
-      "wrong": "Falsch. Du hast die Hauptstadt von {typed} geschrieben. Die Antwort ist {capitals}. Drücke Weiter.",
+      "wrong": "Falsch. Du hast die Hauptstadt eines anderen Orts geschrieben: {typed}. Die Antwort ist {capitals}. Drücke Weiter.",
       "wrongPicked": "Falsch. Du hast {picked} gewählt. Die Antwort ist {capitals}. Drücke Weiter.",
       "missed": "Die Antwort ist {capitals}. Drücke Weiter.",
       "noMatch": "Keine Hauptstadt mit diesem Namen. Versuch es nochmal."
@@ -586,7 +586,7 @@
     "newBest": "Neue Bestleistung",
     "newBestEasy": "Neue Bestleistung · Einfacher Modus",
     "live": {
-      "route": "Route {number}: von {start} nach {target}. {detours}.",
+      "route": "Route {number}. Start: {start}. Ziel: {target}. {detours}.",
       "entry": "{place}. {detours}.",
       "complete": "{place}. Route geschafft. {score}. Drücke Weiter.",
       "outOfDetours": "{place}. Keine Umwege mehr. Eine kürzeste Route: {route}. {score}. Drücke Weiter.",
