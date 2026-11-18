@@ -24,6 +24,70 @@
     "showAll": "Alle Modi zeigen",
     "showFewer": "Weniger anzeigen"
   },
+  "about": {
+    "open": "About the map",
+    "title": "About the map",
+    "close": "Close",
+    "index": "Sections",
+    "showOnMap": "Shows it on the map.",
+    "newTab": "(opens in a new tab)",
+    "feedback": "Spotted something out of date?",
+    "sections": {
+      "intro": {
+        "heading": "Intro",
+        "text": "Terra Incognita is a game, not an atlas. Its borders, capitals and flags follow a few plain rules, and this page explains them, so you can see why the map looks the way it does. None of it is a political statement."
+      },
+      "borders": {
+        "heading": "How borders are drawn",
+        "text": "Borders follow who actually controls the land, not who claims it. Where control is disputed, the map shows the line that holds on the ground. The lines come from Natural Earth, used as they are except where this page says otherwise. So, for example, the Golan Heights and East Jerusalem are drawn as Israel, Kashmir is split along the Line of Control, Arunachal Pradesh is India, the Kuril Islands are Russia, and Karabakh is Azerbaijan."
+      },
+      "tiers": {
+        "heading": "Tiers",
+        "lead": "Every round is played in one of three tiers. Each tier contains the one before it.",
+        "sovereign": "{tier}: {count} places: the 193 UN members plus Vatican City, Palestine, Kosovo and Taiwan, which aren't UN members but are commonly counted as countries.",
+        "defacto": "{tier}: adds {count} places that govern themselves but are recognised by few or no states: Somaliland, Northern Cyprus, Abkhazia, South Ossetia, Transnistria and the part of Western Sahara held by the Sahrawi Republic.",
+        "dependencies": "{tier}: adds {count} territories governed by another state that have their own country code, such as Greenland, Puerto Rico or Hong Kong.",
+        "text": "Each tier draws only the places it asks about. Places left out are drawn as part of the country that holds them, so dependencies sit inside their sovereign state and breakaway states inside the state they broke away from."
+      },
+      "ukraine": {
+        "heading": "Ukraine",
+        "text": "Crimea is drawn as Russia: Russia has controlled it since 2014 and that line has not moved. The rest of Ukraine is drawn as Ukraine, including the areas Russia has held since 2014 and 2022, because an active front has no settled line. This isn't fully consistent, since parts of Donetsk and Luhansk have been held as long as Crimea. We'll revisit it when a line settles."
+      },
+      "westernSahara": {
+        "heading": "Western Sahara",
+        "text": "Morocco controls most of Western Sahara, west of a long sand wall called the Berm. The Sahrawi Republic holds the strip east of it. In the de facto and dependencies tiers, that strip is its own place, Western Sahara, and the rest is drawn as Morocco. In the sovereign tier, the strip isn't asked, so all of Western Sahara is drawn as Morocco."
+      },
+      "capitals": {
+        "heading": "Capitals",
+        "text": "A capital counts only if it lies inside the land drawn for its place. So Palestine's capital is Ramallah, where its government sits, not East Jerusalem, which the map draws as Israel. Western Sahara's is Tifariti, not Laayoune, which lies on the Moroccan side. Israel's is Jerusalem. Where a place has more than one capital, any of them is right. A few territories have no capital and never come up in Name the capital: Heard and McDonald Islands, the US Minor Outlying Islands, the French Southern Lands, the British Indian Ocean Territory, Hong Kong and Macau."
+      },
+      "flags": {
+        "heading": "Flags",
+        "text": "Each place shows the flag of whoever governs it. Afghanistan shows the white flag of the Taliban government, in control since 2021. Six territories have no flag of their own, only their sovereign's, and are left out of flag rounds: Saint Barthélemy, Saint Martin, Saint Pierre and Miquelon, Wallis and Futuna, the US Minor Outlying Islands, and Heard and McDonald Islands."
+      },
+      "leases": {
+        "heading": "Leases, bases and small territories",
+        "text": "Some land is run by another state under a lease or treaty. The map draws it as part of the country it lies in: Guantánamo Bay is Cuba, Baikonur is Kazakhstan, and the British bases on Cyprus, Akrotiri and Dhekelia, are Cyprus, as is the UN buffer zone. Small uninhabited territories with no country code of their own, such as Clipperton Island or the Coral Sea Islands, are part of the state that holds them. The Spratly Islands, claimed by several states, are left off the map. The Chagos Archipelago (British Indian Ocean Territory) is drawn as British, as Natural Earth has it. The UK has agreed to hand it to Mauritius; once that takes effect, the map will follow."
+      },
+      "unclaimed": {
+        "heading": "Unclaimed land",
+        "text": "Some land is held by no place on the map: Antarctica; Bir Tawil, between Egypt and Sudan, which neither claims; and a stretch of the Southern Patagonian Ice Field whose border Argentina and Chile haven't agreed. It is drawn, but it can't be selected and is never asked."
+      },
+      "sources": {
+        "heading": "Where the data comes from",
+        "borders": "Borders: Natural Earth 1:10m, version {ne}. Made with Natural Earth.",
+        "names": "Names: Unicode CLDR {cldr}, © Unicode, Inc., used under the Unicode License v3.",
+        "aliases": "Alternative names: partly from mledoze/countries (ODbL 1.0).",
+        "capitals": "Capitals and flag choices: Wikidata (CC0), as of {wikidataDate}.",
+        "flags": "Flag images: Wikimedia Commons, public domain except where listed below.",
+        "rulings": "Corrections and rulings: made by hand for this game, as described above.",
+        "version": "Data version {dataVersion} · built {builtAt}",
+        "licences": "Licences",
+        "flagOf": "Flag of {place}",
+        "flagCredit": "{flag}: {artist}, {licence}, via Wikimedia Commons"
+      }
+    }
+  },
   "daily": {
     "title": "Tages-Challenge",
     "subtitle": "10 Orte, heute für alle dieselben",
