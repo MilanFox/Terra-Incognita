@@ -29,12 +29,59 @@
     "title": "About the map",
     "close": "Close",
     "backTo": {
-      "setup": "Back to setup"
+      "setup": "Back to setup",
+      "stats": "Back to stats"
     },
     "index": "Sections",
     "showOnMap": "Shows it on the map.",
     "newTab": "(opens in a new tab)",
     "feedback": "Spotted something out of date?",
+    "notes": {
+      "UKR": {
+        "text": "Crimea is drawn as Russia.",
+        "section": "ukraine"
+      },
+      "RUS": {
+        "text": "Crimea is drawn as part of Russia.",
+        "section": "ukraine"
+      },
+      "MAR": {
+        "text": "Most of Western Sahara is drawn as Morocco.",
+        "section": "westernSahara"
+      },
+      "SAH": {
+        "text": "Drawn as the strip east of the Berm.",
+        "section": "westernSahara"
+      },
+      "PSX": {
+        "text": "Ramallah counts as its capital.",
+        "section": "capitals"
+      },
+      "ISR": {
+        "text": "East Jerusalem is drawn as Israel.",
+        "section": "capitals"
+      },
+      "AFG": {
+        "text": "Shows the Taliban government's flag.",
+        "section": "flags"
+      },
+      "CUB": {
+        "text": "Guantánamo Bay is drawn as Cuba.",
+        "section": "leases"
+      },
+      "KAZ": {
+        "text": "Baikonur is drawn as Kazakhstan.",
+        "section": "leases"
+      },
+      "CYP": {
+        "text": "The British bases are drawn as Cyprus.",
+        "section": "leases"
+      },
+      "GBR": {
+        "text": "The Chagos Archipelago is drawn as British.",
+        "section": "leases"
+      }
+    },
     "sections": {
       "intro": {
         "heading": "Intro",
@@ -453,7 +500,8 @@
       "recent": "{right} of the last {count} right",
       "lifetime": "All time: {right} / {total}",
       "easy": "Easy mode: {right} / {total}",
-      "confusedWith": "Recently confused with {name}"
+      "confusedWith": "Recently confused with {name}",
+      "why": "Why?"
     }
   },
   "live": {

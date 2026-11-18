@@ -23,7 +23,7 @@ interface FlagCredit {
   licenseUrl: string | null
 }
 
-const props = defineProps<{ openingSection: AboutSectionId, backLabel?: string, mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const props = defineProps<{ openingSection: AboutSectionId, openingPlaceId?: string, backLabel?: string, mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
 const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyTo: [bounds: Bounds] }>();
 
 const sectionIds: AboutSectionId[] = ['intro', 'borders', 'tiers', 'ukraine', 'westernSahara', 'capitals', 'flags', 'leases', 'unclaimed', 'sources'];
@@ -36,6 +36,11 @@ const rulingFrames: Partial<Record<AboutSectionId, Bounds>> = {
   flags: [[60.5, 29.4], [74.9, 38.5]],
   leases: [[-77, 19.5], [-74, 21]],
   unclaimed: [[32.5, 21.2], [35, 22.6]],
+};
+const placeNoteFrames: Record<string, Bounds> = {
+  KAZ: [[46.5, 40.5], [87.3, 55.5]],
+  CYP: [[32.2, 34.5], [34.6, 35.7]],
+  GBR: [[68, -8], [81, 9]],
 };
 const feedbackUrl = 'https://github.com/MilanFox/Terra-Incognita/issues';
 const noticesUrl = '/data/THIRD-PARTY-NOTICES.txt';
@@ -74,16 +79,16 @@ const sourceLines = computed(() => {
 
 const commonsFileUrl = (file: string) => `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(file.replaceAll(' ', '_'))}`;
 
-const flyToRuling = (sectionId: AboutSectionId) => {
-  const frame = rulingFrames[sectionId];
+const flyToRuling = (sectionId: AboutSectionId, placeId?: string) => {
+  const frame = (placeId && placeNoteFrames[placeId]) || rulingFrames[sectionId];
   if (frame) emit('flyTo', frame);
 };
 
-const showSection = (sectionId: AboutSectionId, behavior: ScrollBehavior = isMotionReduced.value ? 'instant' : 'smooth') => {
+const showSection = (sectionId: AboutSectionId, behavior: ScrollBehavior = isMotionReduced.value ? 'instant' : 'smooth', placeId?: string) => {
   const heading = document.getElementById(headingIdOf(sectionId));
   heading?.scrollIntoView({ behavior, block: 'start' });
   heading?.focus({ preventScroll: true });
-  flyToRuling(sectionId);
+  flyToRuling(sectionId, placeId);
 };
 
 const measure = () => {
@@ -117,7 +122,7 @@ onMounted(async () => {
   if (props.openingSection === 'intro') title.value?.focus({ preventScroll: true });
   [shippedVersion.value, flagCredits.value] = await Promise.all([fetchJson('/data/version.json'), fetchJson('/data/credits.json')]);
   await nextTick();
-  if (tray.value && props.openingSection !== 'intro') showSection(props.openingSection, 'instant');
+  if (tray.value && props.openingSection !== 'intro') showSection(props.openingSection, 'instant', props.openingPlaceId);
 });
 useResizeObserver(tray, measure);
 

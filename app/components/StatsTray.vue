@@ -2,19 +2,29 @@
 import type { Mode, Region } from '#shared/game/game';
 import { regularModes, specialModes } from '#shared/game/stats';
 import type { StatsScope } from '#shared/game/stats';
+import type { AboutSectionId } from '~/components/AboutTray.vue';
 import type { ShownVariant } from '~/components/StatsModePage.vue';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 import { useGameStore } from '~/stores/game';
 
 type StatsPageId = 'all' | Mode;
 
-const props = defineProps<{ mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
-const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyToRegion: [region: Region], announce: [text: string] }>();
+export interface StatsView {
+  pageId: StatsPageId
+  shownVariants: Partial<Record<Mode, ShownVariant>>
+  isOpen: boolean
+  scrollTop: number
+  bubblePlaceId: string
+}
+
+const props = defineProps<{ restoredView?: StatsView, mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyToRegion: [region: Region], announce: [text: string], why: [section: AboutSectionId, view: StatsView] }>();
 
 const zoomTilesGapPx = 12;
 const zoomTilesRoomPx = 120;
+const bubbleGapPx = 10;
 
-const { t, locale } = useI18n();
+const { t, te, locale } = useI18n();
 const game = useGameStore();
 const { height: windowHeight } = useWindowSize();
 
@@ -24,15 +34,15 @@ const overlay = useTemplateRef<HTMLElement>('overlay');
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 const activePage = useTemplateRef<{ more: HTMLElement | null }>('activePage');
-const placeBubble = useTemplateRef<{ bottom: number, lines: string[] }>('placeBubble');
+const placeBubble = useTemplateRef<{ bottom: number, lines: string[], focusWhy: () => void }>('placeBubble');
 
 const allGames = game.allGamesStats();
 const pages = computed<{ id: StatsPageId, name: string }[]>(() => [
   { id: 'all', name: t('stats.allGames.name') },
   ...[...regularModes, ...specialModes].map(mode => ({ id: mode, name: t(`modes.${mode}.name`) })),
 ]);
-const activePageId = ref<StatsPageId>('all');
-const shownVariants = reactive<Partial<Record<Mode, ShownVariant>>>({});
+const activePageId = ref<StatsPageId>(props.restoredView?.pageId ?? 'all');
+const shownVariants = reactive<Partial<Record<Mode, ShownVariant>>>({ ...props.restoredView?.shownVariants });
 const slideFrom = ref<'left' | 'right' | null>(null);
 
 const scope = computed<StatsScope>(() => {
@@ -48,10 +58,13 @@ const placeRatings = computed(() => {
   return activePageId.value === 'all' ? allGames.placeRatings : game.placeRatings(scope.value);
 });
 
-const isOpen = ref(false);
-const bubblePlaceId = ref<string | null>(null);
+const isOpen = ref(props.restoredView?.isOpen ?? false);
+const bubblePlaceId = ref<string | null>(props.restoredView?.bubblePlaceId ?? null);
 const bubbleDetails = computed(() => (bubblePlaceId.value ? game.placeDetails(bubblePlaceId.value, scope.value) : null));
 const bubbleConfusedWithId = computed(() => bubbleDetails.value?.confusedWith);
+const bubbleNote = computed(() => (bubblePlaceId.value && te(`about.notes.${bubblePlaceId.value}.text`)
+  ? { text: t(`about.notes.${bubblePlaceId.value}.text`), section: t(`about.notes.${bubblePlaceId.value}.section`) as AboutSectionId }
+  : null));
 const isPositioned = ref(false);
 const collapsedShift = ref(0);
 const peekHeight = ref(0);
@@ -81,6 +94,8 @@ const { dragShift, onPointerDown, onTouchStart, onTouchMove, onTouchEnd, onClick
 });
 
 const trayShift = computed(() => dragShift.value ?? (isOpen.value ? 0 : collapsedShift.value));
+const bubbleBottom = computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0));
+const openTrayLimit = computed(() => (isOpen.value && bubbleBottom.value ? `calc(100% - ${bubbleBottom.value + bubbleGapPx}px)` : undefined));
 const visibleTrayHeight = computed(() => trayHeight.value - trayShift.value);
 const hasRoomForZoomTiles = computed(() => windowHeight.value - visibleTrayHeight.value >= zoomTilesRoomPx);
 
@@ -95,7 +110,12 @@ const openBubble = async (placeId: string) => {
   bubblePlaceId.value = placeId;
   await nextTick();
   const { rating } = game.placeDetails(placeId, scope.value);
-  emit('announce', [game.nameOf(placeId, locale.value), rating === 'noData' ? '' : t(`stats.ratings.${rating}`), ...placeBubble.value?.lines ?? []].filter(Boolean).join('. '));
+  emit('announce', [game.nameOf(placeId, locale.value), rating === 'noData' ? '' : t(`stats.ratings.${rating}`), ...placeBubble.value?.lines ?? [], bubbleNote.value?.text].filter(Boolean).join('. '));
+};
+
+const swapForAbout = () => {
+  if (!bubblePlaceId.value || !bubbleNote.value) return;
+  emit('why', bubbleNote.value.section, { pageId: activePageId.value, shownVariants: { ...shownVariants }, isOpen: isOpen.value, scrollTop: tray.value?.scrollTop ?? 0, bubblePlaceId: bubblePlaceId.value });
 };
 
 const closeBubble = () => {
@@ -149,7 +169,14 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 });
 
 onMounted(() => {
-  title.value?.focus({ preventScroll: true });
+  if (props.restoredView) {
+    const { scrollTop } = props.restoredView;
+    // Only once the tray is limited below the restored bubble: scrolled sooner, it would clamp to the taller tray's range.
+    whenever(openTrayLimit, () => {
+      if (tray.value) tray.value.scrollTop = scrollTop;
+    }, { once: true, flush: 'post' });
+  }
+  else title.value?.focus({ preventScroll: true });
   measure();
   requestAnimationFrame(() => requestAnimationFrame(() => {
     isPositioned.value = true;
@@ -157,7 +184,7 @@ onMounted(() => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, bubbleBottom: computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0)) });
+defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, focusWhy: () => placeBubble.value?.focusWhy(), bubbleBottom });
 </script>
 
 <template>
@@ -171,14 +198,16 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
       :place-name="game.nameOf(bubblePlaceId, locale)"
       :details="bubbleDetails"
       :confused-with-name="bubbleConfusedWithId && game.nameOf(bubbleConfusedWithId, locale)"
+      :note="bubbleNote?.text"
       @close="closeBubble"
+      @why="swapForAbout"
     />
 
     <div
       ref="tray"
       class="tray stats-tray"
       :class="{ 'stats-tray--open': isOpen, 'stats-tray--dragging': dragShift !== null, 'stats-tray--unpositioned': !isPositioned }"
-      :style="{ translate: `0 ${trayShift}px` }"
+      :style="{ translate: `0 ${trayShift}px`, maxHeight: openTrayLimit }"
       @pointerdown="onPointerDown"
       @touchstart="onTouchStart"
       @touchmove="onTouchMove"
@@ -355,7 +384,7 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
   overscroll-behavior: contain;
   user-select: none;
   pointer-events: auto;
-  transition: translate 340ms cubic-bezier(0.2, 1.1, 0.4, 1);
+  transition: translate 340ms cubic-bezier(0.2, 1.1, 0.4, 1), max-height 340ms cubic-bezier(0.2, 1.1, 0.4, 1);
 
   &--open {
     overflow-y: auto;

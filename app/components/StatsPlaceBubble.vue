@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import type { PlaceDetails } from '#shared/game/stats';
 
-const props = defineProps<{ placeName: string, details: PlaceDetails, confusedWithName?: string }>();
-const emit = defineEmits<{ close: [] }>();
+const props = defineProps<{ placeName: string, details: PlaceDetails, confusedWithName?: string, note?: string }>();
+const emit = defineEmits<{ close: [], why: [] }>();
 
 const { t } = useI18n();
 
 const titleId = useId();
+const noteId = useId();
 const element = useTemplateRef<HTMLElement>('element');
-const { bottom } = useElementBounding(element);
+const whyButton = useTemplateRef<HTMLButtonElement>('whyButton');
+const { height } = useElementSize(element, undefined, { box: 'border-box' });
+// From layout, not the on-screen rect: a bubble restored with stats rises with the tray, and a rect read mid-rise would stick.
+const bottom = computed(() => (height.value ? (element.value?.offsetTop ?? 0) + height.value : 0));
 
 const lines = computed(() => {
   const { recent, lifetime, easy } = props.details;
@@ -20,7 +24,7 @@ const lines = computed(() => {
   ];
 });
 
-defineExpose({ bottom, lines });
+defineExpose({ bottom, lines, focusWhy: () => whyButton.value?.focus() });
 </script>
 
 <template>
@@ -76,6 +80,23 @@ defineExpose({ bottom, lines });
       class="place-bubble__line"
     >
       {{ line }}
+    </p>
+
+    <p
+      v-if="note"
+      class="place-bubble__note"
+    >
+      <span :id="noteId">{{ note }}</span>
+
+      <button
+        ref="whyButton"
+        type="button"
+        class="place-bubble__why"
+        :aria-describedby="noteId"
+        @click="emit('why')"
+      >
+        {{ $t('stats.bubble.why') }}
+      </button>
     </p>
   </section>
 </template>
@@ -135,6 +156,30 @@ defineExpose({ bottom, lines });
     margin: 0;
     font-size: 14px;
     line-height: 1.4;
+  }
+
+  &__note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
+    margin: 6px 0 0;
+    padding-top: 6px;
+    border-top: 2px solid $color-sand;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__why {
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 }
 </style>
