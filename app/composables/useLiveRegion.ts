@@ -1,3 +1,4 @@
+import { isTypedMode } from '#shared/game/game';
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
@@ -36,18 +37,22 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
   watch(() => {
     const current = state();
     if (current.phase === 'verdict') return `verdict-${current.promptNumber}`;
-    if (current.phase === 'prompt') return `prompt-${current.promptNumber}-${current.wrongTapPlaceIds.length}`;
+    if (current.phase === 'prompt') return `prompt-${current.promptNumber}-${current.wrongTapPlaceIds.length}-${current.unresolvedAnswers.length}`;
     return current.phase;
   }, () => {
     const current = state();
     if (current.phase === 'verdict') {
-      const { outcome, placeId, tappedPlaceId } = current.answer;
-      announce(outcome === 'right'
-        ? t('live.right', { place: nameOf(placeId) })
-        : t('live.wrong', { tapped: nameOf(tappedPlaceId), answer: nameOf(placeId) }));
+      const { answer } = current;
+      if (answer.outcome === 'right') announce(t('live.right', { place: nameOf(answer.placeId) }));
+      else if (answer.outcome === 'missed') announce(t('typed.live.missed', { answer: nameOf(answer.placeId) }));
+      else if (isTypedMode(current.setup.mode)) announce(t('typed.live.wrong', { typed: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
+      else announce(t('live.wrong', { tapped: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
     }
     else if (current.phase === 'prompt') {
-      if (current.wrongTapPlaceIds.length > 0) announce(t('round.triesLeft', { count: current.attemptsLeft }, current.attemptsLeft));
+      const lastUnresolved = current.unresolvedAnswers.at(-1);
+      if (lastUnresolved) announce(lastUnresolved === 'ambiguous' ? t('typed.ambiguous') : t('typed.live.noMatch'));
+      else if (current.wrongTapPlaceIds.length > 0) announce(t('round.triesLeft', { count: current.attemptsLeft }, current.attemptsLeft));
+      else if (isTypedMode(current.setup.mode)) announce(t('typed.prompt'));
       else if (current.setup.variant === 'flag') announce(t('round.findPrompt'));
       else announce(t('live.findName', { place: nameOf(current.placeId) }));
     }

@@ -38,7 +38,7 @@ const resultCells = computed(() => [
   ...props.state.missedPlaceIds.map(placeId => ({ placeId, outcome: 'missed' as ResultOutcome })),
 ]);
 
-const wrongCount = computed(() => props.state.answers.length - props.state.score);
+const wrongCount = computed(() => props.state.answers.filter(({ outcome }) => outcome === 'wrong').length);
 
 const durationTextOf = useDurationText();
 
@@ -53,7 +53,7 @@ const newBestLine = computed(() => t('record.newBest', {
 const statTiles = computed(() => [
   { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) },
   { label: t('results.wrongCount'), value: String(wrongCount.value) },
-  { label: t('results.unreachedCount'), value: String(props.state.missedPlaceIds.length) },
+  { label: t('results.missedCount'), value: String(props.state.deckSize - props.state.score - wrongCount.value) },
 ]);
 
 const shareText = computed(() => [

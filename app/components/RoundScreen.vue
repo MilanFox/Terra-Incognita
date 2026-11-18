@@ -1,25 +1,34 @@
 <script setup lang="ts">
-import { pausesPerRound } from '#shared/game/game';
+import { isTypedMode, pausesPerRound } from '#shared/game/game';
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
-const emit = defineEmits<{ next: [], zoomIn: [], zoomOut: [] }>();
+const emit = defineEmits<{ next: [], dontKnow: [], zoomIn: [], zoomOut: [] }>();
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const game = useGameStore();
 const durationTextOf = useDurationText();
 
-const cellMarks: Record<ProgressCell, string> = { right: '✓', wrong: '✗', current: '', pending: '' };
+const cellMarks: Record<ProgressCell, string> = { right: '✓', wrong: '✗', missed: '–', current: '', pending: '' };
 
 const clockText = computed(() => (game.timeLeftMs === null ? null : durationTextOf(Math.ceil(game.timeLeftMs / 1000))));
 
 const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
 
-const isNameShown = computed(() => props.state.setup.variant !== 'flag' || props.state.phase === 'verdict');
-const isFlagShown = computed(() => props.state.setup.variant !== 'name');
+const isTyped = computed(() => isTypedMode(props.state.setup.mode));
+const isNameShown = computed(() => props.state.setup.variant === 'name' || props.state.setup.variant === 'both' || props.state.phase === 'verdict');
+const isFlagShown = computed(() => props.state.setup.variant === 'flag' || props.state.setup.variant === 'both');
 const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
+const isAmbiguous = computed(() => props.state.phase === 'prompt' && props.state.unresolvedAnswers.at(-1) === 'ambiguous');
+
+const kickerText = computed(() => {
+  const { state } = props;
+  if (state.phase === 'verdict') return state.answer.outcome === 'missed' ? t('typed.missed') : t(`round.${state.answer.outcome}`);
+  if (isRetrying.value) return t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft);
+  return isTyped.value ? t('typed.prompt') : t('round.findPrompt');
+});
 const flipOutMs = 140;
 const flipInMs = 160;
 const prefersReducedMotion = usePreferredReducedMotion();
@@ -195,7 +204,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         :style="{ '--fade': fade }"
       >
         <p class="kicker prompt-card__kicker">
-          {{ state.phase === 'verdict' ? $t(`round.${state.answer.outcome}`) : isRetrying ? $t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft) : $t('round.findPrompt') }}
+          {{ kickerText }}
         </p>
 
         <img
@@ -224,10 +233,26 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
           </template>
         </i18n-t>
 
+        <p
+          v-if="isAmbiguous"
+          class="prompt-card__retype"
+        >
+          {{ $t('typed.ambiguous') }}
+        </p>
+
+        <button
+          v-if="state.phase === 'prompt' && isTyped"
+          type="button"
+          class="prompt-card__dont-know"
+          @click="emit('dontKnow')"
+        >
+          {{ $t('typed.dontKnow') }}
+        </button>
+
         <template v-if="state.phase === 'verdict'">
           <i18n-t
             v-if="state.answer.outcome === 'wrong'"
-            keypath="round.youTapped"
+            :keypath="isTyped ? 'typed.youTyped' : 'round.youTapped'"
             tag="p"
             class="prompt-card__tapped"
             scope="global"
@@ -238,7 +263,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
           </i18n-t>
 
           <button
-            v-if="state.answer.outcome === 'wrong'"
+            v-if="state.answer.outcome !== 'right'"
             type="button"
             class="tile prompt-card__next"
             @click="emit('next')"
@@ -487,6 +512,11 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
   &--wrong {
     background: $color-brick;
   }
+
+  &--missed {
+    background: $color-sand;
+    color: $color-ink;
+  }
 }
 
 .prompt-card {
@@ -508,6 +538,10 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     background: $color-brick;
     color: $color-surface;
     animation: shake 340ms ease-out;
+  }
+
+  &--missed {
+    background: $color-sand;
   }
 
   &--arriving {
@@ -541,6 +575,26 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
     s {
       text-decoration-thickness: 2px;
     }
+  }
+
+  &__retype {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  &__dont-know {
+    justify-self: end;
+    min-height: 44px;
+    margin: 0 -8px -10px 0;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 
   &__next {
