@@ -284,12 +284,15 @@
     "title": "Round complete",
     "score": "Score",
     "scoreText": "{score} of {total} right",
+    "scoreLabelled": "Score: {score}",
     "right": "{place}: right",
     "wrong": "{place}: wrong",
     "home": "Main menu",
     "titleEnded": "Round ended",
     "wrongCount": "Wrong",
+    "wrongCountText": "{count} wrong",
     "missedCount": "Missed",
+    "missedCountText": "{count} missed",
     "missed": "{place}: missed",
     "unreachedList": "Not reached: {places}",
     "playAgain": "Play again",
@@ -536,7 +539,8 @@
       "start": "Name any place on the map. {total} to fill."
     },
     "results": {
-      "unreached": "Unreached"
+      "unreached": "Unreached",
+      "unreachedText": "{count} unreached"
     }
   },
   "missing": {

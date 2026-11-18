@@ -20,6 +20,8 @@ const shownStreak = useTransition(countedStreak, { duration: computed(() => (isM
 const shareNotice = ref('');
 
 const titleId = useId();
+const headlineStatId = useId();
+const newBestId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 
@@ -66,15 +68,19 @@ const learningStatTiles = computed((): { label: string, value: string, total?: n
   ];
 });
 
+const unreachedCount = computed(() => props.state.deckSize - props.state.score);
+
+const missedCount = computed(() => unreachedCount.value - (props.state.wrongTapCount === undefined ? wrongCount.value : 0));
+
 const statTiles = computed(() => (isFill.value
   ? [
-      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('fill.progress', { count: props.state.score, total: props.state.deckSize }) },
-      { label: t('fill.results.unreached'), value: String(props.state.deckSize - props.state.score) },
+      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreLabelled', { score: t('fill.progress', { count: props.state.score, total: props.state.deckSize }) }) },
+      { label: t('fill.results.unreached'), value: String(unreachedCount.value), text: t('fill.results.unreachedText', { count: unreachedCount.value }) },
     ]
   : [
-      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) },
-      { label: t('results.wrongCount'), value: String(wrongCount.value) },
-      { label: t('results.missedCount'), value: String(props.state.deckSize - props.state.score - (props.state.wrongTapCount === undefined ? wrongCount.value : 0)) },
+      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreLabelled', { score: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) }) },
+      { label: t('results.wrongCount'), value: String(wrongCount.value), text: t('results.wrongCountText', { count: wrongCount.value }) },
+      { label: t('results.missedCount'), value: String(missedCount.value), text: t('results.missedCountText', { count: missedCount.value }) },
     ]));
 
 const shareText = computed(() => [
@@ -136,6 +142,7 @@ defineExpose({ element: tray });
     role="dialog"
     aria-modal="true"
     :aria-labelledby="titleId"
+    :aria-describedby="state.isNewBest ? `${headlineStatId} ${newBestId}` : headlineStatId"
     @keydown="handleKeydown"
   >
     <h2
@@ -149,6 +156,7 @@ defineExpose({ element: tray });
 
     <p
       v-if="state.isNewBest"
+      :id="newBestId"
       class="results-tray__new-best"
     >
       {{ newBestLine }}
@@ -180,15 +188,18 @@ defineExpose({ element: tray });
       >
         <span
           class="results-tray__stat-value"
-          :aria-hidden="stat.text ? true : undefined"
+          aria-hidden="true"
         >{{ stat.value }}<small v-if="stat.total">/{{ stat.total }}</small></span>
 
         <span
-          v-if="stat.text"
+          :id="index === 0 ? headlineStatId : undefined"
           class="visually-hidden"
         >{{ stat.text }}</span>
 
-        <span class="kicker results-tray__stat-label">{{ stat.label }}</span>
+        <span
+          class="kicker results-tray__stat-label"
+          aria-hidden="true"
+        >{{ stat.label }}</span>
       </div>
     </div>
 
