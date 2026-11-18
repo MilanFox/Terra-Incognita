@@ -14,6 +14,8 @@ import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncemen
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
 import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
 
+type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup };
+
 const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -42,6 +44,7 @@ const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderRes
 const isSettingsOpen = ref(false);
 const isStatsOpen = ref(false);
 const aboutOpeningSection = ref<AboutSectionId | null>(null);
+const aboutOpener = shallowRef<AboutOpener>({ tray: 'home' });
 const isAboutOpen = computed(() => aboutOpeningSection.value !== null);
 
 usePlayFeedback(() => game.state);
@@ -206,14 +209,24 @@ const closeStats = async () => {
   homeTray.value?.focusStats();
 };
 
-const openAbout = (section: AboutSectionId = 'intro') => {
+const openAbout = (section: AboutSectionId = 'intro', opener: AboutOpener = { tray: 'home' }) => {
+  aboutOpener.value = opener;
   aboutOpeningSection.value = section;
 };
 
+const swapSetupForAboutTiers = () => {
+  if (!setupDraft.value) return;
+  openAbout('tiers', { tray: 'setup', setup: setupDraft.value });
+  setupDraft.value = null;
+};
+
 const closeAbout = async () => {
+  const opener = aboutOpener.value;
   aboutOpeningSection.value = null;
+  if (opener.tray === 'setup') setupDraft.value = opener.setup;
   await nextTick();
-  homeTray.value?.focusAbout();
+  if (opener.tray === 'setup') setupTray.value?.focusAboutTiers();
+  else homeTray.value?.focusAbout();
 };
 
 const leave = async () => {
@@ -253,6 +266,7 @@ onMounted(game.load);
         v-model:setup="setupDraft"
         @play="play(setupDraft)"
         @close="closeSetup"
+        @about-tiers="swapSetupForAboutTiers"
       />
     </Transition>
 
@@ -402,6 +416,7 @@ onMounted(game.load);
           v-if="isShellReady && game.state.phase === 'home' && aboutOpeningSection"
           ref="aboutTray"
           :opening-section="aboutOpeningSection"
+          :back-label="aboutOpener.tray === 'home' ? undefined : $t(`about.backTo.${aboutOpener.tray}`)"
           :map-canvas="worldMap?.getMap()?.getCanvas()"
           :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
           :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"

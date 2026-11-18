@@ -28,6 +28,9 @@
     "open": "About the map",
     "title": "About the map",
     "close": "Close",
+    "backTo": {
+      "setup": "Zurück zu den Einstellungen"
+    },
     "index": "Sections",
     "showOnMap": "Shows it on the map.",
     "newTab": "(opens in a new tab)",
@@ -130,6 +133,7 @@
       "flag": "Flagge",
       "name": "Name",
       "both": "Flagge und Name",
+      "map": "Karte",
       "silhouette": "Umriss"
     },
     "timed": "Zeitlimit",
@@ -150,6 +154,7 @@
       "defacto": "De facto",
       "dependencies": "Abhängige Gebiete"
     },
+    "aboutTiers": "Über die Stufen",
     "deckSizes": {
       "10": "10",
       "all": "Alle"

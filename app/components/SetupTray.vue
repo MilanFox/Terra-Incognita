@@ -4,7 +4,7 @@ import type { DeckSize, Mode, RegionChoice, RoundKind, RoundSetup, Tier, Variant
 import { useGameStore } from '~/stores/game';
 
 const props = defineProps<{ setup: RoundSetup }>();
-const emit = defineEmits<{ 'update:setup': [setup: RoundSetup], 'play': [], 'close': [] }>();
+const emit = defineEmits<{ 'update:setup': [setup: RoundSetup], 'play': [], 'close': [], 'aboutTiers': [] }>();
 
 const { t } = useI18n();
 const game = useGameStore();
@@ -12,6 +12,7 @@ const game = useGameStore();
 const titleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
+const aboutTiersLink = useTemplateRef<HTMLButtonElement>('aboutTiersLink');
 
 const choices = computed(() => game.choicesFor(props.setup));
 
@@ -75,7 +76,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => title.value?.focus({ preventScroll: true }));
 
-defineExpose({ element: tray });
+defineExpose({ element: tray, focusAboutTiers: () => aboutTiersLink.value?.focus() });
 </script>
 
 <template>
@@ -182,7 +183,16 @@ defineExpose({ element: tray });
         :options="tierOptions"
         :model-value="setup.tier"
         @update:model-value="change({ tier: $event as Tier })"
-      />
+      >
+        <button
+          ref="aboutTiersLink"
+          type="button"
+          class="setup-tray__about-tiers"
+          @click="emit('aboutTiers')"
+        >
+          {{ $t('setup.aboutTiers') }}
+        </button>
+      </RadioTiles>
 
       <RadioTiles
         v-if="setup.mode !== 'missing' && setup.mode !== 'fill' && !isLearn"
@@ -289,6 +299,21 @@ defineExpose({ element: tray });
   &__rows {
     display: grid;
     gap: 12px;
+  }
+
+  &__about-tiers {
+    min-height: 24px;
+    // A 24px target that doesn't grow the label row, so the tray still fits one phone screen.
+    margin-block: -5px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $color-muted;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 
   &__scope {

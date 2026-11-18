@@ -36,10 +36,14 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 
 <template>
   <div class="radio-tiles">
-    <span
-      :id="labelId"
-      class="kicker radio-tiles__label"
-    >{{ label }}</span>
+    <div class="radio-tiles__head">
+      <span
+        :id="labelId"
+        class="kicker radio-tiles__label"
+      >{{ label }}</span>
+
+      <slot />
+    </div>
 
     <p
       v-if="hint"
@@ -85,6 +89,13 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 .radio-tiles {
   display: grid;
   gap: 6px;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
 
   &__label {
     color: $color-muted;
