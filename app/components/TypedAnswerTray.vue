@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
+import { useSettingsStore } from '~/stores/settings';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' | 'fill' | 'wayfinder' }> }>();
 const emit = defineEmits<{ next: [] }>();
 
 const game = useGameStore();
+const settings = useSettingsStore();
 
 const inputId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
@@ -15,7 +17,7 @@ const isRejected = ref(false);
 
 const outcome = computed(() => (props.state.phase === 'verdict' ? props.state.answer.outcome : null));
 const isAwaitingNext = computed(() => outcome.value !== null || (props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open'));
-const submitKey = computed(() => (isAwaitingNext.value && outcome.value !== 'right' ? 'next' : 'submit'));
+const submitKey = computed(() => (isAwaitingNext.value && (outcome.value !== 'right' || settings.isWaitForNextOn) ? 'next' : 'submit'));
 const isPaused = computed(() => props.state.phase !== 'wayfinder' && props.state.isPaused);
 const unresolvedCount = computed(() => {
   if (props.state.phase === 'fill') return props.state.lastInput && props.state.lastInput.kind !== 'filled' ? props.state.inputCount : 0;
@@ -106,7 +108,7 @@ defineExpose({
         class="typed-answer__input"
         :class="{ 'typed-answer__input--struck': outcome === 'wrong' }"
         type="text"
-        inputmode="none"
+        :inputmode="settings.isSystemKeyboardOn ? undefined : 'none'"
         autocomplete="off"
         autocapitalize="off"
         autocorrect="off"
@@ -117,6 +119,7 @@ defineExpose({
     </form>
 
     <TileKeyboard
+      v-if="!settings.isSystemKeyboardOn"
       :submit-key="submitKey"
       @type="type"
       @erase="erase"

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { createGame, deepestTierPlayed } from '#shared/game/game';
+import { useSettingsStore } from '~/stores/settings';
 import type { DailyVariant, DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
 import type { Streak } from '#shared/game/daily';
 import type { NamesFile, PlaceNames } from '#shared/game/matcher';
@@ -20,6 +21,7 @@ const clockTickMs = 250;
 const fetchJson = async <T>(url: string): Promise<T> => (await fetch(url)).json();
 
 export const useGameStore = defineStore('game', () => {
+  const settings = useSettingsStore();
   const state = shallowRef<GameState>({ phase: 'home' });
   const names = shallowRef<NamesFile>({});
   const isReady = ref(false);
@@ -41,7 +43,7 @@ export const useGameStore = defineStore('game', () => {
       fetchJson<NamesFile>('/data/names.json'),
       fetchJson<DataVersion>('/data/version.json'),
     ]);
-    game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage });
+    game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage, isWaitingForNext: () => settings.isWaitForNextOn });
     stats = createStats({ places, storage: localStorage });
     yourData = createYourData({ storage: localStorage, version, clock: Date.now });
     names.value = placeNames;

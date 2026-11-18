@@ -206,6 +206,14 @@
           "on": "An",
           "off": "Aus"
         }
+      },
+      "waitForNext": {
+        "label": "Nach richtigen Antworten auf Weiter warten",
+        "hint": "Richtige Antworten bleiben, bis du auf Weiter tippst."
+      },
+      "systemKeyboard": {
+        "label": "Systemtastatur verwenden",
+        "hint": "Mit der Tastatur deines Geräts statt mit den Kacheln tippen."
       }
     },
     "data": {

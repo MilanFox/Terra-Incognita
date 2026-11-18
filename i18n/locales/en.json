@@ -206,6 +206,14 @@
           "on": "On",
           "off": "Off"
         }
+      },
+      "waitForNext": {
+        "label": "Wait for Next after right answers",
+        "hint": "Right answers stay until you press Next."
+      },
+      "systemKeyboard": {
+        "label": "Use system keyboard",
+        "hint": "Type with your device keyboard instead of the tiles."
       }
     },
     "data": {

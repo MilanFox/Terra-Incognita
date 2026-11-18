@@ -80,6 +80,7 @@ export interface GameDependencies {
   clock: () => number
   storage: KeyValueStorage
   schemaMigrations?: SchemaMigration[]
+  isWaitingForNext?: () => boolean
 }
 
 export type GameEvent
@@ -248,7 +249,7 @@ export const deepestTierPlayed = (storage: KeyValueStorage) => createRecords(sto
   .map(({ tier }) => tier)
   .reduce((deepest, tier) => (tiersInOrder.indexOf(tier) > tiersInOrder.indexOf(deepest) ? tier : deepest), tiersInOrder[0]!);
 
-export const createGame = ({ places, names = {}, version, random, clock, storage, schemaMigrations }: GameDependencies) => {
+export const createGame = ({ places, names = {}, version, random, clock, storage, schemaMigrations, isWaitingForNext = () => false }: GameDependencies) => {
   migrateStorage(storage, version, schemaMigrations);
   const placeIds = new Set(places.map(({ id }) => id));
   const placesById = new Map(places.map(place => [place.id, place]));
@@ -664,7 +665,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     phase = 'results';
   };
 
-  const isRightAnswerDue = () => answers[promptIndex]?.outcome === 'right' && clock() - answeredAt >= rightAnswerAdvanceMs;
+  const isRightAnswerDue = () => answers[promptIndex]?.outcome === 'right' && !isWaitingForNext() && clock() - answeredAt >= rightAnswerAdvanceMs;
 
   const askNextLearningPrompt = (loop: LearningLoop) => {
     const next = nextPrompt(loop, deck[promptIndex], reviewOrderOf(setup));
