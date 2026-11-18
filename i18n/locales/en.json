@@ -306,6 +306,24 @@
     "regionWeak": "{count} weak",
     "regionSolid": "{count} solid",
     "regionUnplayed": "{count} unplayed",
+    "completeRounds": "Complete rounds",
+    "averageLast20": "Average, last 20",
+    "perfectRounds": "Perfect rounds",
+    "noAverage": "–",
+    "noAverageSpoken": "None yet",
+    "show": "Show",
+    "allVariants": "All",
+    "scoreShort": "{score}/{total}",
+    "bests": {
+      "title": "Personal bests",
+      "note": "your most-played setups",
+      "perfectIn": "Perfect in {time}"
+    },
+    "lastRounds": {
+      "title": "Last 10 rounds",
+      "endedEarly": "Ended early",
+      "learn": "Learn"
+    },
     "bubble": {
       "closeDetails": "Close details",
       "notPlayed": "Not played yet",

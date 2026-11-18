@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { Region } from '#shared/game/game';
+import type { Mode, Region } from '#shared/game/game';
+import { regularModes } from '#shared/game/stats';
+import type { StatsScope } from '#shared/game/stats';
+import type { ShownVariant } from '~/components/StatsModePage.vue';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 import { useGameStore } from '~/stores/game';
 
-type StatsPageId = 'all';
+type StatsPageId = 'all' | Mode;
 
 const props = defineProps<{ mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
 const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyToRegion: [region: Region], announce: [text: string] }>();
@@ -24,14 +27,26 @@ const activePage = useTemplateRef<{ more: HTMLElement | null }>('activePage');
 const placeBubble = useTemplateRef<{ bottom: number, lines: string[] }>('placeBubble');
 
 const allGames = game.allGamesStats();
-const regions = game.regionCounts();
-const pages = computed(() => [{ id: 'all' as const, name: t('stats.allGames.name') }]);
+const pages = computed<{ id: StatsPageId, name: string }[]>(() => [
+  { id: 'all', name: t('stats.allGames.name') },
+  ...regularModes.map(mode => ({ id: mode, name: t(`modes.${mode}.name`) })),
+]);
 const activePageId = ref<StatsPageId>('all');
-const placeRatings = computed(() => (activePageId.value === 'all' ? allGames.placeRatings : null));
+const shownVariants = reactive<Partial<Record<Mode, ShownVariant>>>({});
+const slideFrom = ref<'left' | 'right' | null>(null);
+
+const scope = computed<StatsScope>(() => {
+  if (activePageId.value === 'all') return {};
+  const shownVariant = shownVariants[activePageId.value] ?? 'all';
+  return { mode: activePageId.value, variant: shownVariant === 'all' ? undefined : shownVariant };
+});
+const modeStats = computed(() => (activePageId.value === 'all' ? null : game.modeStats({ ...scope.value, mode: activePageId.value })));
+const regions = computed(() => game.regionCounts(scope.value));
+const placeRatings = computed(() => (activePageId.value === 'all' ? allGames.placeRatings : game.placeRatings(scope.value)));
 
 const isOpen = ref(false);
 const bubblePlaceId = ref<string | null>(null);
-const bubbleDetails = computed(() => (bubblePlaceId.value ? game.placeDetails(bubblePlaceId.value) : null));
+const bubbleDetails = computed(() => (bubblePlaceId.value ? game.placeDetails(bubblePlaceId.value, scope.value) : null));
 const bubbleConfusedWithId = computed(() => bubbleDetails.value?.confusedWith);
 const isPositioned = ref(false);
 const collapsedShift = ref(0);
@@ -46,7 +61,20 @@ const measure = () => {
   collapsedShift.value = Math.max(0, trayHeight.value - peekHeight.value);
 };
 
-const { dragShift, onPointerDown, onTouchStart, onTouchMove, onTouchEnd, onClickCapture } = useTraySwipe({ tray, isOpen, collapsedShift });
+const pageIndexOf = (pageId: StatsPageId) => pages.value.findIndex(({ id }) => id === pageId);
+
+const stepPage = (step: 1 | -1) => {
+  const next = pages.value[pageIndexOf(activePageId.value) + step];
+  if (next) activePageId.value = next.id;
+};
+
+const { dragShift, onPointerDown, onTouchStart, onTouchMove, onTouchEnd, onClickCapture } = useTraySwipe({
+  tray,
+  isOpen,
+  collapsedShift,
+  onSwipeLeft: () => stepPage(1),
+  onSwipeRight: () => stepPage(-1),
+});
 
 const trayShift = computed(() => dragShift.value ?? (isOpen.value ? 0 : collapsedShift.value));
 const visibleTrayHeight = computed(() => trayHeight.value - trayShift.value);
@@ -55,14 +83,13 @@ const hasRoomForZoomTiles = computed(() => windowHeight.value - visibleTrayHeigh
 watch(isOpen, (nowOpen) => {
   if (!nowOpen && tray.value) tray.value.scrollTop = 0;
 });
-watch(activePageId, () => nextTick(measure));
 
-const placeLabel = (placeId: string) => t('live.statsPlace', { name: game.nameOf(placeId, locale.value), rating: t(`stats.ratings.${game.placeDetails(placeId).rating}`) });
+const placeLabel = (placeId: string) => t('live.statsPlace', { name: game.nameOf(placeId, locale.value), rating: t(`stats.ratings.${game.placeDetails(placeId, scope.value).rating}`) });
 
 const openBubble = async (placeId: string) => {
   bubblePlaceId.value = placeId;
   await nextTick();
-  const { rating } = game.placeDetails(placeId);
+  const { rating } = game.placeDetails(placeId, scope.value);
   emit('announce', [game.nameOf(placeId, locale.value), rating === 'noData' ? '' : t(`stats.ratings.${rating}`), ...placeBubble.value?.lines ?? []].filter(Boolean).join('. '));
 };
 
@@ -70,6 +97,12 @@ const closeBubble = () => {
   if (overlay.value?.querySelector('.place-bubble')?.contains(document.activeElement)) props.mapCanvas?.focus();
   bubblePlaceId.value = null;
 };
+
+watch(activePageId, (pageId, previousPageId) => {
+  slideFrom.value = pageIndexOf(pageId) > pageIndexOf(previousPageId) ? 'right' : 'left';
+  closeBubble();
+  nextTick(measure);
+});
 
 const flyToRegion = (region: Region) => {
   closeBubble();
@@ -220,20 +253,48 @@ defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble,
           :pages="pages"
           :label="$t('stats.pages')"
         >
-          <template #glyph>
-            <StatsGlyph :size="20" />
+          <template #glyph="{ pageId }">
+            <StatsGlyph
+              v-if="pageId === 'all'"
+              :size="20"
+            />
+
+            <ModeGlyph
+              v-else
+              :mode="pageId"
+              :size="22"
+            />
           </template>
 
-          <template #default>
-            <StatsAllGames
-              ref="activePage"
-              :stats="allGames"
-              :streak="game.streak"
-              :more-id="moreId"
-              :is-expanded="isOpen"
-              :regions="regions"
-              @fly-to-region="flyToRegion"
-            />
+          <template #default="{ pageId }">
+            <div
+              class="stats-tray__page"
+              :class="slideFrom && `stats-tray__page--from-${slideFrom}`"
+            >
+              <StatsAllGames
+                v-if="pageId === 'all'"
+                ref="activePage"
+                :stats="allGames"
+                :streak="game.streak"
+                :more-id="moreId"
+                :is-expanded="isOpen"
+                :regions="regions"
+                @fly-to-region="flyToRegion"
+              />
+
+              <StatsModePage
+                v-else-if="modeStats"
+                ref="activePage"
+                :shown-variant="shownVariants[pageId] ?? 'all'"
+                :mode="pageId"
+                :stats="modeStats"
+                :more-id="moreId"
+                :is-expanded="isOpen"
+                :regions="regions"
+                @fly-to-region="flyToRegion"
+                @update:shown-variant="shownVariants[pageId] = $event"
+              />
+            </div>
           </template>
         </StatsTabs>
       </div>
@@ -345,6 +406,16 @@ defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble,
     height: 44px;
   }
 
+  &__page {
+    &--from-right {
+      animation: stats-page-from-right 220ms cubic-bezier(0.2, 1, 0.4, 1);
+    }
+
+    &--from-left {
+      animation: stats-page-from-left 220ms cubic-bezier(0.2, 1, 0.4, 1);
+    }
+  }
+
   &__title {
     margin: 0;
     overflow-wrap: anywhere;
@@ -360,7 +431,25 @@ defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble,
   }
 }
 
+@keyframes stats-page-from-right {
+  from {
+    opacity: 0;
+    translate: 40px 0;
+  }
+}
+
+@keyframes stats-page-from-left {
+  from {
+    opacity: 0;
+    translate: -40px 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .stats-tray__page {
+    animation: none;
+  }
+
   .stats-tray,
   .stats-overlay__zoom {
     transition-duration: 120ms;

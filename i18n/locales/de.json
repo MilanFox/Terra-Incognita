@@ -306,6 +306,24 @@
     "regionWeak": "{count} schwach",
     "regionSolid": "{count} sicher",
     "regionUnplayed": "{count} ungespielt",
+    "completeRounds": "Fertige Runden",
+    "averageLast20": "Schnitt, letzte 20",
+    "perfectRounds": "Perfekte Runden",
+    "noAverage": "–",
+    "noAverageSpoken": "Noch keiner",
+    "show": "Zeigen",
+    "allVariants": "Alle",
+    "scoreShort": "{score}/{total}",
+    "bests": {
+      "title": "Bestleistungen",
+      "note": "deine meistgespielten Einstellungen",
+      "perfectIn": "Perfekt in {time}"
+    },
+    "lastRounds": {
+      "title": "Letzte 10 Runden",
+      "endedEarly": "Vorzeitig beendet",
+      "learn": "Lernen"
+    },
     "bubble": {
       "closeDetails": "Details schließen",
       "notPlayed": "Noch nicht gespielt",

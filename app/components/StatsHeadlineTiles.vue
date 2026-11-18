@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import type { Rating } from '#shared/game/stats';
 
-defineProps<{ tiles: { label: string, value: string, spokenValue?: string, note?: string, rating?: Rating }[] }>();
+export interface HeadlineTile {
+  label: string
+  value: string
+  spokenValue?: string
+  note?: string
+  rating?: Rating
+}
+
+defineProps<{ tiles: HeadlineTile[] }>();
 </script>
 
 <template>
-  <dl class="headline-tiles">
+  <dl
+    class="headline-tiles"
+    :class="{ 'headline-tiles--three': tiles.length === 3 }"
+  >
     <div
       v-for="tile in tiles"
       :key="tile.label"
@@ -44,6 +55,10 @@ defineProps<{ tiles: { label: string, value: string, spokenValue?: string, note?
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
+
+  &--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .headline-tile {

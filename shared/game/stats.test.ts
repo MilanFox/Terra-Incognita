@@ -5,6 +5,7 @@ import shippedVersion from '../../public/data/version.json';
 import { createGame, isTypedMode } from './game';
 import type { Game, KeyValueStorage, Place, RoundSetup } from './game';
 import type { NamesFile, PlaceNames } from './matcher';
+import type { RoundSummary } from './records';
 import { createStats } from './stats';
 import type { Rating } from './stats';
 
@@ -35,8 +36,12 @@ const memoryStorage = (): KeyValueStorage => {
 
 const statsGame = () => {
   const storage = memoryStorage();
-  const game = createGame({ places, names, version: shippedVersion, random: seededRandom(3), clock: () => Date.UTC(2026, 10, 18, 9), storage });
-  return { game, stats: createStats({ places, storage }) };
+  let now = Date.UTC(2026, 10, 18, 9);
+  const game = createGame({ places, names, version: shippedVersion, random: seededRandom(3), clock: () => now, storage });
+  const wait = (ms: number) => {
+    now += ms;
+  };
+  return { game, stats: createStats({ places, storage }), storage, wait };
 };
 
 const oceaniaRound: RoundSetup = { mode: 'find', variant: 'flag', region: 'Oceania', tier: 'sovereign', deckSize: 'all', easy: false, timed: false };
@@ -262,5 +267,114 @@ describe('place details', () => {
     game.send({ type: 'tap', placeId: placeId === 'AUS' ? 'NZL' : 'AUS' });
 
     expect(stats.placeDetails(placeId).confusedWith).toBe(placeId === 'AUS' ? 'NZL' : 'AUS');
+  });
+});
+
+describe('mode stats', () => {
+  const allOceaniaWrongOnce = (rest: string) => Object.fromEntries(fiveOceaniaPlaceIds.map(placeId => [placeId, `✗${placeId === 'AUS' ? rest : right.repeat(rest.length)}`]));
+
+  it('starts empty', () => {
+    const { stats } = statsGame();
+
+    expect(stats.modeStats({ mode: 'find' })).toEqual({ completeRounds: 0, averageShare: null, perfectRounds: 0, bests: [], lastRounds: [] });
+  });
+
+  it('counts complete rounds only and lists the last 10 rounds newest first, ended early included', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, {}, { AUS: '✓✓✓✓✓✓✓✓✓✓✗' });
+    game.send({ type: 'start', setup: oceaniaRound });
+    endRoundAtOnce(game);
+
+    const { completeRounds, perfectRounds, lastRounds } = stats.modeStats({ mode: 'find' });
+    expect({ completeRounds, perfectRounds }).toEqual({ completeRounds: 11, perfectRounds: 10 });
+    expect(lastRounds.map(({ score, complete }) => `${score}${complete ? '' : ' ended'}`)).toEqual(['0 ended', '4', '5', '5', '5', '5', '5', '5', '5', '5']);
+  });
+
+  it('averages the share of each complete round over the last 20 complete rounds', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, {}, allOceaniaWrongOnce('✓✗'.repeat(10)));
+    game.send({ type: 'start', setup: oceaniaRound });
+    endRoundAtOnce(game);
+
+    const { completeRounds, averageShare, perfectRounds } = stats.modeStats({ mode: 'find' });
+    expect({ completeRounds, perfectRounds }).toEqual({ completeRounds: 21, perfectRounds: 10 });
+    expect(averageShare).toBeCloseTo(0.9, 10);
+  });
+
+  it('follows the mode and the variant filter', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, { variant: 'flag' }, { AUS: '✓✓' });
+    playRounds(game, { variant: 'name' }, { AUS: '✗' });
+    playRounds(game, { mode: 'country', variant: 'flag' }, { AUS: '✗✗✗' });
+
+    expect(stats.modeStats({ mode: 'find' })).toMatchObject({ completeRounds: 3, perfectRounds: 2 });
+    expect(stats.modeStats({ mode: 'find', variant: 'name' })).toMatchObject({ completeRounds: 1, averageShare: 0.8, perfectRounds: 0 });
+    expect(stats.modeStats({ mode: 'country', variant: 'silhouette' }).completeRounds).toBe(0);
+    expect(stats.modeStats({ mode: 'country' }).lastRounds.map(({ variant }) => variant)).toEqual(['flag', 'flag', 'flag']);
+    expect(stats.modeStats({ mode: 'name' }).completeRounds).toBe(0);
+  });
+
+  it('shows the stored personal bests of the 5 most-played setups, ended-early rounds counted as plays', () => {
+    const { game, stats, wait } = statsGame();
+    const playTaking = (setup: Partial<RoundSetup>, takingMs: number, { missesFirst = false } = {}) => {
+      game.send({ type: 'start', setup: { ...oceaniaRound, ...setup } });
+      wait(takingMs);
+      while (game.state.phase === 'prompt') {
+        answerPrompt(game, game.state.placeId, !missesFirst || game.state.promptNumber > 1);
+        game.send({ type: 'next' });
+      }
+      game.send({ type: 'leave' });
+    };
+
+    playTaking({}, 40_000);
+    playTaking({}, 30_000);
+    playTaking({}, 10_000, { missesFirst: true });
+    game.send({ type: 'start', setup: oceaniaRound });
+    endRoundAtOnce(game);
+    playTaking({ variant: 'name' }, 20_000, { missesFirst: true });
+    playTaking({ variant: 'name' }, 20_000, { missesFirst: true });
+    playTaking({ variant: 'name' }, 20_000, { missesFirst: true });
+    playTaking({ region: 'Europe', deckSize: 10 }, 50_000);
+    playTaking({ region: 'Europe', deckSize: 10 }, 45_000, { missesFirst: true });
+    playTaking({ variant: 'both' }, 25_000);
+    playTaking({ variant: 'both' }, 15_000, { missesFirst: true });
+    playTaking({ easy: true }, 5_000);
+    playTaking({ region: 'Africa', deckSize: 10 }, 60_000);
+
+    const oceania = { region: 'Oceania', tier: 'sovereign', easy: false, deckSize: 5 };
+    expect(stats.modeStats({ mode: 'find' }).bests).toEqual([
+      { ...oceania, variant: 'flag', plays: 4, score: 5, fastestPerfectMs: 30_000 },
+      { ...oceania, variant: 'name', plays: 3, score: 4, fastestPerfectMs: null },
+      { ...oceania, variant: 'both', plays: 2, score: 5, fastestPerfectMs: 25_000 },
+      { variant: 'flag', region: 'Europe', tier: 'sovereign', easy: false, deckSize: 10, plays: 2, score: 10, fastestPerfectMs: 50_000 },
+      { variant: 'flag', region: 'Africa', tier: 'sovereign', easy: false, deckSize: 10, plays: 1, score: 10, fastestPerfectMs: 60_000 },
+    ]);
+    expect(stats.modeStats({ mode: 'find', variant: 'flag' }).bests.map(({ region, easy }) => `${region}${easy ? ' easy' : ''}`)).toEqual(['Oceania', 'Europe', 'Africa', 'Oceania easy']);
+  });
+
+  it('treats a 10-place and an All deck of the same small pool as one setup', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, { deckSize: 10 }, { AUS: '✗' });
+    playRounds(game, { deckSize: 'all' }, { AUS: '✓' });
+
+    expect(stats.modeStats({ mode: 'find' }).bests).toMatchObject([{ region: 'Oceania', deckSize: 5, plays: 2, score: 4 }]);
+  });
+
+  it('leaves learning rounds out of the tiles and bests and lists them with the last rounds', () => {
+    const { game, stats, storage } = statsGame();
+    playRounds(game, {}, { AUS: '✗' });
+    const [logged] = JSON.parse(storage.getItem('ti:rounds')!) as RoundSummary[];
+
+    storage.setItem('ti:rounds', JSON.stringify([logged, { ...logged, learn: true, score: 5 }]));
+
+    const modeStats = stats.modeStats({ mode: 'find' });
+    expect(modeStats).toMatchObject({ completeRounds: 1, averageShare: 0.8, perfectRounds: 0 });
+    expect(modeStats.bests).toMatchObject([{ plays: 1, score: 4 }]);
+    expect(modeStats.lastRounds.map(({ learn }) => learn)).toEqual([true, false]);
+    expect(stats.allGames().roundsPlayed).toBe(2);
   });
 });

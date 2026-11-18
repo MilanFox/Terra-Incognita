@@ -155,7 +155,7 @@ const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regionChoices: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const deckSizeChoices: DeckSize[] = [10, 'all'];
 const modes: Mode[] = ['find', 'name', 'capital', 'country', 'fill', 'missing', 'wayfinder'];
-const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], fill: ['map'], missing: ['map'], wayfinder: ['map'] };
+export const variantChoicesByMode: Record<Mode, Variant[]> = { find: ['flag', 'name', 'both'], name: ['map'], capital: ['map'], country: ['flag', 'silhouette'], fill: ['map'], missing: ['map'], wayfinder: ['map'] };
 const flagVariants: Variant[] = ['flag', 'both'];
 const dailyVariants: DailyVariant[] = ['name', 'flag'];
 
