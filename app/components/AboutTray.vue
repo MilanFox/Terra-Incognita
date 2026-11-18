@@ -23,7 +23,7 @@ interface FlagCredit {
   licenseUrl: string | null
 }
 
-const props = defineProps<{ openingSection: AboutSectionId, mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const props = defineProps<{ openingSection: AboutSectionId, backLabel?: string, mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
 const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyTo: [bounds: Bounds] }>();
 
 const sectionIds: AboutSectionId[] = ['intro', 'borders', 'tiers', 'ukraine', 'westernSahara', 'capitals', 'flags', 'leases', 'unclaimed', 'sources'];
@@ -54,6 +54,7 @@ const idBase = useId();
 const showOnMapId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
+const backButton = useTemplateRef<HTMLButtonElement>('backButton');
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton');
 const shippedVersion = shallowRef<ShippedVersion>();
 const flagCredits = shallowRef<FlagCredit[]>([]);
@@ -90,7 +91,7 @@ const measure = () => {
 };
 
 const trapFocus = (event: KeyboardEvent) => {
-  const first = closeButton.value!;
+  const first = backButton.value ?? closeButton.value!;
   const last = props.mapCanvas ?? first;
   const active = document.activeElement;
   if (event.shiftKey && (active === first || active === title.value)) {
@@ -130,6 +131,31 @@ defineExpose({ titleId, trayHeight });
       class="tray about-tray"
     >
       <div class="about-tray__top">
+        <button
+          v-if="backLabel"
+          ref="backButton"
+          type="button"
+          class="tile about-tray__back"
+          @click="emit('close')"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            aria-hidden="true"
+          >
+            <path
+              d="M20 12H5M11 5l-7 7 7 7"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="square"
+            />
+          </svg>
+
+          {{ backLabel }}
+        </button>
+
         <button
           ref="closeButton"
           type="button"
@@ -367,8 +393,20 @@ defineExpose({ titleId, trayHeight });
     z-index: 1;
     display: flex;
     justify-content: flex-end;
+    gap: 12px;
     padding: 12px calc(env(safe-area-inset-right, 0px) + 18px) 8px;
     background: $color-paper;
+  }
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-right: auto;
+    padding: 4px 14px 4px 10px;
+    font-size: 15px;
+    font-weight: 700;
   }
 
   &__close {

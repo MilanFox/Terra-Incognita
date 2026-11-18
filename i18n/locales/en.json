@@ -28,6 +28,9 @@
     "open": "About the map",
     "title": "About the map",
     "close": "Close",
+    "backTo": {
+      "setup": "Back to setup"
+    },
     "index": "Sections",
     "showOnMap": "Shows it on the map.",
     "newTab": "(opens in a new tab)",
@@ -130,6 +133,7 @@
       "flag": "Flag",
       "name": "Name",
       "both": "Flag and name",
+      "map": "Map",
       "silhouette": "Silhouette"
     },
     "timed": "Timed",
@@ -150,6 +154,7 @@
       "defacto": "De facto",
       "dependencies": "Dependencies"
     },
+    "aboutTiers": "About tiers",
     "deckSizes": {
       "10": "10",
       "all": "All"
