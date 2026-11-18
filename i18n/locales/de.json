@@ -57,7 +57,8 @@
     "variants": {
       "flag": "Flagge",
       "name": "Name",
-      "both": "Flagge und Name"
+      "both": "Flagge und Name",
+      "silhouette": "Umriss"
     },
     "timed": "Zeitlimit",
     "easy": "Einfacher Modus",
@@ -109,7 +110,7 @@
     "country": {
       "name": "Sighting",
       "subtitle": "Benenne das Land",
-      "help": "Oben erscheint eine Flagge, und du schreibst auf der Tastatur darunter den Namen ihres Orts, auf Deutsch oder Englisch. Die Karte verrät nichts, bis du antwortest, dann fliegt sie zum Ort. Kleine Tippfehler werden verziehen; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
+      "help": "Oben erscheint eine Flagge oder ein Umriss, und du schreibst auf der Tastatur darunter den Namen des Orts, auf Deutsch oder Englisch. Die Karte verrät nichts, bis du antwortest, dann fliegt sie zum Ort. Kleine Tippfehler werden verziehen; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
     }
   },
   "round": {
@@ -119,6 +120,7 @@
     "right": "Richtig",
     "wrong": "Falsch",
     "youTapped": "Getippt: {place}",
+    "flag": "Flagge des gesuchten Orts",
     "next": "Weiter",
     "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche",
     "clock": "Verbleibende Zeit"
@@ -217,8 +219,12 @@
     }
   },
   "sighting": {
-    "prompt": "Wessen Flagge ist das?",
-    "flag": "Flagge des gesuchten Orts"
+    "prompt": {
+      "flag": "Wessen Flagge ist das?",
+      "silhouette": "Wessen Umriss ist das?"
+    },
+    "flag": "Flagge des gesuchten Orts",
+    "silhouette": "Umriss des gesuchten Orts"
   },
   "zoom": {
     "in": "Vergrößern",

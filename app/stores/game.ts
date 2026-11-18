@@ -1,11 +1,15 @@
 import { defineStore } from 'pinia';
+import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson';
 import { createGame, deepestTierPlayed } from '#shared/game/game';
 import type { DailyVariant, DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
 import type { Streak } from '#shared/game/daily';
 import type { NamesFile, PlaceNames } from '#shared/game/matcher';
 import type { DailyRecord } from '#shared/game/records';
+import { drawSilhouette } from '#shared/utils/silhouette';
+import type { Bbox } from '#shared/utils/silhouette';
 
 type Locale = 'en' | 'de';
+type ShippedPlace = Place & { bbox: Bbox, silhouetteFrame?: Bbox };
 
 const clockTickMs = 250;
 
@@ -20,16 +24,20 @@ export const useGameStore = defineStore('game', () => {
   const timeLeftMs = ref<number | null>(null);
   const todaysDaily = shallowRef<DailyRecord>();
   const streak = shallowRef<Streak>({ current: 0, longest: 0 });
+  const ownLandById = shallowRef<Map<string, Polygon['coordinates'][]>>();
+  let shippedPlacesById = new Map<string, ShippedPlace>();
+  let ownLandLoad: Promise<void> | undefined;
   let game: Game | undefined;
 
   const load = async () => {
     const [places, placeNames, version] = await Promise.all([
-      fetchJson<Place[]>('/data/places.json'),
+      fetchJson<ShippedPlace[]>('/data/places.json'),
       fetchJson<NamesFile>('/data/names.json'),
       fetchJson<DataVersion>('/data/version.json'),
     ]);
     game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage });
     names.value = placeNames;
+    shippedPlacesById = new Map(places.map(place => [place.id, place]));
     state.value = game.state;
     homeTier.value = deepestTierPlayed(localStorage);
     lastSetup.value = game.lastSetup();
@@ -89,5 +97,17 @@ export const useGameStore = defineStore('game', () => {
     return (firstCapitalId && (names.value[placeId] as PlaceNames | undefined)?.capitals?.[firstCapitalId]?.[locale as Locale]?.name) || placeId;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf };
+  const loadOwnLand = () => {
+    ownLandLoad ??= fetchJson<FeatureCollection<Polygon | MultiPolygon, { id: string }>>('/data/map-dependencies.geojson').then(({ features }) => {
+      ownLandById.value = new Map(features.map(({ properties, geometry }) => [properties.id, geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates]));
+    });
+  };
+
+  const silhouetteOf = (placeId: string) => {
+    const place = shippedPlacesById.get(placeId);
+    const ownLand = ownLandById.value?.get(placeId);
+    return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
+  };
+
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf };
 });

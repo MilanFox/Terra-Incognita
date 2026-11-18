@@ -63,7 +63,8 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
       if (lastUnresolved) announce(lastUnresolved === 'ambiguous' ? t('typed.ambiguous') : t(current.setup.mode === 'capital' ? 'capital.live.noMatch' : 'typed.live.noMatch'));
       else if (current.wrongTapPlaceIds.length > 0) announce(t('round.triesLeft', { count: current.attemptsLeft }, current.attemptsLeft));
       else if (current.setup.mode === 'capital') announce(t('capital.promptLive', { place: nameOf(current.placeId) }));
-      else if (isTypedMode(current.setup.mode)) announce(t(isNoMapMode(current.setup.mode) ? 'sighting.prompt' : 'typed.prompt'));
+      else if (isNoMapMode(current.setup.mode)) announce(t(`sighting.prompt.${current.setup.variant}`));
+      else if (isTypedMode(current.setup.mode)) announce(t('typed.prompt'));
       else if (current.setup.variant === 'flag') announce(t('round.findPrompt'));
       else announce(t('live.findName', { place: nameOf(current.placeId) }));
     }

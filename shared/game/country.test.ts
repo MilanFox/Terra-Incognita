@@ -35,20 +35,22 @@ const countrySetup = (changes: Partial<RoundSetup> = {}): RoundSetup => ({ ...cr
 const tiers: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const regions: RegionChoice[] = ['world', 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const flaglessIds = places.filter(({ flag }) => flag === null).map(({ id }) => id);
+const unreadableIds = places.filter(({ silhouette }) => silhouette === false).map(({ id }) => id);
 
 describe('Name that country setup', () => {
   it('is the flag variant, whole world, sovereign tier, 10 prompts, untimed and Easy mode off', () => {
     expect(countrySetup()).toEqual({ mode: 'country', variant: 'flag', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
   });
 
-  it('offers only the flag variant, and a silhouette round does not start', () => {
-    const game = createCountryGame();
+  it('offers the flag and the silhouette variant, and remembers the one played', () => {
+    const storage = memoryStorage();
+    const game = createCountryGame(storage);
 
-    expect(game.choicesFor(countrySetup()).variants.map(({ value }) => value)).toEqual(['flag']);
+    expect(game.choicesFor(countrySetup()).variants.map(({ value }) => value)).toEqual(['flag', 'silhouette']);
 
     game.send({ type: 'start', setup: countrySetup({ variant: 'silhouette' }) });
 
-    expect(game.state).toEqual({ phase: 'home' });
+    expect(createCountryGame(storage).setupFor('country').variant).toBe('silhouette');
   });
 
   it('is a typed mode without a map to answer on', () => {
@@ -111,13 +113,32 @@ describe('Name that country by flag', () => {
   });
 });
 
-describe('the silhouette variant, not offered yet', () => {
-  it('would leave out every place with an unreadable silhouette', () => {
-    const unreadableIds = places.filter(({ silhouette }) => silhouette === false).map(({ id }) => id);
-    const pool = createCountryGame().poolOf(countrySetup({ variant: 'silhouette', tier: 'dependencies' }));
+describe('Name that country by silhouette', () => {
+  it('leaves every place with an unreadable silhouette out of every pool, in every tier and region', () => {
+    const game = createCountryGame();
 
-    expect(unreadableIds.length).toBeGreaterThan(0);
-    expect(pool).toHaveLength(places.length - unreadableIds.length);
-    expect(pool.filter(id => unreadableIds.includes(id))).toEqual([]);
+    expect(unreadableIds).toHaveLength(44);
+    for (const tier of tiers) {
+      for (const region of regions) {
+        expect(game.poolOf(countrySetup({ variant: 'silhouette', tier, region })).filter(id => unreadableIds.includes(id))).toEqual([]);
+      }
+    }
+    expect(game.poolOf(countrySetup({ variant: 'silhouette', tier: 'dependencies' }))).toHaveLength(places.length - unreadableIds.length);
+  });
+
+  it('never asks an unreadable silhouette in a round of all dependencies, and records under the silhouette variant', () => {
+    const storage = memoryStorage();
+    const game = createCountryGame(storage);
+    game.send({ type: 'start', setup: countrySetup({ variant: 'silhouette', tier: 'dependencies', deckSize: 'all' }) });
+    const askedPlaceIds: string[] = [];
+    while (game.state.phase === 'prompt') {
+      askedPlaceIds.push(game.state.placeId);
+      game.send({ type: 'dontKnow' });
+      game.send({ type: 'next' });
+    }
+
+    expect(askedPlaceIds).toHaveLength(places.length - unreadableIds.length);
+    expect(askedPlaceIds.filter(id => unreadableIds.includes(id))).toEqual([]);
+    expect(Object.keys(JSON.parse(storage.getItem('ti:places')!))).toEqual(['country:silhouette']);
   });
 });

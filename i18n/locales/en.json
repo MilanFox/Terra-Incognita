@@ -57,7 +57,8 @@
     "variants": {
       "flag": "Flag",
       "name": "Name",
-      "both": "Flag and name"
+      "both": "Flag and name",
+      "silhouette": "Silhouette"
     },
     "timed": "Timed",
     "easy": "Easy mode",
@@ -109,7 +110,7 @@
     "country": {
       "name": "Sighting",
       "subtitle": "Name that country",
-      "help": "A flag appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
+      "help": "A flag or a silhouette appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
     }
   },
   "round": {
@@ -119,6 +120,7 @@
     "right": "Right",
     "wrong": "Wrong",
     "youTapped": "You tapped: {place}",
+    "flag": "Flag of the place to find",
     "next": "Next",
     "triesLeft": "Not that one · {count} try left | Not that one · {count} tries left",
     "clock": "Time left"
@@ -217,8 +219,12 @@
     }
   },
   "sighting": {
-    "prompt": "Whose flag is this?",
-    "flag": "Flag of the place to name"
+    "prompt": {
+      "flag": "Whose flag is this?",
+      "silhouette": "Whose shape is this?"
+    },
+    "flag": "Flag of the place to name",
+    "silhouette": "Silhouette of the place to name"
   },
   "zoom": {
     "in": "Zoom in",

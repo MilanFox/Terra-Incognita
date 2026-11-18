@@ -22,6 +22,8 @@ const isCapital = computed(() => props.state.setup.mode === 'capital');
 const isNoMap = computed(() => isNoMapMode(props.state.setup.mode));
 const isNameShown = computed(() => isCapital.value || props.state.setup.variant === 'name' || props.state.setup.variant === 'both' || props.state.phase === 'verdict');
 const isFlagShown = computed(() => props.state.setup.variant === 'flag' || props.state.setup.variant === 'both');
+const isSilhouetteShown = computed(() => props.state.setup.variant === 'silhouette');
+const silhouette = computed(() => (isSilhouetteShown.value ? game.silhouetteOf(props.state.placeId) : null));
 const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
 const isAmbiguous = computed(() => props.state.phase === 'prompt' && props.state.unresolvedAnswers.at(-1) === 'ambiguous');
 
@@ -30,7 +32,8 @@ const kickerText = computed(() => {
   if (state.phase === 'verdict') return state.answer.outcome === 'missed' ? t('typed.missed') : t(`round.${state.answer.outcome}`);
   if (isRetrying.value) return t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft);
   if (isCapital.value) return t('capital.prompt');
-  return isTyped.value ? t(isNoMap.value ? 'sighting.prompt' : 'typed.prompt') : t('round.findPrompt');
+  if (isNoMap.value) return t(`sighting.prompt.${state.setup.variant}`);
+  return isTyped.value ? t('typed.prompt') : t('round.findPrompt');
 });
 const flipOutMs = 140;
 const flipInMs = 160;
@@ -97,6 +100,8 @@ useEventListener(document, 'keydown', (event) => {
 });
 
 onBeforeUnmount(() => clearTimeout(flipTimer));
+
+watchEffect(() => isSilhouetteShown.value && game.loadOwnLand());
 
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 const pickedName = (placeId: string) => (isCapital.value ? game.firstCapitalNameOf(placeId, locale.value) : placeName(placeId));
@@ -205,7 +210,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
         v-show="shownFace === 'card'"
         :key="state.promptNumber"
         class="tile prompt-card"
-        :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving', isNoMap && state.phase === 'verdict' && 'prompt-card--flag-beside-name']"
+        :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving', state.phase === 'verdict' && (isFlagShown || isSilhouetteShown) && 'prompt-card--image-beside-name']"
         :style="{ '--fade': fade }"
       >
         <p class="kicker prompt-card__kicker">
@@ -215,9 +220,22 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
         <img
           v-if="isFlagShown"
           :src="`/data/flags/${state.placeId}.svg`"
-          :alt="isNoMap ? $t('sighting.flag') : ''"
+          :alt="isNoMap ? $t('sighting.flag') : $t('round.flag')"
           class="prompt-card__flag"
         />
+
+        <svg
+          v-if="isSilhouetteShown"
+          class="prompt-card__silhouette"
+          role="img"
+          :aria-label="$t('sighting.silhouette')"
+          :viewBox="silhouette ? `0 0 ${silhouette.width.toFixed(2)} ${silhouette.height.toFixed(2)}` : undefined"
+        >
+          <path
+            v-if="silhouette"
+            :d="silhouette.path"
+          />
+        </svg>
 
         <p
           v-if="isNameShown"
@@ -560,7 +578,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
     animation: content-in 420ms ease-out;
   }
 
-  &--flag-beside-name {
+  &--image-beside-name {
     grid-template-columns: auto 1fr;
     align-items: center;
     column-gap: 10px;
@@ -569,7 +587,8 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
       grid-column: 1 / -1;
     }
 
-    .prompt-card__flag {
+    .prompt-card__flag,
+    .prompt-card__silhouette {
       grid-column: 1;
       height: 32px;
       margin-block: 0;
@@ -597,6 +616,23 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
     object-fit: contain;
     margin-block: 4px;
     border: 1.5px solid $color-ink;
+  }
+
+  &__silhouette {
+    justify-self: start;
+    width: auto;
+    max-width: 100%;
+    height: 140px;
+    margin-block: 4px;
+    overflow: visible;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2px;
+    stroke-linejoin: round;
+
+    path {
+      vector-effect: non-scaling-stroke;
+    }
   }
 
   &__tapped {
