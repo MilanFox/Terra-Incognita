@@ -12,6 +12,7 @@ const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 const gridId = useId();
 const subtitleId = useId();
+const nameSubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -20,6 +21,7 @@ const dailyTile = useTemplateRef<HTMLButtonElement>('dailyTile');
 const grid = useTemplateRef<HTMLElement>('grid');
 const dateLine = useTemplateRef<HTMLElement>('dateLine');
 const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
+const nameModeTile = useTemplateRef<HTMLButtonElement>('nameModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -81,10 +83,10 @@ const launch = () => {
 
 defineExpose({
   focus: () => handle.value?.focus({ preventScroll: true }),
-  focusModeTile: async () => {
+  focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    modeTile.value?.focus({ preventScroll: true });
+    (mode === 'name' ? nameModeTile : modeTile).value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -247,23 +249,7 @@ defineExpose({
           class="mode-tile__glyph"
           aria-hidden="true"
         >
-          <svg
-            viewBox="0 0 32 32"
-            width="30"
-            height="30"
-          >
-            <path
-              d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"
-              fill="currentColor"
-            />
-
-            <circle
-              class="mode-tile__pin-dot"
-              cx="16"
-              cy="12"
-              r="3.4"
-            />
-          </svg>
+          <ModeGlyph :mode="lastSetup.mode" />
         </span>
 
         <span class="mode-tile__text">
@@ -293,23 +279,7 @@ defineExpose({
             class="mode-tile__glyph"
             aria-hidden="true"
           >
-            <svg
-              viewBox="0 0 32 32"
-              width="30"
-              height="30"
-            >
-              <path
-                d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"
-                fill="currentColor"
-              />
-
-              <circle
-                class="mode-tile__pin-dot"
-                cx="16"
-                cy="12"
-                r="3.4"
-              />
-            </svg>
+            <ModeGlyph mode="find" />
           </span>
 
           <span class="mode-tile__text">
@@ -319,6 +289,31 @@ defineExpose({
               :id="subtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.find.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="nameModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.name.name')"
+          :aria-describedby="nameSubtitleId"
+          @click="emit('openSetup', 'name')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="name" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.name.name') }}</span>
+
+            <span
+              :id="nameSubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.name.subtitle') }}</span>
           </span>
         </button>
       </div>
@@ -470,10 +465,6 @@ defineExpose({
     border-radius: 4px;
     background: $color-ink;
     color: $color-mustard;
-  }
-
-  &__pin-dot {
-    fill: $color-ink;
   }
 
   &__text {

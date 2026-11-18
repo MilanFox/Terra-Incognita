@@ -24,11 +24,9 @@ interface SpeckProperties {
 type PlaceCollection = FeatureCollection<Polygon | MultiPolygon, PlaceProperties>;
 type SpeckCollection = FeatureCollection<Point, SpeckProperties>;
 
-interface Verdict {
-  placeId: string
-  tappedPlaceId: string
-  outcome: 'right' | 'wrong'
-}
+type Verdict
+  = | { placeId: string, tappedPlaceId: string, outcome: 'right' | 'wrong' }
+    | { placeId: string, outcome: 'missed' };
 
 interface ResultPlace {
   placeId: string
@@ -46,7 +44,9 @@ const props = withDefaults(defineProps<{
   frameInset?: number
   isRoundPlay?: boolean
   foundPlaceIds?: string[]
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [] });
+  highlightedPlaceId?: string | null
+  keyboardInset?: number
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string] }>();
 
 const { t, locale } = useI18n();
@@ -56,6 +56,8 @@ const tapBoxPx = 8;
 const flightMs = 800;
 const flightMaxZoom = 4;
 const flightPadding = { top: 230, bottom: 60, left: 40, right: 40 };
+const minimumFlightFramePx = 120;
+const keyboardGapPx = 16;
 const minZoom = -1;
 const maxZoom = 10;
 const cursorFollowMarginPx = 40;
@@ -98,6 +100,7 @@ const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeSta
 const placeFill: ExpressionSpecification = ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, landFill]];
 const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 0]];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
+const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
 
 // MapLibre only allows ['zoom'] as the input of a top-level interpolate, so the per-place cut-off sits inside each stop.
 const speckOpacity = ['interpolate', ['linear'], ['zoom'],
@@ -143,11 +146,11 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
       type: 'circle',
       source: 'specks',
       paint: {
-        'circle-radius': ['case', isCursor, cursorSpeckRadius, 1],
+        'circle-radius': ['case', isSpeckMarked, cursorSpeckRadius, 1],
         'circle-color': placeFill,
         'circle-opacity': speckOpacity,
-        'circle-stroke-width': ['case', isCursor, 2, 0.5],
-        'circle-stroke-color': ['case', isCursor, colours.ink, colours.border],
+        'circle-stroke-width': ['case', isCursor, 2, isSpeckMarked, 1, 0.5],
+        'circle-stroke-color': ['case', isSpeckMarked, colours.ink, colours.border],
         'circle-stroke-opacity': speckOpacity,
       },
     },
@@ -245,20 +248,33 @@ const flyTo = (placeId: string) => {
   const bounds = boundsOf(placeId);
   if (!map || !bounds) return;
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
-  map.fitBounds(bounds, { duration, maxZoom: flightMaxZoom, padding: flightPadding });
+  const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
+  const top = Math.max(0, Math.min(flightPadding.top, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
+  map.fitBounds(bounds, { duration, maxZoom: flightMaxZoom, padding: { ...flightPadding, top, bottom } });
 };
 
 watch(() => props.verdict, (verdict, previousVerdict) => {
-  if (previousVerdict) for (const placeId of [previousVerdict.placeId, previousVerdict.tappedPlaceId]) setPlaceStatus(placeId, null);
+  if (previousVerdict) setPlaceStatus(previousVerdict.placeId, null);
+  if (previousVerdict && 'tappedPlaceId' in previousVerdict) setPlaceStatus(previousVerdict.tappedPlaceId, null);
   if (!verdict) return;
   if (verdict.outcome === 'right') {
     setPlaceStatus(verdict.placeId, 'right');
     return;
   }
-  setPlaceStatus(verdict.tappedPlaceId, 'wrong');
+  if (verdict.outcome === 'wrong') setPlaceStatus(verdict.tappedPlaceId, 'wrong');
   setPlaceStatus(verdict.placeId, 'reveal');
   flyTo(verdict.placeId);
 });
+
+// After the verdict and results watchers, so a place they just cleared or coloured is not overwritten.
+watch(() => props.highlightedPlaceId, (placeId, previousPlaceId) => {
+  if (previousPlaceId && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, null);
+  if (placeId) setPlaceStatus(placeId, 'selected');
+}, { flush: 'post' });
+
+watch([() => props.highlightedPlaceId, () => props.keyboardInset], ([placeId]) => {
+  if (placeId) flyTo(placeId);
+}, { flush: 'post' });
 
 watch(() => props.resultPlaces, (resultPlaces, previousResultPlaces) => {
   for (const { placeId } of previousResultPlaces ?? []) setPlaceStatus(placeId, null);

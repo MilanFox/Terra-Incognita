@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isTypedMode } from '#shared/game/game';
 import type { DeckSize, Mode, RegionChoice, RoundSetup, Tier, Variant } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
@@ -114,6 +115,7 @@ defineExpose({ element: tray });
 
     <div class="setup-tray__rows">
       <RadioTiles
+        v-if="variantOptions.length > 1"
         :label="$t('setup.groups.variant')"
         :options="variantOptions"
         :model-value="setup.variant"
@@ -158,6 +160,7 @@ defineExpose({ element: tray });
       </button>
 
       <button
+        v-if="!isTypedMode(setup.mode)"
         type="button"
         role="switch"
         class="tile setup-tray__switch"

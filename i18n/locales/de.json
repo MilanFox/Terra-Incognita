@@ -85,6 +85,11 @@
       "name": "Landfall",
       "subtitle": "Finde es auf der Karte",
       "help": "Du bekommst einen Ort als Name, Flagge oder beides und tippst ihn auf der Karte an. Bei einer richtigen Antwort geht es von selbst weiter; nach einer falschen zeigt die Karte den echten Ort und du drückst auf Weiter. Du hast pro Ort einen Versuch (im einfachen Modus drei), und Orte, die du beim Beenden noch nicht erreicht hast, zählen als verpasst."
+    },
+    "name": {
+      "name": "The Surveyor",
+      "subtitle": "Benenne es auf der Karte",
+      "help": "Ein Ort leuchtet auf der Karte auf, und du schreibst seinen Namen auf der Tastatur darunter, auf Deutsch oder Englisch. Kleine Tippfehler werden verziehen, und passt deine Antwort auf mehr als einen Ort, schreibst du einfach weiter. Du hast pro Ort einen Versuch; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
     }
   },
   "round": {
@@ -107,8 +112,8 @@
     "home": "Hauptmenü",
     "titleEnded": "Runde beendet",
     "wrongCount": "Falsch",
-    "unreachedCount": "Nicht erreicht",
-    "missed": "{place}: nicht erreicht",
+    "missedCount": "Verpasst",
+    "missed": "{place}: verpasst",
     "unreachedList": "Nicht erreicht: {places}",
     "playAgain": "Nochmal spielen",
     "changeSetup": "Einstellungen ändern"
@@ -151,6 +156,27 @@
     "title": "So wird gespielt: {mode}",
     "close": "Schließen",
     "clockRuns": "Die Uhr läuft weiter, während du das liest."
+  },
+  "typed": {
+    "prompt": "Wie heißt der markierte Ort?",
+    "ambiguous": "Welcher genau? Schreib weiter",
+    "dontKnow": "Weiß ich nicht",
+    "missed": "Verpasst",
+    "youTyped": "Geschrieben: {place}",
+    "answer": "Deine Antwort",
+    "keyboard": "Tastatur",
+    "keys": {
+      "hyphen": "Bindestrich",
+      "delete": "Löschen",
+      "space": "Leerzeichen",
+      "submit": "Prüfen",
+      "next": "Weiter"
+    },
+    "live": {
+      "wrong": "Falsch. Du hast {typed} geschrieben. Die Antwort ist {answer}. Drücke Weiter.",
+      "missed": "Die Antwort ist {answer}. Drücke Weiter.",
+      "noMatch": "Kein Ort mit diesem Namen. Versuch es nochmal."
+    }
   },
   "zoom": {
     "in": "Vergrößern",

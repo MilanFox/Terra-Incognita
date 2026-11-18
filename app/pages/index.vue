@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { dailySetupOf } from '#shared/game/game';
+import { dailySetupOf, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
@@ -16,6 +16,7 @@ const homeTray = useTemplateRef('homeTray');
 const setupTray = useTemplateRef('setupTray');
 const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
+const typedAnswerTray = useTemplateRef('typedAnswerTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const dailyDraft = ref<DailyVariant | null>(null);
@@ -23,6 +24,7 @@ const traySetup = computed(() => setupDraft.value ?? (dailyDraft.value ? dailySe
 const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.element);
 const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element);
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
+const { height: typedAnswerTrayHeight } = useElementSize(() => typedAnswerTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 
 usePlayFeedback(() => game.state);
@@ -35,7 +37,9 @@ watch(() => game.state, (state) => {
   if (state.phase === 'verdict' && state.answer.outcome === 'right') foundPlaceIds.value.push(state.answer.placeId);
   else if (state.phase === 'home' || state.phase === 'results') foundPlaceIds.value = [];
 });
-const isRoundPlay = computed(() => game.state.phase === 'prompt' || game.state.phase === 'verdict');
+const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedMode(game.state.setup.mode));
+const isRoundPlay = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value);
+const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
 const isHomeDrifting = computed(() => isMapDrawn.value && game.state.phase === 'home' && !traySetup.value);
@@ -74,9 +78,10 @@ const openSetup = (mode: Mode) => {
 };
 
 const closeSetup = async () => {
+  const mode = setupDraft.value?.mode ?? 'find';
   setupDraft.value = null;
   await nextTick();
-  homeTray.value?.focusModeTile();
+  homeTray.value?.focusModeTile(mode);
 };
 
 const openDaily = () => {
@@ -96,16 +101,23 @@ const playDaily = async (variant: DailyVariant) => {
   worldMap.value?.focus();
 };
 
+const focusAnswering = () => (isTypedRound.value ? typedAnswerTray.value?.focus() : worldMap.value?.focus());
+
 const play = async (setup: RoundSetup | undefined) => {
   setupDraft.value = null;
   if (setup) game.play(setup);
   await nextTick();
-  worldMap.value?.focus();
+  focusAnswering();
 };
 
 const next = () => {
   game.send({ type: 'next' });
-  worldMap.value?.focus();
+  focusAnswering();
+};
+
+const dontKnow = () => {
+  game.send({ type: 'dontKnow' });
+  focusAnswering();
 };
 
 const playAgainFromResults = () => {
@@ -178,8 +190,18 @@ onMounted(game.load);
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
         @next="next"
+        @dont-know="dontKnow"
         @zoom-in="worldMap?.zoomIn()"
         @zoom-out="worldMap?.zoomOut()"
+      />
+    </Transition>
+
+    <Transition name="tray">
+      <TypedAnswerTray
+        v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound"
+        ref="typedAnswerTray"
+        :state="game.state"
+        @next="next"
       />
     </Transition>
 
@@ -214,6 +236,8 @@ onMounted(game.load);
       :inert="isMapInert"
       :is-round-play="isRoundPlay"
       :found-place-ids="foundPlaceIds"
+      :highlighted-place-id="highlightedPlaceId"
+      :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : 0"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
       @announce="announce"

@@ -96,7 +96,7 @@ const applyIdMoves = (storage: KeyValueStorage, moveSteps: IdMoves[]) => {
     storage.setItem(roundStorageKey, JSON.stringify({
       ...round,
       deck: round.deck.map(remap),
-      answers: round.answers.map(answer => ({ ...answer, placeId: remap(answer.placeId), tappedPlaceId: remap(answer.tappedPlaceId) })),
+      answers: round.answers.map(answer => ({ ...answer, placeId: remap(answer.placeId), ...('tappedPlaceId' in answer && { tappedPlaceId: remap(answer.tappedPlaceId) }) })),
       wrongTapPlaceIds: Array.isArray(round.wrongTapPlaceIds) ? round.wrongTapPlaceIds.map(remap) : [],
     }));
   }

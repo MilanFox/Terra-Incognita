@@ -85,6 +85,11 @@
       "name": "Landfall",
       "subtitle": "Find on the map",
       "help": "You're shown a place by its name, its flag or both, and tap it on the map. Right answers move on by themselves; after a wrong one the map shows the real place and you press Next. You get one try per place (three with Easy mode), and places you haven't reached when you end the round count as missed."
+    },
+    "name": {
+      "name": "The Surveyor",
+      "subtitle": "Name on the map",
+      "help": "A place lights up on the map and you type its name on the keyboard below, in English or German. Small typos are forgiven, and if your answer could mean more than one place, keep typing. You get one try per place; “I don't know” shows you the answer and counts as missed."
     }
   },
   "round": {
@@ -107,8 +112,8 @@
     "home": "Main menu",
     "titleEnded": "Round ended",
     "wrongCount": "Wrong",
-    "unreachedCount": "Not reached",
-    "missed": "{place}: not reached",
+    "missedCount": "Missed",
+    "missed": "{place}: missed",
     "unreachedList": "Not reached: {places}",
     "playAgain": "Play again",
     "changeSetup": "Change setup"
@@ -151,6 +156,27 @@
     "title": "How to play: {mode}",
     "close": "Close",
     "clockRuns": "The clock keeps running while you read this."
+  },
+  "typed": {
+    "prompt": "Name the highlighted place",
+    "ambiguous": "Which one? Keep typing",
+    "dontKnow": "I don't know",
+    "missed": "Missed",
+    "youTyped": "You typed: {place}",
+    "answer": "Your answer",
+    "keyboard": "Keyboard",
+    "keys": {
+      "hyphen": "Hyphen",
+      "delete": "Delete",
+      "space": "Space",
+      "submit": "Submit",
+      "next": "Next"
+    },
+    "live": {
+      "wrong": "Wrong. You typed {typed}. The answer is {answer}. Press Next.",
+      "missed": "The answer is {answer}. Press Next.",
+      "noMatch": "No place by that name. Try again."
+    }
   },
   "zoom": {
     "in": "Zoom in",

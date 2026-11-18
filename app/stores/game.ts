@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { createGame, deepestTierPlayed } from '#shared/game/game';
 import type { DailyVariant, DataVersion, Game, GameEvent, GameState, Mode, Place, RoundSetup, Tier } from '#shared/game/game';
+import type { NamesFile, PlaceNames } from '#shared/game/matcher';
 import type { DailyRecord } from '#shared/game/records';
 
 type Locale = 'en' | 'de';
-type PlaceNames = Record<string, Record<Locale, { name: string }>>;
 
 const clockTickMs = 250;
 
@@ -12,7 +12,7 @@ const fetchJson = async <T>(url: string): Promise<T> => (await fetch(url)).json(
 
 export const useGameStore = defineStore('game', () => {
   const state = shallowRef<GameState>({ phase: 'home' });
-  const names = shallowRef<PlaceNames>({});
+  const names = shallowRef<NamesFile>({});
   const isReady = ref(false);
   const lastSetup = shallowRef<RoundSetup>();
   const homeTier = ref<Tier>('sovereign');
@@ -23,10 +23,10 @@ export const useGameStore = defineStore('game', () => {
   const load = async () => {
     const [places, placeNames, version] = await Promise.all([
       fetchJson<Place[]>('/data/places.json'),
-      fetchJson<PlaceNames>('/data/names.json'),
+      fetchJson<NamesFile>('/data/names.json'),
       fetchJson<DataVersion>('/data/version.json'),
     ]);
-    game = createGame({ places, version, random: Math.random, clock: Date.now, storage: localStorage });
+    game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage });
     names.value = placeNames;
     state.value = game.state;
     homeTier.value = deepestTierPlayed(localStorage);
@@ -66,7 +66,7 @@ export const useGameStore = defineStore('game', () => {
 
   const choicesFor = (setup: RoundSetup) => game!.choicesFor(setup);
 
-  const nameOf = (placeId: string, locale: string) => names.value[placeId]?.[locale as Locale]?.name ?? placeId;
+  const nameOf = (placeId: string, locale: string) => (names.value[placeId] as PlaceNames | undefined)?.[locale as Locale]?.name ?? placeId;
 
   return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, load, send, play, playDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf };
 });
