@@ -3,12 +3,14 @@ import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
 const flushDelayMs = 50;
+const clearDelayMs = 5000;
 const announcedSecondsLeft = [60, 30, 10];
 
 export const useLiveRegion = () => {
   const message = ref('');
   let pending: string[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | undefined;
+  let clearTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Phrases announced in the same moment ("Selected." and the verdict it causes) are read as one message.
   const announce = (text: string) => {
@@ -20,10 +22,17 @@ export const useLiveRegion = () => {
       message.value = '';
       await nextTick();
       message.value = spoken;
+      clearTimeout(clearTimer);
+      clearTimer = setTimeout(() => {
+        message.value = '';
+      }, clearDelayMs);
     }, flushDelayMs);
   };
 
-  onBeforeUnmount(() => clearTimeout(flushTimer));
+  onBeforeUnmount(() => {
+    clearTimeout(flushTimer);
+    clearTimeout(clearTimer);
+  });
 
   return { message, announce };
 };
