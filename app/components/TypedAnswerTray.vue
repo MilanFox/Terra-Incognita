@@ -2,7 +2,7 @@
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' | 'fill' }> }>();
+const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' | 'fill' | 'wayfinder' }> }>();
 const emit = defineEmits<{ next: [] }>();
 
 const game = useGameStore();
@@ -14,10 +14,18 @@ const typedText = ref('');
 const isRejected = ref(false);
 
 const outcome = computed(() => (props.state.phase === 'verdict' ? props.state.answer.outcome : null));
-const submitKey = computed(() => (outcome.value === 'wrong' || outcome.value === 'missed' ? 'next' : 'submit'));
+const isAwaitingNext = computed(() => outcome.value !== null || (props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open'));
+const submitKey = computed(() => (isAwaitingNext.value && outcome.value !== 'right' ? 'next' : 'submit'));
+const isPaused = computed(() => props.state.phase !== 'wayfinder' && props.state.isPaused);
 const unresolvedCount = computed(() => {
   if (props.state.phase === 'fill') return props.state.lastInput && props.state.lastInput.kind !== 'filled' ? props.state.inputCount : 0;
+  if (props.state.phase === 'wayfinder') return props.state.rejectedEntries.length;
   return props.state.phase === 'prompt' ? props.state.unresolvedAnswers.length : 0;
+});
+const answerTurn = computed(() => {
+  if (props.state.phase === 'fill') return props.state.inputCount;
+  if (props.state.phase === 'wayfinder') return `${props.state.routeNumber}-${props.state.route.entries.length}`;
+  return props.state.promptNumber;
 });
 
 const replaceSelection = (text: string, start: number, end: number) => {
@@ -28,24 +36,24 @@ const replaceSelection = (text: string, start: number, end: number) => {
 
 const type = (text: string) => {
   const field = input.value;
-  if (props.state.phase === 'verdict' || !field) return;
+  if (isAwaitingNext.value || !field) return;
   replaceSelection(text, field.selectionStart ?? field.value.length, field.selectionEnd ?? field.value.length);
 };
 
 const erase = () => {
   const field = input.value;
-  if (props.state.phase === 'verdict' || !field) return;
+  if (isAwaitingNext.value || !field) return;
   const end = field.selectionEnd ?? field.value.length;
   const start = field.selectionStart ?? end;
   replaceSelection('', start === end ? Math.max(0, start - 1) : start, end);
 };
 
 const submit = () => {
-  if (props.state.phase === 'verdict') emit('next');
+  if (isAwaitingNext.value) emit('next');
   else game.send({ type: 'submit', text: typedText.value });
 };
 
-watch(() => (props.state.phase === 'fill' ? props.state.inputCount : props.state.promptNumber), () => {
+watch(answerTurn, () => {
   if (props.state.phase === 'fill' && (props.state.lastInput?.kind === 'ambiguous' || props.state.lastInput?.kind === 'none')) return;
   typedText.value = '';
   isRejected.value = false;
@@ -53,6 +61,9 @@ watch(() => (props.state.phase === 'fill' ? props.state.inputCount : props.state
 
 watch(unresolvedCount, async (count) => {
   if (count === 0) return;
+  const rejection = props.state.phase === 'wayfinder' ? props.state.rejectedEntries.at(-1) : null;
+  // A place that was understood but not taken is cleared; unclear input stays for editing.
+  if (rejection && rejection.reason !== 'ambiguous' && rejection.reason !== 'none') typedText.value = '';
   isRejected.value = false;
   await nextTick();
   requestAnimationFrame(() => isRejected.value = true);
@@ -60,7 +71,7 @@ watch(unresolvedCount, async (count) => {
 
 useEventListener(document, 'keydown', (event) => {
   const { target } = event;
-  if (props.state.phase === 'verdict' || event.ctrlKey || event.metaKey || event.altKey || !/^[\p{L}-]$/u.test(event.key)) return;
+  if (isAwaitingNext.value || event.ctrlKey || event.metaKey || event.altKey || !/^[\p{L}-]$/u.test(event.key)) return;
   if (target === input.value || (target instanceof Element && target.closest('[role="dialog"], [role="alertdialog"], input, textarea'))) return;
   input.value?.focus({ preventScroll: true });
 });
@@ -76,7 +87,7 @@ defineExpose({
     ref="tray"
     class="tray typed-answer-tray"
     :class="{ 'typed-answer-tray--halted': state.isConfirmingEnd }"
-    :inert="state.isConfirmingEnd || state.isPaused"
+    :inert="state.isConfirmingEnd || isPaused"
   >
     <form
       class="tile typed-answer"
@@ -100,7 +111,7 @@ defineExpose({
         autocapitalize="off"
         autocorrect="off"
         spellcheck="false"
-        :readonly="state.phase === 'verdict'"
+        :readonly="isAwaitingNext"
         @input="isRejected = false"
       />
     </form>

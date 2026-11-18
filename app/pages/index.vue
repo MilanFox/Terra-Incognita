@@ -296,7 +296,7 @@ onMounted(game.load);
     </Transition>
 
     <Transition name="tray">
-      <WayfinderAnswerTray
+      <TypedAnswerTray
         v-if="isShellReady && game.state.phase === 'wayfinder'"
         ref="wayfinderAnswerTray"
         :state="game.state"
