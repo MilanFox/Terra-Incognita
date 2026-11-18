@@ -51,6 +51,7 @@ const props = withDefaults(defineProps<{
   frameInset?: number
   isRoundPlay?: boolean
   isStatsMap?: boolean
+  isNamesOnly?: boolean
   foundPlaceIds?: string[]
   highlightedPlaceId?: string | null
   keyboardInset?: number
@@ -59,7 +60,7 @@ const props = withDefaults(defineProps<{
   landShown?: number
   topInset?: number
   bottomCover?: number
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0 });
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0 });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string] }>();
 
 const { t, locale } = useI18n();
@@ -553,11 +554,11 @@ const applyRoundPlay = () => {
 };
 
 const applyLabel = () => {
-  map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : props.isStatsMap ? t('map.statsLabel') : t('map.label'));
+  map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : props.isStatsMap ? t(props.isNamesOnly ? 'map.namesLabel' : 'map.statsLabel') : t('map.label'));
 };
 
 watch([() => props.isRoundPlay, () => props.isStatsMap], applyRoundPlay);
-watch([() => props.isRoundPlay, () => props.isStatsMap, locale], applyLabel);
+watch([() => props.isRoundPlay, () => props.isStatsMap, () => props.isNamesOnly, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
 watch(() => routePlaceIdsOf(props.route).join(), () => markRoute(props.route), { flush: 'post' });

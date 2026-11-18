@@ -14,7 +14,8 @@
   "map": {
     "label": "Weltkarte",
     "playLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe wählt aus",
-    "statsLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe öffnet Details"
+    "statsLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe öffnet Details",
+    "namesLabel": "Karte. Pfeiltasten bewegen zwischen Orten"
   },
   "home": {
     "label": "Spielen"
@@ -308,6 +309,9 @@
     "regionUnplayed": "{count} ungespielt",
     "completeRounds": "Fertige Runden",
     "averageLast20": "Schnitt, letzte 20",
+    "best": "Bestwert",
+    "fastestPerfect": "Schnellste perfekte Runde",
+    "routes": "{count} Route | {count} Routen",
     "perfectRounds": "Perfekte Runden",
     "noAverage": "–",
     "noAverageSpoken": "Noch keiner",
@@ -317,6 +321,7 @@
     "bests": {
       "title": "Bestleistungen",
       "note": "deine meistgespielten Einstellungen",
+      "normal": "Normal",
       "perfectIn": "Perfekt in {time}"
     },
     "lastRounds": {

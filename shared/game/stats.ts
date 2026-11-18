@@ -1,5 +1,5 @@
 import { deepestTierPlayed } from './game';
-import type { DeckSize, KeyValueStorage, Mode, Place, Region, RegionChoice, Tier, Variant } from './game';
+import type { DeckSize, KeyValueStorage, Mode, Place, Region, RegionChoice, RoundSetup, Tier, Variant } from './game';
 import { bestKeyOf, createRecords } from './records';
 import type { PersonalBests, PlaceRecords, RoundSummary } from './records';
 
@@ -47,6 +47,7 @@ export interface SetupBest {
   region: RegionChoice
   tier: Tier
   easy: boolean
+  timed?: boolean
   deckSize: number
   plays: number
   score: number
@@ -57,6 +58,9 @@ export interface ModeStats {
   completeRounds: number
   averageShare: number | null
   perfectRounds: number
+  best: number | null
+  averageRoutes: number | null
+  fastestPerfectMs: number | null
   bests: SetupBest[]
   lastRounds: RoundSummary[]
 }
@@ -68,6 +72,7 @@ export interface StatsDependencies {
 
 const placesStorageKey = 'ti:places';
 export const regularModes: Mode[] = ['find', 'name', 'capital', 'country'];
+export const specialModes: Mode[] = ['fill', 'missing', 'wayfinder'];
 const regionsInOrder: Region[] = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const fewestAnswersToJudge = 3;
@@ -98,6 +103,13 @@ const bestKeyOfRound = (round: RoundSummary, bests: PersonalBests) => {
   const candidates = (round.deckSize > 10 ? ['all'] : [10, 'all']).map(deckSize => keyWith(deckSize as DeckSize));
   return candidates.find(key => key in bests) ?? candidates[0]!;
 };
+
+const wayfinderSetupOf = (easy: boolean): RoundSetup => ({ mode: 'wayfinder', variant: 'map', region: 'world', tier: 'sovereign', deckSize: 10, easy, timed: false });
+
+// eslint-disable-next-line no-unused-vars
+type RoundValue = (round: RoundSummary) => number;
+
+const pickSetup = ({ mode, variant, region, tier, easy, deckSize, timed }: RoundSummary) => ({ variant, region, tier, easy, deckSize, ...(mode === 'missing' && { timed }) });
 
 const readPlaceRecords = (storage: KeyValueStorage): PlaceRecords => {
   try {
@@ -175,7 +187,20 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
       .filter(([key]) => key in bests)
       .sort(([, first], [, second]) => second.plays - first.plays || second.latest.date - first.latest.date)
       .slice(0, shownBestCount)
-      .map(([key, { latest: { variant, region, tier, easy, deckSize }, plays }]) => ({ variant, region, tier, easy, deckSize, plays, ...bests[key]! }));
+      .map(([key, { latest, plays }]) => ({ ...pickSetup(latest), plays, ...bests[key]! }));
+  };
+
+  const wayfinderBests = (rounds: RoundSummary[]): SetupBest[] => {
+    const bests = records.personalBests();
+    return [false, true]
+      .map((easy) => {
+        const played = rounds.filter(round => round.easy === easy);
+        const score = bests[bestKeyOf(wayfinderSetupOf(easy))]?.score ?? 0;
+        return { easy, played, score };
+      })
+      .filter(({ played, score }) => played.length > 0 && score > 0)
+      .sort((first, second) => second.played.length - first.played.length || second.played.at(-1)!.date - first.played.at(-1)!.date)
+      .map(({ easy, played, score }) => ({ ...pickSetup(played.at(-1)!), easy, plays: played.length, score, fastestPerfectMs: null }));
   };
 
   const modeStats = ({ mode, variant }: ModeScope): ModeStats => {
@@ -183,11 +208,17 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
     const withBests = rounds.filter(({ learn }) => !learn);
     const counted = withBests.filter(({ complete }) => complete);
     const averaged = counted.slice(-averagedRoundCount);
+    const isWayfinder = mode === 'wayfinder';
+    const averageOf = (valueOf: RoundValue) => averaged.length > 0 ? averaged.reduce((sum, round) => sum + valueOf(round), 0) / averaged.length : null;
+    const fastestPerfects = Object.entries(records.personalBests()).filter(([key]) => key.startsWith(`${mode}:`)).flatMap(([, { fastestPerfectMs }]) => fastestPerfectMs === null ? [] : [fastestPerfectMs]);
     return {
       completeRounds: counted.length,
-      averageShare: averaged.length > 0 ? averaged.reduce((sum, { score, deckSize }) => sum + score / deckSize, 0) / averaged.length : null,
-      perfectRounds: counted.filter(isPerfect).length,
-      bests: mostPlayedBests(withBests),
+      averageShare: isWayfinder ? null : averageOf(({ score, deckSize }) => score / deckSize),
+      perfectRounds: isWayfinder ? 0 : counted.filter(isPerfect).length,
+      best: counted.length === 0 ? null : Math.max(...counted.map(({ score, deckSize }) => isWayfinder ? score : score / deckSize)),
+      averageRoutes: isWayfinder ? averageOf(({ score }) => score) : null,
+      fastestPerfectMs: isWayfinder || fastestPerfects.length === 0 ? null : Math.min(...fastestPerfects),
+      bests: isWayfinder ? wayfinderBests(withBests) : mostPlayedBests(withBests),
       lastRounds: rounds.slice(-lastRoundCount).reverse(),
     };
   };

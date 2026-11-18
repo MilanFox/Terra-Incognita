@@ -101,7 +101,7 @@ const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || g
 
 const handleTap = async (placeId?: string) => {
   if (isStatsOpen.value) {
-    if (!placeId) return;
+    if (!placeId || statsTray.value?.isSpecialPage) return;
     await statsTray.value?.openBubble(placeId);
     worldMap.value?.reveal(placeId);
   }
@@ -377,6 +377,7 @@ onMounted(game.load);
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
+        :is-names-only="isStatsOpen && statsTray?.isSpecialPage"
         :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
         :route="routeMarks"
         :land-shown="isWayfinderRound ? 0 : 1"
