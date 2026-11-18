@@ -84,11 +84,10 @@ const flyToRuling = (sectionId: AboutSectionId, placeId?: string) => {
   if (frame) emit('flyTo', frame);
 };
 
-const showSection = (sectionId: AboutSectionId, behavior: ScrollBehavior = isMotionReduced.value ? 'instant' : 'smooth', placeId?: string) => {
+const showSection = (sectionId: AboutSectionId) => {
   const heading = document.getElementById(headingIdOf(sectionId));
-  heading?.scrollIntoView({ behavior, block: 'start' });
+  heading?.scrollIntoView({ behavior: isMotionReduced.value ? 'instant' : 'smooth', block: 'start' });
   heading?.focus({ preventScroll: true });
-  flyToRuling(sectionId, placeId);
 };
 
 const measure = () => {
@@ -119,10 +118,12 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
 onMounted(async () => {
   measure();
-  if (props.openingSection === 'intro') title.value?.focus({ preventScroll: true });
+  title.value?.focus({ preventScroll: true });
   [shippedVersion.value, flagCredits.value] = await Promise.all([fetchJson('/data/version.json'), fetchJson('/data/credits.json')]);
   await nextTick();
-  if (tray.value && props.openingSection !== 'intro') showSection(props.openingSection, 'instant', props.openingPlaceId);
+  if (!tray.value || props.openingSection === 'intro') return;
+  document.getElementById(headingIdOf(props.openingSection))?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  flyToRuling(props.openingSection, props.openingPlaceId);
 });
 useResizeObserver(tray, measure);
 
