@@ -49,7 +49,7 @@ const props = withDefaults(defineProps<{
 }>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [] });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string] }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const placeSources = ['places', 'specks'] as const;
 const tapBoxPx = 8;
@@ -398,18 +398,21 @@ const applyRoundPlay = () => {
     map.doubleClickZoom.disable();
     map.keyboard.disable();
     canvas.setAttribute('role', 'application');
-    canvas.setAttribute('aria-label', t('map.playLabel'));
     return;
   }
   map.doubleClickZoom.enable();
   map.keyboard.enable();
   canvas.setAttribute('role', 'region');
-  canvas.setAttribute('aria-label', t('map.label'));
   clearCursor();
   lastSelectedPlaceId = null;
 };
 
+const applyLabel = () => {
+  map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : t('map.label'));
+};
+
 watch(() => props.isRoundPlay, applyRoundPlay);
+watch([() => props.isRoundPlay, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
 watch(() => [props.frameRegion, props.frameInset], flyToRegion);
@@ -447,6 +450,7 @@ onMounted(async () => {
   canvas.addEventListener('focus', handleFocus);
   canvas.addEventListener('blur', clearCursor);
   applyRoundPlay();
+  applyLabel();
   map.setMissingStyleImageResolver((id) => {
     const stripeColour = { [hatchName]: colours.hatch, [missedHatchName]: colours.brick }[id];
     if (stripeColour && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1, stripeColour), { pixelRatio: window.devicePixelRatio || 1 });
