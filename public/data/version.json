@@ -1,5 +1,5 @@
 {
-  "dataVersion": 7,
+  "dataVersion": 8,
   "ne": "5.1.2",
   "builtAt": "2026-11-18",
   "counts": {
@@ -9,7 +9,7 @@
   },
   "sources": {
     "cldr": "49",
-    "wikidataDate": "2026-11-17",
+    "wikidataDate": "2026-11-18",
     "flagsDate": "2026-11-17"
   },
   "idMoves": {},
