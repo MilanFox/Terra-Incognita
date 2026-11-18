@@ -212,6 +212,10 @@
         "label": "Hoher Kontrast",
         "hint": "Dunkleres Wasser und schwarze Grenzen auf der Karte."
       },
+      "chainOutlines": {
+        "label": "Umrisse um Inselketten",
+        "hint": "Gestrichelte Umrisse um verstreute Inseln. Ein Tipp hinein oder aufs Meer direkt neben einer winzigen Insel wählt den Ort."
+      },
       "twoStepSelect": {
         "label": "Auswahl in zwei Schritten",
         "hint": "Der erste Tipp markiert den Ort; tippe noch einmal oder drücke Bestätigen, um zu antworten."

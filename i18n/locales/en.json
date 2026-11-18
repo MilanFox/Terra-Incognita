@@ -212,6 +212,10 @@
         "label": "High contrast",
         "hint": "Darker water and ink borders on the map."
       },
+      "chainOutlines": {
+        "label": "Island chain outlines",
+        "hint": "Dashed outlines around scattered islands. A tap inside one, or on the sea right next to a tiny island, picks the place."
+      },
       "twoStepSelect": {
         "label": "Two-step select",
         "hint": "A first tap marks the place; tap again or press Confirm to answer."

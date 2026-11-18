@@ -33,6 +33,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const isTwoStepSelectOn = ref(false);
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
+  const isChainOutlinesOn = ref(false);
 
   const save = () => {
     localStorage.setItem(storageKey, JSON.stringify({
@@ -44,6 +45,7 @@ export const useSettingsStore = defineStore('settings', () => {
       waitForNext: isWaitForNextOn.value,
       systemKeyboard: isSystemKeyboardOn.value,
       twoStepSelect: isTwoStepSelectOn.value,
+      chainOutlines: isChainOutlinesOn.value,
     }));
   };
 
@@ -62,6 +64,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (typeof stored.waitForNext === 'boolean') isWaitForNextOn.value = stored.waitForNext;
     if (typeof stored.systemKeyboard === 'boolean') isSystemKeyboardOn.value = stored.systemKeyboard;
     if (typeof stored.twoStepSelect === 'boolean') isTwoStepSelectOn.value = stored.twoStepSelect;
+    if (typeof stored.chainOutlines === 'boolean') isChainOutlinesOn.value = stored.chainOutlines;
   };
 
   const setSound = (isOn: boolean) => {
@@ -99,5 +102,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, isTwoStepSelectOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard, setTwoStepSelect };
+  const setChainOutlines = (isOn: boolean) => {
+    isChainOutlinesOn.value = isOn;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, isTwoStepSelectOn, isChainOutlinesOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard, setTwoStepSelect, setChainOutlines };
 });

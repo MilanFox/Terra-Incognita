@@ -246,6 +246,13 @@ onMounted(() => title.value?.focus());
         />
 
         <SettingsSwitch
+          :label="$t('settings.accessibility.chainOutlines.label')"
+          :hint="$t('settings.accessibility.chainOutlines.hint')"
+          :is-on="settings.isChainOutlinesOn"
+          @toggle="settings.setChainOutlines(!settings.isChainOutlinesOn)"
+        />
+
+        <SettingsSwitch
           :label="$t('settings.accessibility.twoStepSelect.label')"
           :hint="$t('settings.accessibility.twoStepSelect.hint')"
           :is-on="settings.isTwoStepSelectOn"

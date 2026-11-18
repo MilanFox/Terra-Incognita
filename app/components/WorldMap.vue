@@ -5,6 +5,7 @@ import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLa
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
+import { seaAssistPlaceId } from '#shared/utils/seaAssist';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useSettingsStore } from '~/stores/settings';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -27,6 +28,7 @@ interface SpeckProperties {
 
 type PlaceCollection = FeatureCollection<Polygon | MultiPolygon, PlaceProperties>;
 type SpeckCollection = FeatureCollection<Point, SpeckProperties>;
+type ChainCollection = FeatureCollection<Polygon, { id: string }>;
 
 type Verdict
   = | { placeId: string, tappedPlaceId: string, outcome: 'right' | 'wrong' }
@@ -71,7 +73,7 @@ const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: 
 const { t, locale } = useI18n();
 const settings = useSettingsStore();
 
-const placeSources = ['places', 'specks'] as const;
+const placeSources = ['places', 'specks', 'chains'] as const;
 const tapBoxPx = 8;
 const flightMs = 800;
 const flightMaxZoom = 4;
@@ -133,6 +135,10 @@ const routeColours = {
 const routeMaxZoom = 5.5;
 const placeNameShownMs = 1800;
 const zoomTilesWidthPx = 50;
+const chainLayers = ['chain-tint', 'chain-outline'];
+const chainOutlineColour = '#807560';
+const chainFadeStartZoom = 5.5;
+const chainHiddenZoom = 7;
 
 const channelsOf = (hex: string) => [1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16));
 
@@ -163,6 +169,8 @@ const targetOutlineFilterFor = (targetId: string | undefined): FilterSpecificati
 const shortestOutlineFilterFor = (placeIds: string[] = []): FilterSpecification => ['in', ['get', 'id'], ['literal', placeIds]];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
+const isChainTinted: ExpressionSpecification = ['any', isCursor, ['!=', status, '']];
+const chainVisibility = () => (settings.isChainOutlinesOn ? 'visible' : 'none');
 
 // MapLibre only allows ['zoom'] as the input of a top-level interpolate, so the per-place cut-off sits inside each stop.
 const speckOpacityWithin = (extraZoom: number) => ['interpolate', ['linear'], ['zoom'],
@@ -180,26 +188,31 @@ const toneOf = (placeId: string) => [...placeId].reduce((hash, character) => (ha
 const fetchJson = async (url: string) => (await fetch(url)).json();
 
 const loadTierMap = async (shownTier: Tier) => {
-  const [places, points]: [PlaceCollection, SpeckCollection] = await Promise.all([
+  const [places, points, chainOutlines]: [PlaceCollection, SpeckCollection, ChainCollection] = await Promise.all([
     fetchJson(`/data/map-${shownTier}.geojson`),
     fetchJson('/data/points.geojson'),
+    fetchJson('/data/chain-outlines.geojson'),
   ]);
   const tierPlaceIds = new Set(places.features.filter(({ properties }) => !properties.unclaimed).map(({ properties }) => properties.id));
   const specks: SpeckCollection = { ...points, features: points.features.filter(({ properties }) => tierPlaceIds.has(properties.id)) };
+  const chains: ChainCollection = { ...chainOutlines, features: chainOutlines.features.filter(({ properties }) => tierPlaceIds.has(properties.id)) };
   for (const { properties } of [...places.features, ...specks.features]) properties.tone = toneOf(properties.id);
-  return { places, specks };
+  return { places, specks, chains };
 };
 
 type TierMap = Awaited<ReturnType<typeof loadTierMap>>;
 
-const styleFor = ({ places, specks }: TierMap): StyleSpecification => ({
+const styleFor = ({ places, specks, chains }: TierMap): StyleSpecification => ({
   version: 8,
   sources: {
     places: { type: 'geojson', data: places, promoteId: 'id' },
     specks: { type: 'geojson', data: specks, promoteId: 'id' },
+    chains: { type: 'geojson', data: chains, promoteId: 'id' },
   },
   layers: [
     { id: 'water', type: 'background', paint: { 'background-color': waterColour() } },
+    { id: 'chain-tint', type: 'fill', source: 'chains', maxzoom: chainHiddenZoom, layout: { visibility: chainVisibility() }, paint: { 'fill-color': placeFillOver(landFill), 'fill-opacity': ['case', isChainTinted, 0.3, 0] } },
+    { id: 'chain-outline', type: 'line', source: 'chains', maxzoom: chainHiddenZoom, layout: { 'visibility': chainVisibility(), 'line-join': 'round' }, paint: { 'line-color': ['case', isChainTinted, colours.ink, chainOutlineColour], 'line-width': ['case', isChainTinted, 2, 1.2], 'line-dasharray': [3, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], chainFadeStartZoom, 1, chainHiddenZoom, 0] } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchNameOf(hatchName), 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
@@ -277,11 +290,24 @@ let hasLoaded = false;
 let lastSelectedPlaceId: string | null = null;
 let framedRegion: RegionChoice | null = null;
 
+const pickAidedPlaceId = (shownMap: MapLibreMap, point: MapMouseEvent['point']) => {
+  const [outlined] = shownMap.queryRenderedFeatures(point, { layers: ['chain-tint'] });
+  if (outlined) return outlined.properties.id as string;
+  const tapLongitude = shownMap.unproject(point).lng;
+  // Each point is taken on the world copy nearest the tap, so islands by the antimeridian are caught on either side of it.
+  const specks = (loadedSpecks?.features ?? []).map(({ properties: { id, speckZoom }, geometry: { coordinates: [longitude = 0, latitude = 0] } }) => {
+    const { x, y } = shownMap.project([longitude + 360 * Math.round((tapLongitude - longitude) / 360), latitude]);
+    return { placeId: id, x, y, speckZoom };
+  });
+  return seaAssistPlaceId(point, specks, shownMap.getZoom());
+};
+
 const pickPlaceId = (point: MapMouseEvent['point']) => {
   if (!map) return undefined;
   const query = { layers: ['place-fill'], filter: isPlace };
   const tapBox: [PointLike, PointLike] = [[point.x - tapBoxPx, point.y - tapBoxPx], [point.x + tapBoxPx, point.y + tapBoxPx]];
   const picked = map.queryRenderedFeatures(point, query)[0] ?? map.queryRenderedFeatures(tapBox, query)[0];
+  if (!picked && settings.isChainOutlinesOn) return pickAidedPlaceId(map, point);
   return picked?.properties.id as string | undefined;
 };
 
@@ -314,6 +340,7 @@ const drawMapData = async () => {
   drawnOutsideTier = outsideIds.join();
   (map.getSource('places') as GeoJSONSource).setData(loadedPlaces);
   (map.getSource('specks') as GeoJSONSource).setData(loadedSpecks);
+  (map.getSource('chains') as GeoJSONSource).setData(tierMap.chains);
   if (outsideIds.length > 0) fitRoute();
 };
 
@@ -669,6 +696,10 @@ watch(() => routeLookOf(props.route), () => {
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
 watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
+watch(() => settings.isChainOutlinesOn, () => {
+  if (!hasLoaded) return;
+  for (const layer of chainLayers) map?.setLayoutProperty(layer, 'visibility', chainVisibility());
+});
 watch(() => [props.frameRegion, props.frameInset], () => flyToRegion());
 
 onMounted(async () => {
