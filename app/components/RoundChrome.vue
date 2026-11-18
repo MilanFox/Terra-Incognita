@@ -21,6 +21,7 @@ const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
 const flipPhase = ref<'out' | 'in' | null>(null);
 const root = useTemplateRef<HTMLElement>('root');
 const cardFlip = useTemplateRef<HTMLElement>('cardFlip');
+const confirmEndTile = useTemplateRef<HTMLButtonElement>('confirmEndTile');
 const keepPlayingTile = useTemplateRef<HTMLButtonElement>('keepPlayingTile');
 const closeTile = useTemplateRef<HTMLButtonElement>('closeTile');
 const pauseTile = useTemplateRef<HTMLButtonElement>('pauseTile');
@@ -74,9 +75,15 @@ const resume = async () => {
 };
 
 useEventListener(document, 'keydown', (event) => {
-  if (event.key !== 'Escape' || event.defaultPrevented || !isConfirming.value) return;
-  event.preventDefault();
-  keepPlaying();
+  if (event.defaultPrevented || !isConfirming.value) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    keepPlaying();
+  }
+  else if (event.key === 'Tab') {
+    event.preventDefault();
+    (document.activeElement === keepPlayingTile.value ? confirmEndTile.value : keepPlayingTile.value)?.focus();
+  }
 });
 
 onBeforeUnmount(() => clearTimeout(flipTimer));
@@ -113,6 +120,7 @@ defineExpose({ root, cardFlip });
         :aria-label="$t('pause.open', { count: state.pausesLeft, total: pausesPerRound })"
         :aria-disabled="isPauseDisabled || undefined"
         aria-haspopup="dialog"
+        :inert="isConfirming"
         @click="pause"
       >
         <svg
@@ -133,6 +141,7 @@ defineExpose({ root, cardFlip });
       <HelpTile
         :mode="state.setup.mode"
         :is-timed="state.setup.timed"
+        :inert="isConfirming"
       />
 
       <button
@@ -194,6 +203,7 @@ defineExpose({ root, cardFlip });
 
         <div class="end-card__actions">
           <button
+            ref="confirmEndTile"
             type="button"
             class="tile end-card__confirm"
             @click="game.send({ type: 'end' })"
