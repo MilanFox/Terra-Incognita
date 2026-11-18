@@ -50,6 +50,7 @@ const props = withDefaults(defineProps<{
   frameRegion?: RegionChoice | null
   frameInset?: number
   isRoundPlay?: boolean
+  isStatsMap?: boolean
   foundPlaceIds?: string[]
   highlightedPlaceId?: string | null
   keyboardInset?: number
@@ -57,8 +58,9 @@ const props = withDefaults(defineProps<{
   route?: RouteMarks | null
   landShown?: number
   topInset?: number
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0 });
-const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string] }>();
+  bottomCover?: number
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0 });
+const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string] }>();
 
 const { t, locale } = useI18n();
 
@@ -251,6 +253,7 @@ let cursorPlaceId: string | null = null;
 let markedRoute: RouteMarks | null = null;
 let hasLoaded = false;
 let lastSelectedPlaceId: string | null = null;
+let framedRegion: RegionChoice | null = null;
 
 const pickPlaceId = (point: MapMouseEvent['point']) => {
   if (!map) return undefined;
@@ -281,10 +284,13 @@ const swapTierMap = async (nextTier: Tier) => {
 };
 
 const handleClick = (event: MapMouseEvent) => {
-  emit('tap', pickPlaceId(event.point));
+  const placeId = pickPlaceId(event.point);
+  if (props.isStatsMap && placeId) lastSelectedPlaceId = placeId;
+  emit('tap', placeId);
 };
 
 const setPlaceStatus = (placeId: string, placeStatus: PlaceStatus | null) => {
+  if (!hasLoaded) return;
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { status: placeStatus });
 };
 
@@ -332,6 +338,7 @@ watch(() => props.verdict, (verdict, previousVerdict) => {
 
 // After the verdict and results watchers, so a place they just cleared or coloured is not overwritten.
 const applyHighlight = (placeId: string | null | undefined, previousPlaceId?: string | null) => {
+  if (!hasLoaded) return;
   if (previousPlaceId && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, null);
   if (placeId) setPlaceStatus(placeId, 'selected');
   map?.setFilter('speck-highlight', placeId ? ['==', ['get', 'id'], placeId] : dimmedNone);
@@ -348,14 +355,17 @@ watch(() => props.resultPlaces, (resultPlaces, previousResultPlaces) => {
   for (const { placeId, outcome } of resultPlaces ?? []) setPlaceStatus(placeId, outcome);
 });
 
-watch(() => props.placeRatings, (placeRatings, previousRatings) => {
+const applyRatings = (placeRatings: PlaceRatings | null, previousRatings?: PlaceRatings | null) => {
+  if (!hasLoaded) return;
   for (const placeId of Object.keys(previousRatings ?? {})) {
     for (const source of placeSources) map?.removeFeatureState({ source, id: placeId }, 'rating');
   }
   for (const [placeId, placeRating] of Object.entries(placeRatings ?? {})) {
     for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { rating: placeRating });
   }
-});
+};
+
+watch(() => props.placeRatings, applyRatings);
 
 watch(() => props.fade, (fadeAmount = 0) => {
   const placeId = props.verdict?.placeId;
@@ -374,8 +384,9 @@ const padAboveTray = (shownMap: MapLibreMap) => {
   shownMap.jumpTo({ center: shownMap.unproject([clientWidth / 2, (clientHeight - props.frameInset) / 2]), padding: { top: 0, right: 0, bottom: props.frameInset, left: 0 } });
 };
 
-const flyToRegion = () => {
-  if (!map || !props.frameRegion) return;
+const flyToRegion = (region = props.frameRegion) => {
+  if (!map || !region) return;
+  framedRegion = region;
   padAboveTray(map);
   const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : flightMs;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
@@ -383,7 +394,7 @@ const flyToRegion = () => {
     map.fitBounds(boundsAround(resultBounds), { duration, maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60, bottom: 0 } });
     return;
   }
-  map.fitBounds(regionFrames[props.frameRegion], { duration, padding: { ...regionFramePadding, bottom: 0 } });
+  map.fitBounds(regionFrames[region], { duration, padding: { ...regionFramePadding, bottom: 0 } });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds] : []);
@@ -418,7 +429,7 @@ const showLand = () => {
 };
 
 const dimOutsidePool = () => {
-  if (!map) return;
+  if (!map || !hasLoaded) return;
   for (const layer of ['place-dim', 'speck-dim']) map.setFilter(layer, dimmedFilterFor(props.poolPlaceIds));
 };
 
@@ -438,11 +449,15 @@ const followCursor = (placeId: string) => {
   if (!map || !lngLat) return;
   const { x, y } = map.project(lngLat);
   const { clientWidth, clientHeight } = map.getContainer();
-  const top = Math.min(flightPadding.top, clientHeight / 2.5);
-  const bottom = Math.min(flightPadding.bottom, clientHeight / 8);
+  const top = props.isStatsMap ? props.topInset : Math.min(flightPadding.top, clientHeight / 2.5);
+  const bottom = props.isStatsMap ? Math.max(map.getPadding().bottom ?? 0, props.bottomCover) : Math.min(flightPadding.bottom, clientHeight / 8);
   const isInView = x >= cursorFollowMarginPx && x <= clientWidth - cursorFollowMarginPx
     && y >= top + cursorFollowMarginPx && y <= clientHeight - bottom - cursorFollowMarginPx;
-  if (!isInView) map.easeTo({ center: map.unproject([x, y - (top - bottom) / 2]), duration: reducedMotionDuration(300) });
+  if (isInView) return;
+  // On stats the tray is the map's own bottom padding, so the camera centre already sits above it.
+  map.easeTo(props.isStatsMap
+    ? { center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], duration: reducedMotionDuration(300) }
+    : { center: map.unproject([x, y - (top - bottom) / 2]), duration: reducedMotionDuration(300) });
 };
 
 const placeCursor = (placeId: string, shouldAnnounce: boolean) => {
@@ -450,12 +465,14 @@ const placeCursor = (placeId: string, shouldAnnounce: boolean) => {
   cursorPlaceId = placeId;
   setCursorState(placeId, true);
   followCursor(placeId);
-  if (shouldAnnounce) emit('announce', props.foundPlaceIds.includes(placeId) ? t('live.placeFound') : t('live.place'));
+  if (!shouldAnnounce) return;
+  if (props.isStatsMap) emit('cursor', placeId);
+  else emit('announce', props.foundPlaceIds.includes(placeId) ? t('live.placeFound') : t('live.place'));
 };
 
 const startingPlaceId = () => {
   if (lastSelectedPlaceId && labelPoints.has(lastSelectedPlaceId)) return lastSelectedPlaceId;
-  const [[west, south], [east, north]] = regionFrames[props.frameRegion ?? 'world'];
+  const [[west, south], [east, north]] = regionFrames[framedRegion ?? props.frameRegion ?? 'world'];
   const [centreLongitude, centreLatitude] = [(west + east) / 2, (south + north) / 2];
   let nearest: string | null = null;
   let nearestDistance = Infinity;
@@ -490,8 +507,10 @@ const zoomBy = (step: number) => {
   map.easeTo({ zoom, duration: reducedMotionDuration(250) });
 };
 
+const isKeyboardPlay = computed(() => props.isRoundPlay || props.isStatsMap);
+
 const handleKeydown = (event: KeyboardEvent) => {
-  if (!props.isRoundPlay || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (!isKeyboardPlay.value || event.altKey || event.ctrlKey || event.metaKey) return;
   const direction = arrowDirections[event.key];
   if (direction) {
     event.preventDefault();
@@ -506,13 +525,13 @@ const handleKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
     if (props.verdict) return;
     lastSelectedPlaceId = cursorPlaceId;
-    emit('announce', t('live.selected'));
+    if (!props.isStatsMap) emit('announce', t('live.selected'));
     emit('tap', cursorPlaceId);
   }
 };
 
 const handleFocus = () => {
-  if (!props.isRoundPlay || cursorPlaceId || !map?.getCanvas().matches(':focus-visible')) return;
+  if (!isKeyboardPlay.value || cursorPlaceId || !map?.getCanvas().matches(':focus-visible')) return;
   const start = startingPlaceId();
   if (start) placeCursor(start, false);
 };
@@ -520,13 +539,13 @@ const handleFocus = () => {
 const applyRoundPlay = () => {
   if (!map) return;
   const canvas = map.getCanvas();
-  if (props.isRoundPlay) {
-    map.doubleClickZoom.disable();
+  if (props.isRoundPlay) map.doubleClickZoom.disable();
+  else map.doubleClickZoom.enable();
+  if (isKeyboardPlay.value) {
     map.keyboard.disable();
     canvas.setAttribute('role', 'application');
     return;
   }
-  map.doubleClickZoom.enable();
   map.keyboard.enable();
   canvas.setAttribute('role', 'region');
   clearCursor();
@@ -534,17 +553,17 @@ const applyRoundPlay = () => {
 };
 
 const applyLabel = () => {
-  map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : t('map.label'));
+  map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : props.isStatsMap ? t('map.statsLabel') : t('map.label'));
 };
 
-watch(() => props.isRoundPlay, applyRoundPlay);
-watch([() => props.isRoundPlay, locale], applyLabel);
+watch([() => props.isRoundPlay, () => props.isStatsMap], applyRoundPlay);
+watch([() => props.isRoundPlay, () => props.isStatsMap, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
 watch(() => routePlaceIdsOf(props.route).join(), () => markRoute(props.route), { flush: 'post' });
 watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
 watch(() => props.landShown, showLand);
-watch(() => [props.frameRegion, props.frameInset], flyToRegion);
+watch(() => [props.frameRegion, props.frameInset], () => flyToRegion());
 
 onMounted(async () => {
   const tierMap = await tierMapOf(props.tier);
@@ -589,6 +608,8 @@ onMounted(async () => {
     hasLoaded = true;
     showLand();
     for (const { placeId, outcome } of props.resultPlaces ?? []) setPlaceStatus(placeId, outcome);
+    applyRatings(props.placeRatings);
+    dimOutsidePool();
     applyHighlight(props.highlightedPlaceId);
     if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
     markRoute(props.route);
@@ -603,6 +624,8 @@ defineExpose({
   focus: () => map?.getCanvas().focus(),
   getMap: () => map,
   flyTo,
+  flyToRegion,
+  reveal: followCursor,
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),
   isAtMinZoom,

@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import type { Region } from '#shared/game/game';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 import { useGameStore } from '~/stores/game';
 
 type StatsPageId = 'all';
 
 const props = defineProps<{ mapCanvas?: HTMLElement | null, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
-const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [] }>();
+const emit = defineEmits<{ close: [], zoomIn: [], zoomOut: [], flyToRegion: [region: Region], announce: [text: string] }>();
 
 const zoomTilesGapPx = 12;
 const zoomTilesRoomPx = 120;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const game = useGameStore();
 const { height: windowHeight } = useWindowSize();
 
@@ -20,13 +21,18 @@ const overlay = useTemplateRef<HTMLElement>('overlay');
 const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 const activePage = useTemplateRef<{ more: HTMLElement | null }>('activePage');
+const placeBubble = useTemplateRef<{ bottom: number, lines: string[] }>('placeBubble');
 
 const allGames = game.allGamesStats();
+const regions = game.regionCounts();
 const pages = computed(() => [{ id: 'all' as const, name: t('stats.allGames.name') }]);
 const activePageId = ref<StatsPageId>('all');
 const placeRatings = computed(() => (activePageId.value === 'all' ? allGames.placeRatings : null));
 
 const isOpen = ref(false);
+const bubblePlaceId = ref<string | null>(null);
+const bubbleDetails = computed(() => (bubblePlaceId.value ? game.placeDetails(bubblePlaceId.value) : null));
+const bubbleConfusedWithId = computed(() => bubbleDetails.value?.confusedWith);
 const isPositioned = ref(false);
 const collapsedShift = ref(0);
 const peekHeight = ref(0);
@@ -50,6 +56,27 @@ watch(isOpen, (nowOpen) => {
   if (!nowOpen && tray.value) tray.value.scrollTop = 0;
 });
 watch(activePageId, () => nextTick(measure));
+
+const placeLabel = (placeId: string) => t('live.statsPlace', { name: game.nameOf(placeId, locale.value), rating: t(`stats.ratings.${game.placeDetails(placeId).rating}`) });
+
+const openBubble = async (placeId: string) => {
+  bubblePlaceId.value = placeId;
+  await nextTick();
+  const { rating } = game.placeDetails(placeId);
+  emit('announce', [game.nameOf(placeId, locale.value), rating === 'noData' ? '' : t(`stats.ratings.${rating}`), ...placeBubble.value?.lines ?? []].filter(Boolean).join('. '));
+};
+
+const closeBubble = () => {
+  if (overlay.value?.querySelector('.place-bubble')?.contains(document.activeElement)) props.mapCanvas?.focus();
+  bubblePlaceId.value = null;
+};
+
+const flyToRegion = (region: Region) => {
+  closeBubble();
+  isOpen.value = false;
+  tray.value?.querySelector<HTMLElement>('.stats-tray__handle')?.focus({ preventScroll: true });
+  emit('flyToRegion', region);
+};
 
 const focusCycle = () => {
   const inTray = [...overlay.value?.querySelectorAll<HTMLElement>('button:not([tabindex="-1"]), [tabindex="0"]') ?? []]
@@ -77,7 +104,8 @@ const trapFocus = (event: KeyboardEvent) => {
 useEventListener(document, 'keydown', (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     event.preventDefault();
-    emit('close');
+    if (bubblePlaceId.value) closeBubble();
+    else emit('close');
   }
   else if (event.key === 'Tab') trapFocus(event);
 });
@@ -91,7 +119,7 @@ onMounted(() => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, peekHeight, placeRatings });
+defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, bubbleBottom: computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0)) });
 </script>
 
 <template>
@@ -99,6 +127,15 @@ defineExpose({ titleId, peekHeight, placeRatings });
     ref="overlay"
     class="stats-overlay"
   >
+    <StatsPlaceBubble
+      v-if="bubblePlaceId && bubbleDetails"
+      ref="placeBubble"
+      :place-name="game.nameOf(bubblePlaceId, locale)"
+      :details="bubbleDetails"
+      :confused-with-name="bubbleConfusedWithId && game.nameOf(bubbleConfusedWithId, locale)"
+      @close="closeBubble"
+    />
+
     <div
       ref="tray"
       class="tray stats-tray"
@@ -194,6 +231,8 @@ defineExpose({ titleId, peekHeight, placeRatings });
               :streak="game.streak"
               :more-id="moreId"
               :is-expanded="isOpen"
+              :regions="regions"
+              @fly-to-region="flyToRegion"
             />
           </template>
         </StatsTabs>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
-import type { PlaceRatings } from '#shared/game/stats';
+import type StatsTray from '~/components/StatsTray.vue';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
@@ -22,7 +22,7 @@ const typedAnswerTray = useTemplateRef('typedAnswerTray');
 const wayfinderScreen = useTemplateRef<{ cardBottom: number }>('wayfinderScreen');
 const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
 const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
-const statsTray = useTemplateRef<{ titleId: string, peekHeight: number, placeRatings: PlaceRatings | null }>('statsTray');
+const statsTray = useTemplateRef<InstanceType<typeof StatsTray>>('statsTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const dailyDraft = ref<DailyVariant | null>(null);
@@ -99,8 +99,13 @@ const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || g
   || ((game.state.phase === 'prompt' || game.state.phase === 'verdict' || game.state.phase === 'missing' || game.state.phase === 'fill') && (game.state.isConfirmingEnd || game.state.isPaused))
   || (game.state.phase === 'wayfinder' && game.state.isConfirmingEnd));
 
-const handleTap = (placeId?: string) => {
-  if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
+const handleTap = async (placeId?: string) => {
+  if (isStatsOpen.value) {
+    if (!placeId) return;
+    await statsTray.value?.openBubble(placeId);
+    worldMap.value?.reveal(placeId);
+  }
+  else if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
 };
 
 const openSetup = (mode: Mode) => {
@@ -348,6 +353,8 @@ onMounted(game.load);
           :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
           @zoom-in="worldMap?.zoomIn()"
           @zoom-out="worldMap?.zoomOut()"
+          @fly-to-region="worldMap?.flyToRegion($event)"
+          @announce="announce"
           @close="closeStats"
         />
       </Transition>
@@ -364,15 +371,19 @@ onMounted(game.load);
         :frame-inset="frameInset"
         :inert="isMapInert"
         :is-round-play="isRoundPlay"
+        :is-stats-map="isStatsOpen"
+        :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : 0"
+        :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : null"
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
         :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
         :route="routeMarks"
         :land-shown="isWayfinderRound ? 0 : 1"
-        :top-inset="wayfinderScreen?.cardBottom ?? 0"
+        :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : wayfinderScreen?.cardBottom ?? 0"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
+        @cursor="announce(statsTray?.placeLabel($event) ?? '')"
         @announce="announce"
       />
 

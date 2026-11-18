@@ -179,3 +179,88 @@ describe('all games', () => {
     expect(stats.allGames()).toMatchObject({ tier: 'defacto', roundsPlayed: 5, placesSolid: 2, placesWeak: 2 });
   });
 });
+
+describe('region counts', () => {
+  const unplayedIn = (region: string) => places.filter(place => place.region === region && place.tier === 'sovereign').length;
+
+  it('lists the six regions, all unplayed before any answer, the biggest first', () => {
+    const { stats } = statsGame();
+
+    const counts = stats.regionCounts();
+
+    expect(counts).toHaveLength(6);
+    expect(counts.every(({ weak, shaky, solid }) => weak + shaky + solid === 0)).toBe(true);
+    expect(counts.map(({ unplayed }) => unplayed)).toEqual(counts.map(({ region }) => unplayedIn(region)).sort((first, second) => second - first));
+  });
+
+  it('counts weak, shaky, solid and unplayed places per region', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, {}, { AUS: '✓✓✓', NZL: '✗✗✗', FJI: '✗✗✗', PNG: '✓✗', WSM: '✓✓✓' });
+
+    expect(stats.regionCounts().find(({ region }) => region === 'Oceania')).toEqual({ region: 'Oceania', weak: 2, shaky: 1, solid: 2, unplayed: 0 });
+  });
+
+  it('sorts by weak count, then shaky, then unplayed, highest first', () => {
+    const { game, stats } = statsGame();
+    playRounds(game, {}, { AUS: '✗✗✗', NZL: '✗✗✗', FJI: '✓✗' });
+    playRounds(game, { region: 'Europe' }, { FRA: '✗✗✗', ESP: '✓✗', ITA: '✓✗' });
+
+    expect(stats.regionCounts().slice(0, 2)).toMatchObject([{ region: 'Oceania', weak: 2 }, { region: 'Europe', weak: 1, shaky: 2 }]);
+
+    playRounds(game, { region: 'Asia' }, { JPN: '✗✗✗', CHN: '✗✗✗', IND: '✓✗' });
+    playRounds(game, { region: 'Africa' }, { EGY: '✗✗✗', NGA: '✗✗✗', KEN: '✓✗' });
+
+    expect(stats.regionCounts().slice(0, 4)).toMatchObject([{ region: 'Africa', weak: 2, shaky: 1 }, { region: 'Asia', weak: 2, shaky: 1 }, { region: 'Oceania', weak: 2, shaky: 1 }, { region: 'Europe', weak: 1 }]);
+  });
+
+  it('follows the scope and the deepest tier played so far', () => {
+    const { game, stats } = statsGame();
+    playRounds(game, { variant: 'name' }, { AUS: '✗✗✗' });
+
+    expect(stats.regionCounts({ mode: 'find', variant: 'flag' })[0]!.weak).toBe(0);
+    expect(stats.regionCounts({ mode: 'find', variant: 'name' })[0]).toMatchObject({ region: 'Oceania', weak: 1 });
+
+    game.send({ type: 'start', setup: { ...oceaniaRound, region: 'Europe', tier: 'dependencies' } });
+    endRoundAtOnce(game);
+
+    const total = stats.regionCounts().reduce((sum, { weak, shaky, solid, unplayed }) => sum + weak + shaky + solid + unplayed, 0);
+    expect(total).toBe(places.length);
+  });
+});
+
+describe('place details', () => {
+  it('has no rating and zero numbers for a place never asked', () => {
+    const { stats } = statsGame();
+
+    expect(stats.placeDetails('AUS')).toEqual({ rating: 'noData', recent: { right: 0, count: 0 }, lifetime: { right: 0, total: 0 }, easy: { right: 0, total: 0 } });
+  });
+
+  it('pools recent answers and lifetime numbers over the scope, keeping Easy mode apart', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, { variant: 'flag' }, { AUS: '✓✓✗✓' });
+    playRounds(game, { variant: 'name' }, { AUS: '✗✓' });
+    playRounds(game, { easy: true }, { AUS: '✓✓✗' });
+
+    expect(stats.placeDetails('AUS')).toMatchObject({ rating: 'shaky', recent: { right: 4, count: 6 }, lifetime: { right: 4, total: 6 }, easy: { right: 2, total: 3 } });
+    expect(stats.placeDetails('AUS', { mode: 'find', variant: 'name' })).toMatchObject({ recent: { right: 1, count: 2 }, lifetime: { right: 1, total: 2 } });
+  });
+
+  it('keeps lifetime numbers beyond the last 8 answers', () => {
+    const { game, stats } = statsGame();
+
+    playRounds(game, {}, { AUS: '✗✗✗✗✓✓✓✓✓✓✓✓' });
+
+    expect(stats.placeDetails('AUS')).toMatchObject({ rating: 'solid', recent: { right: 8, count: 8 }, lifetime: { right: 8, total: 12 } });
+  });
+
+  it('names the place it was recently confused with', () => {
+    const { game, stats } = statsGame();
+    game.send({ type: 'start', setup: oceaniaRound });
+    const { placeId } = game.state as { placeId: string };
+    game.send({ type: 'tap', placeId: placeId === 'AUS' ? 'NZL' : 'AUS' });
+
+    expect(stats.placeDetails(placeId).confusedWith).toBe(placeId === 'AUS' ? 'NZL' : 'AUS');
+  });
+});
