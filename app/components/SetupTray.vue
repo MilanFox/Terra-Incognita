@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { isTypedMode } from '#shared/game/game';
 import type { DeckSize, Mode, RegionChoice, RoundSetup, Tier, Variant } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
 
@@ -160,7 +159,6 @@ defineExpose({ element: tray });
       </button>
 
       <button
-        v-if="!isTypedMode(setup.mode)"
         type="button"
         role="switch"
         class="tile setup-tray__switch"

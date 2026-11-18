@@ -201,8 +201,14 @@ onMounted(game.load);
     </Transition>
 
     <Transition name="tray">
+      <ChoiceTray
+        v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound && game.state.setup.easy"
+        ref="typedAnswerTray"
+        :state="game.state"
+      />
+
       <TypedAnswerTray
-        v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound"
+        v-else-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedRound"
         ref="typedAnswerTray"
         :state="game.state"
         @next="next"

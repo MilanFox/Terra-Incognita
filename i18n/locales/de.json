@@ -167,6 +167,10 @@
     "close": "Schließen",
     "clockRuns": "Die Uhr läuft weiter, während du das liest."
   },
+  "choice": {
+    "label": "Wähle den Ort",
+    "youPicked": "Du hast gewählt: {place}"
+  },
   "typed": {
     "prompt": "Wie heißt der markierte Ort?",
     "ambiguous": "Welcher genau? Schreib weiter",

@@ -167,6 +167,10 @@
     "close": "Close",
     "clockRuns": "The clock keeps running while you read this."
   },
+  "choice": {
+    "label": "Pick the place",
+    "youPicked": "You picked: {place}"
+  },
   "typed": {
     "prompt": "Name the highlighted place",
     "ambiguous": "Which one? Keep typing",

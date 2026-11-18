@@ -71,6 +71,7 @@ export type GameEvent
     | { type: 'tap', placeId?: string }
     | { type: 'submit', text: string }
     | { type: 'dontKnow' }
+    | { type: 'pick', placeId: string }
     | { type: 'next' }
     | { type: 'tick' }
     | { type: 'askEnd' }
@@ -89,6 +90,7 @@ export const pausesPerRound = 3;
 const tapSkipGuardMs = 150;
 const minimumPoolSize = 5;
 const easyAttempts = 3;
+const optionCount = 4;
 const promptBudgetsMs: Record<Mode, number> = { find: 8000, name: 15000 };
 const typedModes: Mode[] = ['name'];
 const setupStorageKey = 'ti:setup';
@@ -110,6 +112,7 @@ interface RoundInPlay {
   attemptsLeft: number
   wrongTapPlaceIds: string[]
   unresolvedAnswers: UnresolvedAnswer[]
+  optionPlaceIds: string[]
   score: number
   progress: ProgressCell[]
   isConfirmingEnd: boolean
@@ -144,6 +147,8 @@ const isInTier = (place: Place, tier: Tier) => tiersInOrder.indexOf(place.tier) 
 
 export const isTypedMode = (mode: Mode) => typedModes.includes(mode);
 
+const isMultipleChoice = ({ mode, easy }: RoundSetup) => easy && isTypedMode(mode);
+
 const firstTimeSetup = (mode: Mode): RoundSetup => ({ mode, variant: variantChoicesByMode[mode][0]!, region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: false });
 
 export const dailySetupOf = (variant: DailyVariant): RoundSetup => ({ mode: 'find', variant, region: 'world', tier: 'sovereign', deckSize: dailyDeckSize, easy: false, timed: false });
@@ -168,6 +173,7 @@ interface StoredRound {
   stoppedMs: number
   pausedAt: number | null
   pausesUsed: number
+  optionPlaceIds?: string[]
   dataVersion: number
   dailyDate?: string | null
 }
@@ -207,6 +213,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   let answeredAt = 0;
   let wrongTapPlaceIds: string[] = [];
   let unresolvedAnswers: UnresolvedAnswer[] = [];
+  let optionPlaceIds: string[] = [];
   let isConfirmingEnd = false;
   let isComplete = true;
   let startedAt = 0;
@@ -279,7 +286,16 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     return tapped.id;
   };
 
-  const attemptsAllowed = () => (setup.easy ? easyAttempts : 1);
+  const optionsFor = (placeId: string) => {
+    if (!isMultipleChoice(setup)) return [];
+    const others = poolOf(setup).filter(id => id !== placeId);
+    const { region } = placesById.get(placeId)!;
+    const sameRegion = shuffled(others.filter(id => placesById.get(id)!.region === region), random);
+    const otherRegions = shuffled(others.filter(id => placesById.get(id)!.region !== region), random);
+    return shuffled([placeId, ...[...sameRegion, ...otherRegions].slice(0, optionCount - 1)], random);
+  };
+
+  const attemptsAllowed = () => (setup.easy && !isTypedMode(setup.mode) ? easyAttempts : 1);
 
   const pausesLeft = () => (setup.timed ? pausesPerRound - pausesUsed : 0);
 
@@ -288,7 +304,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     const score = answers.filter(({ outcome }) => outcome === 'right').length;
     if (phase === 'results') return { phase, setup, deckSize: deck.length, score, answers: [...answers], missedPlaceIds: deck.slice(answers.length), isComplete, elapsedMs, isNewBest, dailyDate };
     const progress = deck.map((_, index): ProgressCell => answers[index]?.outcome ?? (index === promptIndex ? 'current' : 'pending'));
-    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], unresolvedAnswers: [...unresolvedAnswers], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft(), dailyDate };
+    const roundInPlay = { setup, deckSize: deck.length, promptNumber: promptIndex + 1, placeId: deck[promptIndex]!, attemptsLeft: attemptsAllowed() - wrongTapPlaceIds.length, wrongTapPlaceIds: [...wrongTapPlaceIds], unresolvedAnswers: [...unresolvedAnswers], optionPlaceIds: [...optionPlaceIds], score, progress, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft(), dailyDate };
     return phase === 'verdict' ? { phase, answer: answers[promptIndex]!, answeredAt, ...roundInPlay } : { phase, ...roundInPlay };
   };
 
@@ -298,7 +314,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       return;
     }
     // A round read back on relaunch counts as hidden since its last write, if the app never got to hide it.
-    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, dataVersion: version.dataVersion, dailyDate };
+    const round: StoredRound = { setup, deck, promptIndex, answers, wrongTapPlaceIds, startedAt, hiddenAt: hiddenAt ?? clock(), stoppedMs, pausedAt, pausesUsed, optionPlaceIds, dataVersion: version.dataVersion, dailyDate };
     storage.setItem(roundStorageKey, JSON.stringify(round));
   };
 
@@ -334,6 +350,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     pausedAt = stored!.pausedAt ?? null;
     pausesUsed = stored!.pausesUsed!;
     dailyDate = typeof stored!.dailyDate === 'string' ? stored!.dailyDate : null;
+    optionPlaceIds = isStringList(stored!.optionPlaceIds) && stored!.optionPlaceIds.every(id => placeIds.has(id)) ? stored!.optionPlaceIds : optionsFor(deck[promptIndex]!);
     phase = 'prompt';
     // A relaunch is a return from the background.
     hide();
@@ -352,6 +369,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     wrongTapPlaceIds = [];
     unresolvedAnswers = [];
     promptIndex = 0;
+    optionPlaceIds = optionsFor(deck[0]!);
     isConfirmingEnd = false;
     isComplete = true;
     startedAt = clock();
@@ -411,6 +429,12 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       return;
     }
     settle({ placeId, tappedPlaceId: judged.placeId, outcome: judged.verdict === 'correct' ? 'right' : 'wrong' }, judged.verdict === 'wrong' ? judged.placeId : undefined);
+  };
+
+  const pick = (pickedPlaceId: string) => {
+    const placeId = deck[promptIndex]!;
+    const isRight = pickedPlaceId === placeId;
+    settle({ placeId, tappedPlaceId: pickedPlaceId, outcome: isRight ? 'right' : 'wrong' }, isRight ? undefined : pickedPlaceId);
   };
 
   const pause = () => {
@@ -483,6 +507,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       promptIndex += 1;
       wrongTapPlaceIds = [];
       unresolvedAnswers = [];
+      optionPlaceIds = optionsFor(deck[promptIndex]!);
       phase = 'prompt';
     }
     else {
@@ -523,7 +548,8 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);
     else if (event.type === 'viewDaily' && phase === 'home' && todaysDaily()?.cells) viewDaily(todaysDaily()!, todaysDaily()!.cells!);
     else if (event.type === 'tap' && phase === 'prompt' && !isTypedMode(setup.mode) && event.placeId !== undefined && placeIds.has(event.placeId)) answer(event.placeId);
-    else if (event.type === 'submit' && phase === 'prompt' && isTypedMode(setup.mode)) submit(event.text);
+    else if (event.type === 'submit' && phase === 'prompt' && isTypedMode(setup.mode) && !setup.easy) submit(event.text);
+    else if (event.type === 'pick' && phase === 'prompt' && isMultipleChoice(setup) && optionPlaceIds.includes(event.placeId)) pick(event.placeId);
     else if (event.type === 'dontKnow' && phase === 'prompt' && isTypedMode(setup.mode)) settle({ placeId: deck[promptIndex]!, outcome: 'missed' }, undefined);
     else if (event.type === 'tap' && phase === 'verdict' && clock() - answeredAt >= tapSkipGuardMs) advance();
     else if (event.type === 'next' && phase === 'verdict') advance();
