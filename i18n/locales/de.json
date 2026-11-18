@@ -410,8 +410,8 @@
       "next": "Weiter"
     },
     "live": {
-      "wrong": "Falsch. Du hast geschrieben: {typed}. Die Antwort ist {answer}. Drücke Weiter.",
-      "missed": "Die Antwort ist {answer}. Drücke Weiter.",
+      "wrong": "Falsch. Du hast geschrieben: {typed}. Die Antwort: {answer}. Drücke Weiter.",
+      "missed": "Die Antwort: {answer}. Drücke Weiter.",
       "noMatch": "Kein Ort mit diesem Namen. Versuch es nochmal."
     }
   },
@@ -513,7 +513,7 @@
     "placeFound": "Ort, gefunden",
     "selected": "Ausgewählt.",
     "right": "Richtig: {place}.",
-    "wrong": "Falsch. Du hast getippt: {tapped}. Die Antwort ist {answer}. Drücke Weiter.",
+    "wrong": "Falsch. Du hast getippt: {tapped}. Die Antwort: {answer}. Drücke Weiter.",
     "findName": "Finde auf der Karte: {place}",
     "timeLeft": "{time} übrig.",
     "statsPlace": "{name}, {rating}"
