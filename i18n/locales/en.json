@@ -14,7 +14,8 @@
   "map": {
     "label": "World map",
     "playLabel": "Map. Arrow keys move between places, Enter selects",
-    "statsLabel": "Map. Arrow keys move between places, Enter opens details"
+    "statsLabel": "Map. Arrow keys move between places, Enter opens details",
+    "namesLabel": "Map. Arrow keys move between places"
   },
   "home": {
     "label": "Play"
@@ -323,6 +324,9 @@
     "regionUnplayed": "{count} unplayed",
     "completeRounds": "Complete rounds",
     "averageLast20": "Average, last 20",
+    "best": "Best",
+    "fastestPerfect": "Fastest perfect round",
+    "routes": "{count} route | {count} routes",
     "perfectRounds": "Perfect rounds",
     "noAverage": "–",
     "noAverageSpoken": "None yet",
@@ -332,6 +336,7 @@
     "bests": {
       "title": "Personal bests",
       "note": "your most-played setups",
+      "normal": "Normal",
       "perfectIn": "Perfect in {time}"
     },
     "lastRounds": {

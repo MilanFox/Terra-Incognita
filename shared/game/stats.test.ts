@@ -5,6 +5,7 @@ import shippedVersion from '../../public/data/version.json';
 import { createGame, isTypedMode } from './game';
 import type { Game, KeyValueStorage, Place, RoundSetup } from './game';
 import type { NamesFile, PlaceNames } from './matcher';
+import { bestKeyOf } from './records';
 import type { RoundSummary } from './records';
 import { createStats } from './stats';
 import type { Rating } from './stats';
@@ -276,7 +277,7 @@ describe('mode stats', () => {
   it('starts empty', () => {
     const { stats } = statsGame();
 
-    expect(stats.modeStats({ mode: 'find' })).toEqual({ completeRounds: 0, averageShare: null, perfectRounds: 0, bests: [], lastRounds: [] });
+    expect(stats.modeStats({ mode: 'find' })).toEqual({ completeRounds: 0, averageShare: null, perfectRounds: 0, best: null, averageRoutes: null, fastestPerfectMs: null, bests: [], lastRounds: [] });
   });
 
   it('counts complete rounds only and lists the last 10 rounds newest first, ended early included', () => {
@@ -376,5 +377,91 @@ describe('mode stats', () => {
     expect(modeStats.bests).toMatchObject([{ plays: 1, score: 4 }]);
     expect(modeStats.lastRounds.map(({ learn }) => learn)).toEqual([true, false]);
     expect(stats.allGames().roundsPlayed).toBe(2);
+  });
+});
+
+describe('mode stats of the special modes', () => {
+  const fillOceania: RoundSetup = { ...oceaniaRound, mode: 'fill', variant: 'map', deckSize: 'all' };
+  const missingWorld: RoundSetup = { mode: 'missing', variant: 'map', region: 'world', tier: 'sovereign', deckSize: 10, easy: false, timed: true };
+
+  const fillPlaces = (game: Game, placeIds: string[]) => {
+    for (const placeId of placeIds) game.send({ type: 'submit', text: (names[placeId] as PlaceNames).en.name });
+  };
+
+  const playMissing = (game: Game, setup: RoundSetup, hitCount: number) => {
+    game.send({ type: 'start', setup });
+    if (game.state.phase !== 'missing') throw new Error('expected a What\'s missing round');
+    const { gapPlaceIds } = game.state;
+    for (let tap = 0; tap < 10 && game.state.phase === 'missing'; tap += 1) game.send({ type: 'tap', placeId: tap < hitCount ? gapPlaceIds[tap] : undefined });
+    game.send({ type: 'leave' });
+  };
+
+  const wayfinderRound = (changes: Partial<RoundSummary>): RoundSummary => ({
+    date: Date.UTC(2026, 10, 1), mode: 'wayfinder', variant: 'map', region: 'world', tier: 'sovereign', deckSize: 7, timed: false, easy: false, daily: false, learn: false,
+    score: 0, complete: true, elapsedMs: 60_000, pausesUsed: 0, dataVersion: 4, ...changes,
+  });
+
+  it('counts complete Fill the map rounds with best, average and the fastest perfect round', () => {
+    const { game, stats, wait } = statsGame();
+    const oceaniaIds = places.filter(({ region, tier }) => region === 'Oceania' && tier === 'sovereign').map(({ id }) => id);
+
+    game.send({ type: 'start', setup: fillOceania });
+    wait(30_000);
+    fillPlaces(game, oceaniaIds);
+    game.send({ type: 'leave' });
+    game.send({ type: 'start', setup: fillOceania });
+    fillPlaces(game, oceaniaIds.slice(0, 2));
+    endRoundAtOnce(game);
+
+    expect(stats.modeStats({ mode: 'fill' })).toMatchObject({ completeRounds: 1, best: 1, averageShare: 1, averageRoutes: null, fastestPerfectMs: 30_000 });
+    expect(stats.modeStats({ mode: 'fill' }).lastRounds.map(({ score, complete }) => [score, complete])).toEqual([[2, false], [5, true]]);
+    expect(stats.modeStats({ mode: 'fill' }).bests).toMatchObject([{ region: 'Oceania', plays: 2, score: 5, fastestPerfectMs: 30_000 }]);
+  });
+
+  it('keeps timed and untimed What\'s missing bests apart', () => {
+    const { game, stats, wait } = statsGame();
+
+    game.send({ type: 'start', setup: missingWorld });
+    wait(20_000);
+    const { gapPlaceIds } = game.state as Extract<Game['state'], { phase: 'missing' }>;
+    for (const placeId of gapPlaceIds) game.send({ type: 'tap', placeId });
+    game.send({ type: 'leave' });
+    wait(60_000);
+    playMissing(game, { ...missingWorld, timed: false }, 5);
+
+    const missing = stats.modeStats({ mode: 'missing' });
+    expect(missing).toMatchObject({ completeRounds: 2, best: 1, fastestPerfectMs: 20_000 });
+    expect(missing.averageShare).toBeCloseTo(0.75, 10);
+    expect(missing.bests).toMatchObject([{ timed: false, score: 5, fastestPerfectMs: null }, { timed: true, score: 10, fastestPerfectMs: 20_000 }]);
+  });
+
+  it('gives Wayfinder a best and an average in routes, a row per Easy setting and no fastest perfect round', () => {
+    const { stats, storage } = statsGame();
+    const routes = [3, 9, 6, 4];
+    storage.setItem('ti:rounds', JSON.stringify([
+      ...routes.map((score, index) => wayfinderRound({ score, date: Date.UTC(2026, 10, 1 + index) })),
+      wayfinderRound({ score: 12, easy: true, date: Date.UTC(2026, 10, 10) }),
+      wayfinderRound({ score: 20, complete: false, date: Date.UTC(2026, 10, 11) }),
+    ]));
+    storage.setItem('ti:bests', JSON.stringify({
+      [bestKeyOf({ ...missingWorld, mode: 'wayfinder', timed: false })]: { score: 9, fastestPerfectMs: null },
+      [bestKeyOf({ ...missingWorld, mode: 'wayfinder', timed: false, easy: true })]: { score: 12, fastestPerfectMs: null },
+    }));
+
+    const wayfinder = stats.modeStats({ mode: 'wayfinder' });
+
+    expect(wayfinder).toMatchObject({ completeRounds: 5, best: 12, averageRoutes: 34 / 5, averageShare: null, fastestPerfectMs: null });
+    expect(wayfinder.bests.map(({ easy, plays, score, fastestPerfectMs }) => ({ easy, plays, score, fastestPerfectMs }))).toEqual([
+      { easy: false, plays: 5, score: 9, fastestPerfectMs: null },
+      { easy: true, plays: 1, score: 12, fastestPerfectMs: null },
+    ]);
+    expect(wayfinder.lastRounds).toHaveLength(6);
+  });
+
+  it('averages Wayfinder over the last 20 complete rounds only', () => {
+    const { stats, storage } = statsGame();
+    storage.setItem('ti:rounds', JSON.stringify([wayfinderRound({ score: 100 }), ...Array.from({ length: 20 }, () => wayfinderRound({ score: 2 }))]));
+
+    expect(stats.modeStats({ mode: 'wayfinder' })).toMatchObject({ completeRounds: 21, averageRoutes: 2 });
   });
 });

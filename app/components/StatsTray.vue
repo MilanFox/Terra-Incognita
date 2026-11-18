@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Mode, Region } from '#shared/game/game';
-import { regularModes } from '#shared/game/stats';
+import { regularModes, specialModes } from '#shared/game/stats';
 import type { StatsScope } from '#shared/game/stats';
 import type { ShownVariant } from '~/components/StatsModePage.vue';
 import { useTraySwipe } from '~/composables/useTraySwipe';
@@ -29,7 +29,7 @@ const placeBubble = useTemplateRef<{ bottom: number, lines: string[] }>('placeBu
 const allGames = game.allGamesStats();
 const pages = computed<{ id: StatsPageId, name: string }[]>(() => [
   { id: 'all', name: t('stats.allGames.name') },
-  ...regularModes.map(mode => ({ id: mode, name: t(`modes.${mode}.name`) })),
+  ...[...regularModes, ...specialModes].map(mode => ({ id: mode, name: t(`modes.${mode}.name`) })),
 ]);
 const activePageId = ref<StatsPageId>('all');
 const shownVariants = reactive<Partial<Record<Mode, ShownVariant>>>({});
@@ -41,8 +41,12 @@ const scope = computed<StatsScope>(() => {
   return { mode: activePageId.value, variant: shownVariant === 'all' ? undefined : shownVariant };
 });
 const modeStats = computed(() => (activePageId.value === 'all' ? null : game.modeStats({ ...scope.value, mode: activePageId.value })));
-const regions = computed(() => game.regionCounts(scope.value));
-const placeRatings = computed(() => (activePageId.value === 'all' ? allGames.placeRatings : game.placeRatings(scope.value)));
+const regions = computed(() => (isSpecialPage.value ? [] : game.regionCounts(scope.value)));
+const isSpecialPage = computed(() => specialModes.includes(activePageId.value as Mode));
+const placeRatings = computed(() => {
+  if (isSpecialPage.value) return null;
+  return activePageId.value === 'all' ? allGames.placeRatings : game.placeRatings(scope.value);
+});
 
 const isOpen = ref(false);
 const bubblePlaceId = ref<string | null>(null);
@@ -84,9 +88,10 @@ watch(isOpen, (nowOpen) => {
   if (!nowOpen && tray.value) tray.value.scrollTop = 0;
 });
 
-const placeLabel = (placeId: string) => t('live.statsPlace', { name: game.nameOf(placeId, locale.value), rating: t(`stats.ratings.${game.placeDetails(placeId, scope.value).rating}`) });
+const placeLabel = (placeId: string) => isSpecialPage.value ? game.nameOf(placeId, locale.value) : t('live.statsPlace', { name: game.nameOf(placeId, locale.value), rating: t(`stats.ratings.${game.placeDetails(placeId, scope.value).rating}`) });
 
 const openBubble = async (placeId: string) => {
+  if (isSpecialPage.value) return;
   bubblePlaceId.value = placeId;
   await nextTick();
   const { rating } = game.placeDetails(placeId, scope.value);
@@ -152,7 +157,7 @@ onMounted(() => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, bubbleBottom: computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0)) });
+defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, bubbleBottom: computed(() => (bubblePlaceId.value ? placeBubble.value?.bottom ?? 0 : 0)) });
 </script>
 
 <template>
@@ -280,6 +285,15 @@ defineExpose({ titleId, peekHeight, visibleTrayHeight, placeRatings, openBubble,
                 :is-expanded="isOpen"
                 :regions="regions"
                 @fly-to-region="flyToRegion"
+              />
+
+              <StatsSpecialPage
+                v-else-if="modeStats && isSpecialPage"
+                ref="activePage"
+                :mode="pageId"
+                :stats="modeStats"
+                :more-id="moreId"
+                :is-expanded="isOpen"
               />
 
               <StatsModePage

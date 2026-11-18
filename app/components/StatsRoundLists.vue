@@ -24,23 +24,33 @@ const lastRoundsHeadingId = useId();
 const hasVariants = computed(() => variantChoicesByMode[props.mode].length > 1);
 const dateFormat = computed(() => new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short' }));
 
-const setupLine = ({ variant, region, tier, easy, timed, daily }: ShownSetup) => [
-  daily && t('daily.title'),
-  hasVariants.value && t(`setup.variants.${variant}`),
-  !daily && t(`setup.regions.${region}`),
-  !daily && t(`setup.tiers.${tier}`),
-  timed && t('setup.timed'),
-  easy && t('setup.easy'),
-].filter(Boolean).join(' · ');
+const isWayfinder = computed(() => props.mode === 'wayfinder');
 
-const scoreOf = (score: number, total: number) => ({ shown: t('stats.scoreShort', { score, total }), spoken: t('results.scoreText', { score, total }) });
+const setupLine = ({ variant, region, tier, easy, timed, daily }: ShownSetup) => isWayfinder.value
+  ? t(easy ? 'setup.easy' : 'stats.bests.normal')
+  : [
+      daily && t('daily.title'),
+      hasVariants.value && t(`setup.variants.${variant}`),
+      !daily && t(`setup.regions.${region}`),
+      !daily && t(`setup.tiers.${tier}`),
+      timed && t('setup.timed'),
+      easy && t('setup.easy'),
+    ].filter(Boolean).join(' · ');
+
+const scoreOf = (score: number, total: number) => {
+  if (isWayfinder.value) {
+    const routes = t('stats.routes', { count: score }, score);
+    return { shown: routes, spoken: routes };
+  }
+  return { shown: t('stats.scoreShort', { score, total }), spoken: t('results.scoreText', { score, total }) };
+};
 
 const timeOf = (elapsedMs: number) => durationTextOf(Math.round(elapsedMs / 1000));
 
 const bestRows = computed(() => props.bests.map((best) => {
   const fastest = best.fastestPerfectMs === null ? null : timeOf(best.fastestPerfectMs);
   return {
-    key: `${best.variant}:${best.region}:${best.tier}:${best.deckSize}:${best.easy}`,
+    key: `${best.variant}:${best.region}:${best.tier}:${best.deckSize}:${best.easy}:${best.timed}`,
     setup: setupLine(best),
     score: scoreOf(best.score, best.deckSize),
     time: fastest && { shown: t('stats.bests.perfectIn', { time: fastest.shown }), spoken: t('stats.bests.perfectIn', { time: fastest.spoken }) },
