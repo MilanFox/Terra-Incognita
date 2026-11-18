@@ -45,7 +45,7 @@ const { height: wayfinderAnswerTrayHeight } = useElementSize(() => wayfinderAnsw
 const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderResultsTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 const isStatsOpen = ref(false);
-const isCameraRestored = ref(false);
+const isCameraHeld = ref(false);
 const aboutOpeningSection = ref<AboutSectionId | null>(null);
 const aboutOpener = shallowRef<AboutOpener>({ tray: 'home' });
 const isAboutOpen = computed(() => aboutOpeningSection.value !== null);
@@ -91,7 +91,7 @@ const poolPlaceIds = computed(() => {
   if (traySetup.value) return game.poolOf(traySetup.value);
   return game.state.phase === 'fill' ? game.poolOf(game.state.setup) : null;
 });
-const frameRegion = computed(() => (isCameraRestored.value ? null : traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region)));
+const frameRegion = computed(() => (isCameraHeld.value ? null : traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region)));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
 
@@ -208,7 +208,7 @@ const closeSettings = async () => {
 
 const closeStats = async () => {
   isStatsOpen.value = false;
-  isCameraRestored.value = false;
+  isCameraHeld.value = false;
   await nextTick();
   homeTray.value?.focusStats();
 };
@@ -229,17 +229,20 @@ const swapStatsForAbout = (section: AboutSectionId, view: StatsView) => {
   if (!map) return;
   openAbout(section, { tray: 'stats', view, camera: { center: map.getCenter(), zoom: map.getZoom(), padding: map.getPadding() } });
   isStatsOpen.value = false;
-  isCameraRestored.value = false;
+  isCameraHeld.value = false;
+};
+
+const flyToRuling = (bounds: [[number, number], [number, number]]) => {
+  isCameraHeld.value = true;
+  worldMap.value?.flyToBounds(bounds);
 };
 
 const closeAbout = async () => {
   const opener = aboutOpener.value;
   aboutOpeningSection.value = null;
   if (opener.tray === 'setup') setupDraft.value = opener.setup;
-  if (opener.tray === 'stats') {
-    isStatsOpen.value = true;
-    isCameraRestored.value = true;
-  }
+  if (opener.tray === 'stats') isStatsOpen.value = true;
+  isCameraHeld.value = opener.tray === 'stats';
   await nextTick();
   if (opener.tray === 'setup') {
     if (setupTray.value?.element) setupTray.value.element.scrollTop = opener.scrollTop;
@@ -449,7 +452,7 @@ onMounted(game.load);
           :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
           @zoom-in="worldMap?.zoomIn()"
           @zoom-out="worldMap?.zoomOut()"
-          @fly-to="worldMap?.flyToBounds($event)"
+          @fly-to="flyToRuling"
           @close="closeAbout"
         />
       </Transition>

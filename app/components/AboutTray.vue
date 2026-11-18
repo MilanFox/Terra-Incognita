@@ -119,11 +119,17 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 onMounted(async () => {
   measure();
   title.value?.focus({ preventScroll: true });
-  [shippedVersion.value, flagCredits.value] = await Promise.all([fetchJson('/data/version.json'), fetchJson('/data/credits.json')]);
+  await nextTick();
+  flyToRuling(props.openingSection, props.openingPlaceId);
+  try {
+    [shippedVersion.value, flagCredits.value] = await Promise.all([fetchJson('/data/version.json'), fetchJson('/data/credits.json')]);
+  }
+  catch {
+    return;
+  }
   await nextTick();
   if (!tray.value || props.openingSection === 'intro') return;
   document.getElementById(headingIdOf(props.openingSection))?.scrollIntoView({ behavior: 'instant', block: 'start' });
-  flyToRuling(props.openingSection, props.openingPlaceId);
 });
 useResizeObserver(tray, measure);
 
