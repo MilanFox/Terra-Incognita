@@ -621,6 +621,22 @@ describe('end round', () => {
     expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
   });
 
+  it('holds a right answer until Next when waiting for Next is on, with the clock still running', () => {
+    let now = Date.UTC(2026, 10, 17);
+    const game = createGame({ places, version: shippedVersion, random: seededRandom(1), clock: () => now, storage: memoryStorage(), isWaitingForNext: () => true });
+    game.send({ type: 'start', setup: { ...game.setupFor('find'), timed: true } });
+    game.send({ type: 'tap', placeId: promptedPlaceId(game) });
+    const timeLeftBefore = game.timeLeftMs()!;
+
+    now += rightAnswerAdvanceMs * 10;
+    game.send({ type: 'tick' });
+    expect(game.state.phase).toBe('verdict');
+    expect(game.timeLeftMs()).toBeLessThan(timeLeftBefore);
+
+    game.send({ type: 'next' });
+    expect(game.state).toMatchObject({ phase: 'prompt', promptNumber: 2 });
+  });
+
   it('shows a finished round as complete with nothing unreached', () => {
     const game = startGame();
     playThrough(game, 4);

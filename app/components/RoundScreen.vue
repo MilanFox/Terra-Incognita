@@ -2,12 +2,14 @@
 import { isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { GameState } from '#shared/game/game';
 import { useGameStore } from '~/stores/game';
+import { useSettingsStore } from '~/stores/settings';
 
 const props = defineProps<{ state: Extract<GameState, { phase: 'prompt' | 'verdict' }>, fade: number, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
 const emit = defineEmits<{ next: [], dontKnow: [], zoomIn: [], zoomOut: [] }>();
 
 const { locale, t } = useI18n();
 const game = useGameStore();
+const settings = useSettingsStore();
 
 const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && (props.state.learning ? props.state.learning.previousOutcome : props.state.progress[props.state.promptNumber - 2]) === 'right');
 
@@ -163,7 +165,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
           </i18n-t>
 
           <button
-            v-if="state.answer.outcome !== 'right'"
+            v-if="state.answer.outcome !== 'right' || settings.isWaitForNextOn"
             type="button"
             class="tile prompt-card__next"
             @click="emit('next')"

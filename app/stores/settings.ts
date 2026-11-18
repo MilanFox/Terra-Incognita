@@ -28,6 +28,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const language = ref<Language>('en');
   const reduceMotion = ref<MotionChoice>('system');
   const isHighContrast = ref(false);
+  const isWaitForNextOn = ref(false);
+  const isSystemKeyboardOn = ref(false);
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
 
@@ -38,6 +40,8 @@ export const useSettingsStore = defineStore('settings', () => {
       language: language.value,
       reduceMotion: reduceMotion.value,
       highContrast: isHighContrast.value,
+      waitForNext: isWaitForNextOn.value,
+      systemKeyboard: isSystemKeyboardOn.value,
     }));
   };
 
@@ -53,6 +57,8 @@ export const useSettingsStore = defineStore('settings', () => {
     if (languages.includes(stored.language as Language)) language.value = stored.language as Language;
     if (motionChoices.includes(stored.reduceMotion as MotionChoice)) reduceMotion.value = stored.reduceMotion as MotionChoice;
     if (typeof stored.highContrast === 'boolean') isHighContrast.value = stored.highContrast;
+    if (typeof stored.waitForNext === 'boolean') isWaitForNextOn.value = stored.waitForNext;
+    if (typeof stored.systemKeyboard === 'boolean') isSystemKeyboardOn.value = stored.systemKeyboard;
   };
 
   const setSound = (isOn: boolean) => {
@@ -75,5 +81,15 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, load, setSound, setLanguage, setReduceMotion, setHighContrast };
+  const setWaitForNext = (isOn: boolean) => {
+    isWaitForNextOn.value = isOn;
+    save();
+  };
+
+  const setSystemKeyboard = (isOn: boolean) => {
+    isSystemKeyboardOn.value = isOn;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard };
 });

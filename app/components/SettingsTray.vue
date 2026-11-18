@@ -244,6 +244,20 @@ onMounted(() => title.value?.focus());
           :is-on="settings.isHighContrast"
           @toggle="settings.setHighContrast(!settings.isHighContrast)"
         />
+
+        <SettingsSwitch
+          :label="$t('settings.accessibility.waitForNext.label')"
+          :hint="$t('settings.accessibility.waitForNext.hint')"
+          :is-on="settings.isWaitForNextOn"
+          @toggle="settings.setWaitForNext(!settings.isWaitForNextOn)"
+        />
+
+        <SettingsSwitch
+          :label="$t('settings.accessibility.systemKeyboard.label')"
+          :hint="$t('settings.accessibility.systemKeyboard.hint')"
+          :is-on="settings.isSystemKeyboardOn"
+          @toggle="settings.setSystemKeyboard(!settings.isSystemKeyboardOn)"
+        />
       </div>
 
       <p
