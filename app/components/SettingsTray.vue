@@ -237,6 +237,13 @@ onMounted(() => title.value?.focus());
           :model-value="settings.reduceMotion"
           @update:model-value="settings.setReduceMotion($event)"
         />
+
+        <SettingsSwitch
+          :label="$t('settings.accessibility.highContrast.label')"
+          :hint="$t('settings.accessibility.highContrast.hint')"
+          :is-on="settings.isHighContrast"
+          @toggle="settings.setHighContrast(!settings.isHighContrast)"
+        />
       </div>
 
       <p

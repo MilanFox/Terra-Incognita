@@ -206,6 +206,10 @@
           "on": "On",
           "off": "Off"
         }
+      },
+      "highContrast": {
+        "label": "High contrast",
+        "hint": "Darker water and ink borders on the map."
       }
     },
     "data": {

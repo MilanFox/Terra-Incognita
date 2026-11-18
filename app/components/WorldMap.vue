@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
 import { useReducedMotion } from '~/composables/useReducedMotion';
+import { useSettingsStore } from '~/stores/settings';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
@@ -68,6 +69,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string] }>();
 
 const { t, locale } = useI18n();
+const settings = useSettingsStore();
 
 const placeSources = ['places', 'specks'] as const;
 const tapBoxPx = 8;
@@ -85,6 +87,7 @@ const cursorSpeckRadius = 3;
 const arrowDirections: Record<string, [number, number]> = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
 const hatchName = 'hatch-wrong';
 const missedHatchName = 'hatch-missed';
+const highContrastHatchSuffix = '-contrast';
 const highestSpeckZoom = 8;
 const regionFrames: Record<RegionChoice, [[number, number], [number, number]]> = {
   'world': [[-170, -58], [190, 78]],
@@ -106,8 +109,14 @@ const colours = {
   green: '#2f7d4a',
   brick: '#b0442d',
   hatch: '#5e1f12',
+  highContrastWater: '#8fa8b5',
+  highContrastHatch: '#400200',
   sand: '#d6cdbd',
 };
+const waterColour = () => settings.isHighContrast ? colours.highContrastWater : colours.water;
+const borderColour = () => settings.isHighContrast ? colours.ink : colours.border;
+const borderWidth = () => settings.isHighContrast ? 1 : 0.6;
+const hatchNameOf = (name: string) => settings.isHighContrast ? name + highContrastHatchSuffix : name;
 const landTones = ['#ece6d6', '#e8e1d0', '#efeadc', '#e5dfcd'];
 const ratingColours: Record<Rating, string> = { noData: '#fdfcf8', weak: '#a9d4b2', shaky: '#6aa77a', solid: '#2f7d4a' };
 const routeColours = {
@@ -137,7 +146,7 @@ const status: ExpressionSpecification = ['to-string', ['feature-state', 'status'
 const isCursor: ExpressionSpecification = ['boolean', ['feature-state', 'cursor'], false];
 const rating: ExpressionSpecification = ['to-string', ['feature-state', 'rating']];
 const landFillAt = (landShown: number): ExpressionSpecification => {
-  const tones = landTones.map(tone => mixedColour(colours.water, tone, landShown));
+  const tones = landTones.map(tone => mixedColour(waterColour(), tone, landShown));
   const toneFill: ExpressionSpecification = ['match', ['get', 'tone'], 1, tones[1]!, 2, tones[2]!, 3, tones[3]!, tones[0]!];
   return ['match', rating, 'noData', ratingColours.noData, 'weak', ratingColours.weak, 'shaky', ratingColours.shaky, 'solid', ratingColours.solid, toneFill];
 };
@@ -145,10 +154,11 @@ const landFill = landFillAt(1);
 const fadeState: ExpressionSpecification = ['coalesce', ['feature-state', 'fade'], 0];
 const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeState, 0, colours.green, 1, landFill];
 const placeFillOver = (land: ExpressionSpecification): ExpressionSpecification => ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, 'start', routeColours.start, 'target', routeColours.target, 'named', routeColours.named, 'route', routeColours.route, 'unused', routeColours.unused, land]];
-const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 'start', 1.2, 'named', 0.6, 'route', 1.2, 'unused', 0.6, 0]];
-const statusBorderColour: ExpressionSpecification = ['match', status, 'start', routeColours.startOutline, 'named', routeColours.namedOutline, 'route', routeColours.routeOutline, 'unused', colours.border, colours.ink];
+const outlineOf = (outline: 'startOutline' | 'targetOutline' | 'namedOutline' | 'routeOutline') => settings.isHighContrast ? colours.ink : routeColours[outline];
+const statusBorderWidth = (): ExpressionSpecification => ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 'start', 1.2, 'named', borderWidth(), 'route', 1.2, 'unused', borderWidth(), 0]];
+const statusBorderColour = (): ExpressionSpecification => ['match', status, 'start', outlineOf('startOutline'), 'named', outlineOf('namedOutline'), 'route', outlineOf('routeOutline'), 'unused', borderColour(), colours.ink];
 const isRouteMark: ExpressionSpecification = ['match', status, ['start', 'target', 'named', 'route', 'unused'], true, false];
-const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', ['any', isCursor, ['==', status, 'selected']], colours.ink, ['match', status, 'start', routeColours.startOutline, 'target', routeColours.targetOutline, 'named', routeColours.namedOutline, 'route', routeColours.routeOutline, 'unused', colours.border, mixedColour(colours.water, colours.border, landShown)]];
+const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', ['any', isCursor, ['==', status, 'selected']], colours.ink, ['match', status, 'start', outlineOf('startOutline'), 'target', outlineOf('targetOutline'), 'named', outlineOf('namedOutline'), 'route', outlineOf('routeOutline'), 'unused', borderColour(), mixedColour(waterColour(), borderColour(), landShown)]];
 const targetOutlineFilterFor = (targetId: string | undefined): FilterSpecification => ['==', ['get', 'id'], targetId ?? ''];
 const shortestOutlineFilterFor = (placeIds: string[] = []): FilterSpecification => ['in', ['get', 'id'], ['literal', placeIds]];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
@@ -161,7 +171,6 @@ const speckOpacityWithin = (extraZoom: number) => ['interpolate', ['linear'], ['
 const speckOpacity = speckOpacityWithin(0);
 const highlightSpeckExtraZoom = 3;
 
-const dimColour = colours.water;
 const dimmedFilterFor = (poolPlaceIds: string[] | null | undefined): FilterSpecification => poolPlaceIds
   ? ['all', isPlace, ['!', ['in', ['get', 'id'], ['literal', poolPlaceIds]]]]
   : dimmedNone;
@@ -190,15 +199,15 @@ const styleFor = ({ places, specks }: TierMap): StyleSpecification => ({
     specks: { type: 'geojson', data: specks, promoteId: 'id' },
   },
   layers: [
-    { id: 'water', type: 'background', paint: { 'background-color': colours.water } },
+    { id: 'water', type: 'background', paint: { 'background-color': waterColour() } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
-    { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchName, 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
+    { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchNameOf(hatchName), 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
-    { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': dimColour, 'fill-opacity': 0.7 } },
-    { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': mixedColour(colours.water, colours.border, props.landShown), 'line-width': 0.6 } },
-    { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': statusBorderColour, 'line-width': statusBorderWidth } },
+    { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': waterColour(), 'fill-opacity': 0.7 } },
+    { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': mixedColour(waterColour(), borderColour(), props.landShown), 'line-width': borderWidth() } },
+    { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': statusBorderColour(), 'line-width': statusBorderWidth() } },
     { id: 'place-shortest-outline', type: 'line', source: 'places', filter: shortestOutlineFilterFor(props.route?.reveal?.shortestPlaceIds), layout: { 'line-join': 'round' }, paint: { 'line-color': colours.ink, 'line-width': 1.8, 'line-dasharray': [2, 1.5] } },
-    { id: 'place-target-outline', type: 'line', source: 'places', filter: targetOutlineFilterFor(props.route?.targetId), layout: { 'line-join': 'round' }, paint: { 'line-color': routeColours.targetOutline, 'line-width': 2.6, 'line-dasharray': [2, 1.2] } },
+    { id: 'place-target-outline', type: 'line', source: 'places', filter: targetOutlineFilterFor(props.route?.targetId), layout: { 'line-join': 'round' }, paint: { 'line-color': outlineOf('targetOutline'), 'line-width': 2.6, 'line-dasharray': [2, 1.2] } },
     {
       id: 'speck',
       type: 'circle',
@@ -231,7 +240,7 @@ const styleFor = ({ places, specks }: TierMap): StyleSpecification => ({
       type: 'circle',
       source: 'specks',
       filter: dimmedFilterFor(props.poolPlaceIds),
-      paint: { 'circle-radius': 1.5, 'circle-color': dimColour, 'circle-opacity': 0.7 },
+      paint: { 'circle-radius': 1.5, 'circle-color': waterColour(), 'circle-opacity': 0.7 },
     },
   ],
 });
@@ -494,7 +503,15 @@ const showLand = () => {
   map.setPaintProperty('place-fill', 'fill-color', placeFillShown);
   map.setPaintProperty('speck', 'circle-color', placeFillShown);
   map.setPaintProperty('speck', 'circle-stroke-color', speckStrokeAt(props.landShown));
-  map.setPaintProperty('place-border', 'line-color', mixedColour(colours.water, colours.border, props.landShown));
+  map.setPaintProperty('place-border', 'line-color', mixedColour(waterColour(), borderColour(), props.landShown));
+  map.setPaintProperty('place-border', 'line-width', borderWidth());
+  map.setPaintProperty('water', 'background-color', waterColour());
+  map.setPaintProperty('place-dim', 'fill-color', waterColour());
+  map.setPaintProperty('speck-dim', 'circle-color', waterColour());
+  map.setPaintProperty('place-status-border', 'line-color', statusBorderColour());
+  map.setPaintProperty('place-status-border', 'line-width', statusBorderWidth());
+  map.setPaintProperty('place-target-outline', 'line-color', outlineOf('targetOutline'));
+  map.setPaintProperty('place-hatch', 'fill-pattern', hatchNameOf(hatchName));
 };
 
 const dimOutsidePool = () => {
@@ -650,7 +667,7 @@ watch(() => routeLookOf(props.route), () => {
 }, { flush: 'post' });
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
 watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
-watch(() => props.landShown, showLand);
+watch([() => props.landShown, () => settings.isHighContrast], showLand);
 watch(() => [props.frameRegion, props.frameInset], () => flyToRegion());
 
 onMounted(async () => {
@@ -692,7 +709,7 @@ onMounted(async () => {
   applyRoundPlay();
   applyLabel();
   map.setMissingStyleImageResolver((id) => {
-    const stripeColour = { [hatchName]: colours.hatch, [missedHatchName]: colours.brick }[id];
+    const stripeColour = { [hatchName]: colours.hatch, [hatchName + highContrastHatchSuffix]: colours.highContrastHatch, [missedHatchName]: colours.brick }[id];
     if (stripeColour && !map!.hasImage(id)) map!.addImage(id, hatchImage(window.devicePixelRatio || 1, stripeColour), { pixelRatio: window.devicePixelRatio || 1 });
   });
   map.once('idle', () => emit('drawn'));

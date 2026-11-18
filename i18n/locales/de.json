@@ -206,6 +206,10 @@
           "on": "An",
           "off": "Aus"
         }
+      },
+      "highContrast": {
+        "label": "Hoher Kontrast",
+        "hint": "Dunkleres Wasser und schwarze Grenzen auf der Karte."
       }
     },
     "data": {
