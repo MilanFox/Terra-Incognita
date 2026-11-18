@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { curatedDir } from './paths.ts';
-import type { Feature, Tier } from './model.ts';
+import type { Bbox, Feature, Tier } from './model.ts';
 
 export type CuratedPlace = {
   tier: Tier
@@ -10,6 +10,7 @@ export type CuratedPlace = {
   qid?: string
   iso2?: string
   silhouette?: false
+  silhouetteFrame?: Bbox
   flag?: string | null
   capitals?: string[]
   note?: string

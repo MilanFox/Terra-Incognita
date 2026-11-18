@@ -37,6 +37,9 @@ const projector = ([west, south, east, north]: Bbox) => {
   return { project, bboxAreaKm2, aspect: Math.max(widthUnits / heightUnits, heightUnits / widthUnits) };
 };
 
+const isInFrame = ([west, south, east, north]: Bbox, [outline]: Ring[]) => outline!.some(([lon, lat]) =>
+  lat >= south && lat <= north && (east >= west ? lon >= west && lon <= east : lon >= west || lon <= east));
+
 const pathOf = (rings: Ring[][], project: ReturnType<typeof projector>['project']) => rings
   .flatMap(polygon => polygon)
   .map(ring => `M${ring.map(vertex => project(vertex).map(value => value.toFixed(1)).join(' ')).join('L')}Z`)
@@ -60,11 +63,12 @@ const reasonsFor = (pieceAreas: number[], { aspect, bboxAreaKm2 }: { aspect: num
 export const silhouetteSheet = (dependenciesMap: Land, places: Place[], names: Names) => {
   const geometryById = new Map(dependenciesMap.features.map(({ properties, geometry }) => [properties.id, geometry]));
   const candidates: SilhouetteCandidate[] = [];
-  const cells = [...places].sort(byId).map(({ id, bbox }) => {
+  const cells = [...places].sort(byId).map(({ id, bbox, silhouetteFrame }) => {
     const name = names[id]?.en.name ?? id;
-    const polygons = polygonsOf(geometryById.get(id) ?? null);
+    const ownPolygons = polygonsOf(geometryById.get(id) ?? null);
+    const polygons = silhouetteFrame ? ownPolygons.filter(polygon => isInFrame(silhouetteFrame, polygon)) : ownPolygons;
     if (!bbox || !polygons.length) return `<figure class="flagged"><figcaption><b>${id}</b> ${escapeHtml(name)}<br>no land</figcaption></figure>`;
-    const { project, aspect, bboxAreaKm2 } = projector(bbox);
+    const { project, aspect, bboxAreaKm2 } = projector(silhouetteFrame ?? bbox);
     const pieceAreas = polygons.map(pieceAreaKm2);
     const reasons = reasonsFor(pieceAreas, { aspect, bboxAreaKm2 });
     if (reasons.length) candidates.push({ id, name, reasons });
@@ -84,7 +88,7 @@ figcaption{font-size:12px;padding-top:4px}figcaption span{color:#c0392b}`;
   const text = `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Silhouette contact sheet</title>`
     + `<style>${style}</style></head><body>\n`
     + `<h1>Silhouette contact sheet</h1>\n<p>${places.length} places, ${candidates.length} flagged as candidates (red). `
-    + `Silhouettes are each place's own land, scaled to its own bounding box. `
+    + `Silhouettes are each place's own land, scaled to its own bounding box (or its curated silhouette frame, which leaves out the pieces outside it). `
     + `Write the unreadable ones as <code>silhouette: false</code> in <code>data/curated/places.json</code>.</p>\n`
     + `<div class="grid">\n${cells.join('\n')}\n</div></body></html>\n`;
   return { text, candidates };

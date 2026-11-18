@@ -1,7 +1,7 @@
 {
-  "dataVersion": 2,
+  "dataVersion": 3,
   "ne": "5.1.2",
-  "builtAt": "2026-11-17",
+  "builtAt": "2026-11-18",
   "counts": {
     "sovereign": 197,
     "defacto": 6,

@@ -30,6 +30,7 @@ export const join = (curated: Curated, sources: Map<string, PlaceSource>, facts:
       holder: entry.holder,
       region: entry.region ?? m49Region(source),
       silhouette: entry.silhouette !== false,
+      silhouetteFrame: entry.silhouetteFrame,
       bbox: facts.get(id)?.bbox,
     };
   });

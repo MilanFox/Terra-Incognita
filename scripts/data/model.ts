@@ -62,6 +62,7 @@ export type Place = {
   holder: string | undefined
   region: string | undefined
   silhouette: boolean
+  silhouetteFrame: Bbox | undefined
   bbox: Bbox | undefined
 };
 
