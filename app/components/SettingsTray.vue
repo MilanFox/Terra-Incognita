@@ -29,6 +29,7 @@ const languageButtons = useTemplateRef<HTMLButtonElement[]>('languageButtons');
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton');
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput');
 const cancelButton = useTemplateRef<HTMLButtonElement>('cancelButton');
+const confirmCard = useTemplateRef<HTMLElement>('confirmCard');
 
 const toggleSound = () => {
   const isTurningOn = !settings.isSoundOn;
@@ -54,11 +55,12 @@ const onLanguageKeydown = (event: KeyboardEvent) => {
 };
 
 const trapFocus = (event: KeyboardEvent) => {
-  const focusable = [...tray.value?.querySelectorAll<HTMLElement>('button:not([tabindex="-1"]), [tabindex="0"]') ?? []];
-  const first = closeButton.value!;
+  const scope = confirmCard.value ?? tray.value;
+  const focusable = [...scope?.querySelectorAll<HTMLElement>('button:not([tabindex="-1"]), [tabindex="0"]') ?? []];
+  const first = focusable[0] ?? closeButton.value!;
   const last = focusable.at(-1) ?? first;
   const active = document.activeElement;
-  if (event.shiftKey && (active === first || active === title.value)) {
+  if (event.shiftKey && (active === first || active === closeButton.value || active === title.value)) {
     event.preventDefault();
     last.focus();
   }
@@ -320,6 +322,7 @@ onMounted(() => title.value?.focus());
 
     <div
       v-else
+      ref="confirmCard"
       class="tile settings-tray__confirm"
       role="alertdialog"
       aria-modal="true"

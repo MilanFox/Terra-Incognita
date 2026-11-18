@@ -38,6 +38,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 <template>
   <button
     ref="opener"
+    v-bind="$attrs"
     type="button"
     class="tile help-tile"
     :aria-label="$t('help.open')"
