@@ -34,6 +34,8 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
 
   const nameOf = (placeId: string) => game.nameOf(placeId, locale.value);
 
+  const capitalNamesOf = (placeId: string) => game.capitalNamesOf(placeId, locale.value);
+
   watch(() => {
     const current = state();
     if (current.phase === 'verdict') return `verdict-${current.promptNumber}`;
@@ -43,15 +45,21 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
     const current = state();
     if (current.phase === 'verdict') {
       const { answer } = current;
-      if (answer.outcome === 'right') announce(t('live.right', { place: nameOf(answer.placeId) }));
+      if (current.setup.mode === 'capital') {
+        if (answer.outcome === 'right') announce(t('capital.live.right', { capitals: capitalNamesOf(answer.placeId) }));
+        else if (answer.outcome === 'missed') announce(t('capital.live.missed', { capitals: capitalNamesOf(answer.placeId) }));
+        else announce(t('capital.live.wrong', { typed: nameOf(answer.tappedPlaceId), capitals: capitalNamesOf(answer.placeId) }));
+      }
+      else if (answer.outcome === 'right') announce(t('live.right', { place: nameOf(answer.placeId) }));
       else if (answer.outcome === 'missed') announce(t('typed.live.missed', { answer: nameOf(answer.placeId) }));
       else if (isTypedMode(current.setup.mode)) announce(t('typed.live.wrong', { typed: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
       else announce(t('live.wrong', { tapped: nameOf(answer.tappedPlaceId), answer: nameOf(answer.placeId) }));
     }
     else if (current.phase === 'prompt') {
       const lastUnresolved = current.unresolvedAnswers.at(-1);
-      if (lastUnresolved) announce(lastUnresolved === 'ambiguous' ? t('typed.ambiguous') : t('typed.live.noMatch'));
+      if (lastUnresolved) announce(lastUnresolved === 'ambiguous' ? t('typed.ambiguous') : t(current.setup.mode === 'capital' ? 'capital.live.noMatch' : 'typed.live.noMatch'));
       else if (current.wrongTapPlaceIds.length > 0) announce(t('round.triesLeft', { count: current.attemptsLeft }, current.attemptsLeft));
+      else if (current.setup.mode === 'capital') announce(t('capital.promptLive', { place: nameOf(current.placeId) }));
       else if (isTypedMode(current.setup.mode)) announce(t('typed.prompt'));
       else if (current.setup.variant === 'flag') announce(t('round.findPrompt'));
       else announce(t('live.findName', { place: nameOf(current.placeId) }));

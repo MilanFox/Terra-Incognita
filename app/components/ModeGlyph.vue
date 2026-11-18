@@ -35,6 +35,19 @@ defineProps<{ mode: Mode }>();
       />
     </template>
 
+    <template v-else-if="mode === 'capital'">
+      <path
+        d="M16 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.2-5.9 3.2 1.2-6.5-4.8-4.6 6.6-.9z"
+        fill="currentColor"
+      />
+
+      <path
+        d="M4 28.5h24"
+        stroke="currentColor"
+        stroke-width="2.5"
+      />
+    </template>
+
     <template v-else>
       <path
         d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"

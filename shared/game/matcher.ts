@@ -5,9 +5,13 @@ interface LanguageNames {
   aliases: string[]
 }
 
-export interface PlaceNames {
+export interface CapitalNames {
   en: LanguageNames
   de: LanguageNames
+}
+
+export interface PlaceNames extends CapitalNames {
+  capitals?: Record<string, CapitalNames>
 }
 
 export type NamesFile = Record<string, PlaceNames | string>;
@@ -24,9 +28,26 @@ export type Verdict
     | { verdict: 'none' };
 
 interface KeyRow {
-  placeId: string
+  entityId: string
   letters: string
   budget: number
+  isPrefix: boolean
+}
+
+export interface CapitalOwner {
+  id: string
+  capitals?: readonly string[]
+}
+
+export type CapitalResolution
+  = | { outcome: 'match', placeIds: string[] }
+    | { outcome: 'ambiguous' }
+    | { outcome: 'none' };
+
+interface ResolvedEntity {
+  entityId: string
+  letters: string
+  isPrefix: boolean
 }
 
 const minimumPrefixLetters = 4;
@@ -62,7 +83,7 @@ const editDistance = (typed: string, target: string) => {
   return rows[typed.length]![target.length]!;
 };
 
-const fullKeysOf = (names: PlaceNames) => [names.en, names.de]
+const fullKeysOf = (names: CapitalNames) => [names.en, names.de]
   .flatMap(language => [language.name, ...language.aliases])
   .flatMap(normaliseKeys)
   .filter(Boolean);
@@ -76,48 +97,55 @@ const wholeTokenPrefixesOf = (key: string) => {
     .map(prefixTokens => prefixTokens.join(' '));
 };
 
-const buildRows = (names: NamesFile) => {
-  const fullKeysByPlace = new Map<string, Set<string>>();
-  for (const [placeId, entry] of Object.entries(names)) {
-    if (typeof entry !== 'string') fullKeysByPlace.set(placeId, new Set(fullKeysOf(entry)));
-  }
-  const everyFullKey = new Set([...fullKeysByPlace.values()].flatMap(keys => [...keys].map(withoutSpaces)));
+const buildRows = (fullKeysByEntity: Map<string, Set<string>>) => {
+  const everyFullKey = new Set([...fullKeysByEntity.values()].flatMap(keys => [...keys].map(withoutSpaces)));
 
   const rows: KeyRow[] = [];
-  for (const [placeId, fullKeys] of fullKeysByPlace) {
+  for (const [entityId, fullKeys] of fullKeysByEntity) {
     const prefixes = [...fullKeys]
       .flatMap(wholeTokenPrefixesOf)
-      .filter(prefix => withoutSpaces(prefix).length >= minimumPrefixLetters && !everyFullKey.has(withoutSpaces(prefix)));
-    for (const letters of new Set([...fullKeys, ...prefixes].map(withoutSpaces))) {
-      rows.push({ placeId, letters, budget: editBudgetFor(letters.length) });
+      .map(withoutSpaces)
+      .filter(letters => letters.length >= minimumPrefixLetters && !everyFullKey.has(letters));
+    const fullLetters = new Set([...fullKeys].map(withoutSpaces));
+    for (const letters of new Set([...fullLetters, ...prefixes])) {
+      rows.push({ entityId, letters, budget: editBudgetFor(letters.length), isPrefix: !fullLetters.has(letters) });
     }
   }
   return rows;
 };
 
-export const createMatcher = (names: NamesFile) => {
-  const rows = buildRows(names);
+const createNearestResolver = (fullKeysByEntity: Map<string, Set<string>>) => {
+  const rows = buildRows(fullKeysByEntity);
 
-  const resolve = (typedText: string): Resolution => {
+  return (typedText: string): ResolvedEntity[] => {
     const typed = withoutSpaces(normaliseInput(typedText));
-    if (!typed) return { outcome: 'none' };
+    if (!typed) return [];
 
-    const nearestDistanceByPlace = new Map<string, number>();
+    const nearestByEntity = new Map<string, ResolvedEntity & { distance: number }>();
     for (const row of rows) {
       if (Math.abs(typed.length - row.letters.length) > row.budget) continue;
       const distance = editDistance(typed, row.letters);
       if (distance > row.budget) continue;
-      const known = nearestDistanceByPlace.get(row.placeId);
-      if (known === undefined || distance < known) nearestDistanceByPlace.set(row.placeId, distance);
+      const known = nearestByEntity.get(row.entityId);
+      if (known === undefined || distance < known.distance) nearestByEntity.set(row.entityId, { entityId: row.entityId, letters: row.letters, isPrefix: row.isPrefix, distance });
     }
-    if (nearestDistanceByPlace.size === 0) return { outcome: 'none' };
+    const nearestDistance = Math.min(...[...nearestByEntity.values()].map(({ distance }) => distance));
+    return [...nearestByEntity.values()].filter(({ distance }) => distance === nearestDistance);
+  };
+};
 
-    const nearestDistance = Math.min(...nearestDistanceByPlace.values());
-    const nearestPlaceIds = [...nearestDistanceByPlace]
-      .filter(([, distance]) => distance === nearestDistance)
-      .map(([placeId]) => placeId);
-    const [placeId] = nearestPlaceIds;
-    return nearestPlaceIds.length === 1 && placeId ? { outcome: 'match', placeId } : { outcome: 'ambiguous' };
+export const createMatcher = (names: NamesFile) => {
+  const fullKeysByPlace = new Map<string, Set<string>>();
+  for (const [placeId, entry] of Object.entries(names)) {
+    if (typeof entry !== 'string') fullKeysByPlace.set(placeId, new Set(fullKeysOf(entry)));
+  }
+  const nearest = createNearestResolver(fullKeysByPlace);
+
+  const resolve = (typedText: string): Resolution => {
+    const nearestEntities = nearest(typedText);
+    const [first] = nearestEntities;
+    if (!first) return { outcome: 'none' };
+    return nearestEntities.length === 1 ? { outcome: 'match', placeId: first.entityId } : { outcome: 'ambiguous' };
   };
 
   const judge = (typedText: string, targetPlaceId: string): Verdict => {
@@ -130,3 +158,43 @@ export const createMatcher = (names: NamesFile) => {
 };
 
 export type Matcher = ReturnType<typeof createMatcher>;
+
+export const createCapitalMatcher = (names: NamesFile, owners: readonly CapitalOwner[]) => {
+  const ownersByCapital = new Map<string, string[]>();
+  for (const { id, capitals = [] } of owners) {
+    for (const capitalId of capitals) ownersByCapital.set(capitalId, [...(ownersByCapital.get(capitalId) ?? []), id]);
+  }
+  const fullKeysByCapital = new Map<string, Set<string>>();
+  for (const { id, capitals = [] } of owners) {
+    const placeNames = names[id];
+    if (typeof placeNames === 'string' || !placeNames) continue;
+    for (const capitalId of capitals) {
+      const capitalNames = placeNames.capitals?.[capitalId];
+      if (capitalNames) fullKeysByCapital.set(capitalId, new Set(fullKeysOf(capitalNames)));
+    }
+  }
+  const nearest = createNearestResolver(fullKeysByCapital);
+
+  const ownersOf = (entities: ResolvedEntity[]) => [...new Set(entities.flatMap(({ entityId }) => ownersByCapital.get(entityId) ?? []))];
+
+  const isHomonymTie = (entities: ResolvedEntity[]) => entities.every(({ letters, isPrefix }) => !isPrefix && letters === entities[0]!.letters);
+
+  const resolve = (typedText: string): CapitalResolution => {
+    const nearestEntities = nearest(typedText);
+    if (nearestEntities.length === 0) return { outcome: 'none' };
+    return nearestEntities.length === 1 ? { outcome: 'match', placeIds: ownersOf(nearestEntities) } : { outcome: 'ambiguous' };
+  };
+
+  const judge = (typedText: string, targetPlaceId: string): Verdict => {
+    const nearestEntities = nearest(typedText);
+    if (nearestEntities.length === 0) return { verdict: 'none' };
+    const placeIds = ownersOf(nearestEntities);
+    if (nearestEntities.length > 1 && !(isHomonymTie(nearestEntities) && placeIds.includes(targetPlaceId))) return { verdict: 'ambiguous' };
+    if (placeIds.includes(targetPlaceId)) return { verdict: 'correct', placeId: targetPlaceId };
+    return { verdict: 'wrong', placeId: placeIds[0]! };
+  };
+
+  return { resolve, judge };
+};
+
+export type CapitalMatcher = ReturnType<typeof createCapitalMatcher>;

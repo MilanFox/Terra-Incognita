@@ -18,7 +18,8 @@ const clockText = computed(() => (game.timeLeftMs === null ? null : durationText
 const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
 
 const isTyped = computed(() => isTypedMode(props.state.setup.mode));
-const isNameShown = computed(() => props.state.setup.variant === 'name' || props.state.setup.variant === 'both' || props.state.phase === 'verdict');
+const isCapital = computed(() => props.state.setup.mode === 'capital');
+const isNameShown = computed(() => isCapital.value || props.state.setup.variant === 'name' || props.state.setup.variant === 'both' || props.state.phase === 'verdict');
 const isFlagShown = computed(() => props.state.setup.variant === 'flag' || props.state.setup.variant === 'both');
 const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
 const isAmbiguous = computed(() => props.state.phase === 'prompt' && props.state.unresolvedAnswers.at(-1) === 'ambiguous');
@@ -27,6 +28,7 @@ const kickerText = computed(() => {
   const { state } = props;
   if (state.phase === 'verdict') return state.answer.outcome === 'missed' ? t('typed.missed') : t(`round.${state.answer.outcome}`);
   if (isRetrying.value) return t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft);
+  if (isCapital.value) return t('capital.prompt');
   return isTyped.value ? t('typed.prompt') : t('round.findPrompt');
 });
 const flipOutMs = 140;
@@ -96,6 +98,7 @@ useEventListener(document, 'keydown', (event) => {
 onBeforeUnmount(() => clearTimeout(flipTimer));
 
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
+const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.value);
 </script>
 
 <template>
@@ -221,6 +224,13 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
           {{ placeName(state.placeId) }}
         </p>
 
+        <p
+          v-if="isCapital && state.phase === 'verdict'"
+          class="prompt-card__place"
+        >
+          {{ $t('capital.answer', { capitals: capitalNames(state.placeId) }) }}
+        </p>
+
         <i18n-t
           v-if="state.phase === 'prompt' && isRetrying"
           keypath="round.youTapped"
@@ -252,7 +262,7 @@ const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
         <template v-if="state.phase === 'verdict'">
           <i18n-t
             v-if="state.answer.outcome === 'wrong'"
-            :keypath="state.setup.easy && isTyped ? 'choice.youPicked' : isTyped ? 'typed.youTyped' : 'round.youTapped'"
+            :keypath="state.setup.easy && isTyped ? 'choice.youPicked' : isCapital ? 'capital.youTyped' : isTyped ? 'typed.youTyped' : 'round.youTapped'"
             tag="p"
             class="prompt-card__tapped"
             scope="global"
