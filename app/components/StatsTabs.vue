@@ -2,11 +2,26 @@
 const props = defineProps<{ pages: { id: PageId, name: string }[], label: string }>();
 const activePageId = defineModel<PageId>({ required: true });
 
+const tabInsetPx = 4;
+
 const idBase = useId();
+const tablist = useTemplateRef<HTMLElement>('tablist');
 const tabs = useTemplateRef<HTMLButtonElement[]>('tabs');
+const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
 const tabIdOf = (pageId: PageId) => `${idBase}-tab-${pageId}`;
 const panelIdOf = (pageId: PageId) => `${idBase}-panel-${pageId}`;
+
+const keepActiveTabInView = () => {
+  const activeTab = tablist.value?.querySelector('[aria-selected="true"]');
+  if (!tablist.value || !activeTab) return;
+  const listBox = tablist.value.getBoundingClientRect();
+  const tabBox = activeTab.getBoundingClientRect();
+  const left = Math.min(0, tabBox.left - listBox.left - tabInsetPx) || Math.max(0, tabBox.right - listBox.right + tabInsetPx);
+  if (left !== 0) tablist.value.scrollBy({ left, behavior: prefersReducedMotion.value ? 'instant' : 'smooth' });
+};
+
+watch(activePageId, () => nextTick(keepActiveTabInView));
 
 const onKeydown = (event: KeyboardEvent) => {
   const count = props.pages.length;
@@ -22,6 +37,7 @@ const onKeydown = (event: KeyboardEvent) => {
 
 <template>
   <div
+    ref="tablist"
     class="stats-tabs"
     role="tablist"
     :aria-label="label"

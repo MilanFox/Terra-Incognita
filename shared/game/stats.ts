@@ -1,7 +1,7 @@
 import { deepestTierPlayed } from './game';
-import type { KeyValueStorage, Mode, Place, Region, Tier, Variant } from './game';
-import { createRecords } from './records';
-import type { PlaceRecords } from './records';
+import type { DeckSize, KeyValueStorage, Mode, Place, Region, RegionChoice, Tier, Variant } from './game';
+import { bestKeyOf, createRecords } from './records';
+import type { PersonalBests, PlaceRecords, RoundSummary } from './records';
 
 export type Rating = 'noData' | 'weak' | 'shaky' | 'solid';
 
@@ -38,18 +38,44 @@ export interface PlaceDetails {
   confusedWith?: string
 }
 
+export interface ModeScope extends StatsScope {
+  mode: Mode
+}
+
+export interface SetupBest {
+  variant: Variant
+  region: RegionChoice
+  tier: Tier
+  easy: boolean
+  deckSize: number
+  plays: number
+  score: number
+  fastestPerfectMs: number | null
+}
+
+export interface ModeStats {
+  completeRounds: number
+  averageShare: number | null
+  perfectRounds: number
+  bests: SetupBest[]
+  lastRounds: RoundSummary[]
+}
+
 export interface StatsDependencies {
   places: readonly Place[]
   storage: KeyValueStorage
 }
 
 const placesStorageKey = 'ti:places';
-const regularModes: Mode[] = ['find', 'name', 'capital', 'country'];
+export const regularModes: Mode[] = ['find', 'name', 'capital', 'country'];
 const regionsInOrder: Region[] = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const fewestAnswersToJudge = 3;
 const weakBelowShare = 0.5;
 const solidFromShare = 0.8;
+const averagedRoundCount = 20;
+const shownBestCount = 5;
+const lastRoundCount = 10;
 
 const ratingOf = (answers: readonly number[]): Rating => {
   if (answers.length === 0) return 'noData';
@@ -62,6 +88,15 @@ const ratingOf = (answers: readonly number[]): Rating => {
 const isInScope = (modeVariant: string, { mode, variant }: StatsScope) => {
   const [recordedMode, recordedVariant] = modeVariant.split(':');
   return regularModes.includes(recordedMode as Mode) && (!mode || recordedMode === mode) && (!variant || recordedVariant === variant);
+};
+
+const isPerfect = ({ score, deckSize }: RoundSummary) => score === deckSize;
+
+// The log keeps how many places a round had, not the deck choice: up to 10 places, either choice can lie behind it.
+const bestKeyOfRound = (round: RoundSummary, bests: PersonalBests) => {
+  const keyWith = (deckSize: DeckSize) => bestKeyOf({ ...round, deckSize });
+  const candidates = (round.deckSize > 10 ? ['all'] : [10, 'all']).map(deckSize => keyWith(deckSize as DeckSize));
+  return candidates.find(key => key in bests) ?? candidates[0]!;
 };
 
 const readPlaceRecords = (storage: KeyValueStorage): PlaceRecords => {
@@ -129,7 +164,35 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
     };
   };
 
-  return { placeRatings, regionCounts, placeDetails, allGames };
+  const mostPlayedBests = (rounds: RoundSummary[]): SetupBest[] => {
+    const bests = records.personalBests();
+    const playsByKey = new Map<string, { latest: RoundSummary, plays: number }>();
+    for (const round of rounds) {
+      const key = bestKeyOfRound(round, bests);
+      playsByKey.set(key, { latest: round, plays: (playsByKey.get(key)?.plays ?? 0) + 1 });
+    }
+    return [...playsByKey]
+      .filter(([key]) => key in bests)
+      .sort(([, first], [, second]) => second.plays - first.plays || second.latest.date - first.latest.date)
+      .slice(0, shownBestCount)
+      .map(([key, { latest: { variant, region, tier, easy, deckSize }, plays }]) => ({ variant, region, tier, easy, deckSize, plays, ...bests[key]! }));
+  };
+
+  const modeStats = ({ mode, variant }: ModeScope): ModeStats => {
+    const rounds = records.roundLog().filter(round => round.mode === mode && (!variant || round.variant === variant));
+    const withBests = rounds.filter(({ learn }) => !learn);
+    const counted = withBests.filter(({ complete }) => complete);
+    const averaged = counted.slice(-averagedRoundCount);
+    return {
+      completeRounds: counted.length,
+      averageShare: averaged.length > 0 ? averaged.reduce((sum, { score, deckSize }) => sum + score / deckSize, 0) / averaged.length : null,
+      perfectRounds: counted.filter(isPerfect).length,
+      bests: mostPlayedBests(withBests),
+      lastRounds: rounds.slice(-lastRoundCount).reverse(),
+    };
+  };
+
+  return { placeRatings, regionCounts, placeDetails, allGames, modeStats };
 };
 
 export type Stats = ReturnType<typeof createStats>;

@@ -8,7 +8,7 @@ import type { DailyRecord } from '#shared/game/records';
 import { createStats } from '#shared/game/stats';
 import { createYourData } from '#shared/game/your-data';
 import type { YourData } from '#shared/game/your-data';
-import type { Stats, StatsScope } from '#shared/game/stats';
+import type { ModeScope, Stats, StatsScope } from '#shared/game/stats';
 import { drawSilhouette } from '#shared/utils/silhouette';
 import type { Bbox } from '#shared/utils/silhouette';
 
@@ -106,6 +106,8 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const allGamesStats = () => stats!.allGames();
+  const modeStats = (scope: ModeScope) => stats!.modeStats(scope);
+  const placeRatings = (scope?: StatsScope) => stats!.placeRatings(scope);
   const regionCounts = (scope?: StatsScope) => stats!.regionCounts(scope);
   const placeDetails = (placeId: string, scope?: StatsScope) => stats!.placeDetails(placeId, scope);
 
@@ -127,5 +129,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, exportData, importData, resetStats, regionCounts, placeDetails };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, modeStats, placeRatings, exportData, importData, resetStats, regionCounts, placeDetails };
 });

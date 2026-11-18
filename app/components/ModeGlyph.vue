@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import type { Mode } from '#shared/game/game';
 
-defineProps<{ mode: Mode }>();
+withDefaults(defineProps<{ mode: Mode, size?: number }>(), { size: 30 });
 </script>
 
 <template>
   <svg
     viewBox="0 0 32 32"
-    width="30"
-    height="30"
+    :width="size"
+    :height="size"
     aria-hidden="true"
   >
     <template v-if="mode === 'name'">
