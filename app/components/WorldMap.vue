@@ -56,6 +56,7 @@ const props = withDefaults(defineProps<{
   frameRegion?: RegionChoice | null
   frameInset?: number
   isRoundPlay?: boolean
+  isFocusable?: boolean
   isStatsMap?: boolean
   isNamesOnly?: boolean
   foundPlaceIds?: string[]
@@ -67,8 +68,8 @@ const props = withDefaults(defineProps<{
   topInset?: number
   bottomCover?: number
   nameablePlaces?: Record<string, string> | null
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, nameablePlaces: null });
-const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string] }>();
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, nameablePlaces: null });
+const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string], next: [] }>();
 
 const { t, locale } = useI18n();
 const settings = useSettingsStore();
@@ -636,16 +637,29 @@ const neighbourInDirection = ([directionX, directionY]: [number, number]) => {
 
 const zoomBy = (step: number) => {
   if (!map) return;
-  const zoom = Math.min(maxZoom, Math.max(minZoom, map.getZoom() + step));
+  const zoom = Math.min(maxZoom, Math.max(map.getMinZoom(true), map.getZoom() + step));
   map.easeTo({ zoom, ...cameraMotion(250) });
 };
 
+// The world has to cover the map's height, so MapLibre stops zooming out above minZoom; the constrained level is the real limit.
+const updateZoomLimits = () => {
+  if (!map) return;
+  isAtMinZoom.value = map.getZoom() <= map.getMinZoom(true) + 0.01;
+  isAtMaxZoom.value = map.getZoom() >= maxZoom - 0.01;
+};
+
 const isKeyboardPlay = computed(() => props.isRoundPlay || props.isStatsMap);
+const isNextOffered = computed(() => (props.verdict ? props.verdict.outcome !== 'right' || settings.isWaitForNextOn : !!props.route?.reveal));
 
 const handleKeydown = (event: KeyboardEvent) => {
-  if (!isKeyboardPlay.value || event.altKey || event.ctrlKey || event.metaKey) return;
+  const isNextKey = (event.key === 'Enter' || event.key === ' ') && isNextOffered.value;
+  if ((!isKeyboardPlay.value && !isNextKey) || event.altKey || event.ctrlKey || event.metaKey) return;
   const direction = arrowDirections[event.key];
-  if (direction) {
+  if (isNextKey) {
+    event.preventDefault();
+    emit('next');
+  }
+  else if (direction) {
     event.preventDefault();
     const target = cursorPlaceId ? neighbourInDirection(direction) : startingPlaceId();
     if (target) placeCursor(target, true);
@@ -685,11 +699,17 @@ const applyRoundPlay = () => {
   lastSelectedPlaceId = null;
 };
 
+const applyFocusable = () => {
+  if (props.isFocusable) map?.getCanvas().setAttribute('tabindex', '0');
+  else map?.getCanvas().removeAttribute('tabindex');
+};
+
 const applyLabel = () => {
   map?.getCanvas().setAttribute('aria-label', props.isRoundPlay ? t('map.playLabel') : props.isStatsMap ? t(props.isNamesOnly ? 'map.namesLabel' : 'map.statsLabel') : t('map.label'));
 };
 
 watch([() => props.isRoundPlay, () => props.isStatsMap], applyRoundPlay);
+watch(() => props.isFocusable, applyFocusable);
 watch([() => props.isRoundPlay, () => props.isStatsMap, () => props.isNamesOnly, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
@@ -735,15 +755,13 @@ onMounted(async () => {
   map.on('click', handleClick);
   map.on('mousemove', handlePointerMove);
   map.on('mouseout', hidePlaceName);
-  map.on('zoom', () => {
-    isAtMinZoom.value = map!.getZoom() <= minZoom + 0.01;
-    isAtMaxZoom.value = map!.getZoom() >= maxZoom - 0.01;
-  });
+  map.on('move', updateZoomLimits);
   const canvas = map.getCanvas();
   canvas.addEventListener('keydown', handleKeydown);
   canvas.addEventListener('focus', handleFocus);
   canvas.addEventListener('blur', clearCursor);
   applyRoundPlay();
+  applyFocusable();
   applyLabel();
   map.setMissingStyleImageResolver((id) => {
     const stripeColour = { [hatchName]: colours.hatch, [hatchName + highContrastHatchSuffix]: colours.highContrastHatch, [missedHatchName]: colours.brick }[id];
@@ -752,6 +770,7 @@ onMounted(async () => {
   map.once('idle', () => emit('drawn'));
   map.once('load', () => {
     hasLoaded = true;
+    updateZoomLimits();
     showLand();
     for (const { placeId, outcome } of props.resultPlaces ?? []) setPlaceStatus(placeId, outcome);
     applyRatings(props.placeRatings);

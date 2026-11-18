@@ -116,7 +116,7 @@ const importChosenFile = async () => {
     location.reload();
     return;
   }
-  pendingConfirm.value = undefined;
+  dismissConfirm();
   statusMessage.value = t(result.reason === 'newer' ? 'settings.data.newerFile' : 'settings.data.invalidFile');
 };
 
