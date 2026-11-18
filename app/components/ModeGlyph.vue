@@ -48,6 +48,19 @@ defineProps<{ mode: Mode }>();
       />
     </template>
 
+    <template v-else-if="mode === 'country'">
+      <path
+        d="M6.5 3v27"
+        stroke="currentColor"
+        stroke-width="2.5"
+      />
+
+      <path
+        d="M8 4.5c4.5-2.5 8.5 2.5 13 0 2-1.1 3.5-1.5 5-1.5v14c-1.5 0-3 .4-5 1.5-4.5 2.5-8.5-2.5-13 0z"
+        fill="currentColor"
+      />
+    </template>
+
     <template v-else>
       <path
         d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"

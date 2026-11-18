@@ -105,6 +105,11 @@
       "name": "Ports of Call",
       "subtitle": "Nenne die Hauptstadt",
       "help": "Ein Ort leuchtet auf der Karte auf und wird benannt, und du schreibst seine Hauptstadt auf der Tastatur darunter, auf Deutsch oder Englisch. Hat ein Ort mehrere Hauptstädte, zählt jede davon. Kleine Tippfehler werden verziehen, und passt deine Antwort auf mehr als eine Hauptstadt, schreibst du einfach weiter. Du hast pro Ort einen Versuch; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
+    },
+    "country": {
+      "name": "Sighting",
+      "subtitle": "Benenne das Land",
+      "help": "Oben erscheint eine Flagge, und du schreibst auf der Tastatur darunter den Namen ihres Orts, auf Deutsch oder Englisch. Die Karte verrät nichts, bis du antwortest, dann fliegt sie zum Ort. Kleine Tippfehler werden verziehen; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
     }
   },
   "round": {
@@ -210,6 +215,10 @@
       "missed": "Die Antwort ist {capitals}. Drücke Weiter.",
       "noMatch": "Keine Hauptstadt mit diesem Namen. Versuch es nochmal."
     }
+  },
+  "sighting": {
+    "prompt": "Wessen Flagge ist das?",
+    "flag": "Flagge des gesuchten Orts"
   },
   "zoom": {
     "in": "Vergrößern",

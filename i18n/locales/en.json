@@ -105,6 +105,11 @@
       "name": "Ports of Call",
       "subtitle": "Name the capital",
       "help": "A place lights up on the map and is named, and you type its capital on the keyboard below, in English or German. If a place has several capitals, any of them counts. Small typos are forgiven, and if your answer could mean more than one capital, keep typing. You get one try per place; “I don't know” shows you the answer and counts as missed."
+    },
+    "country": {
+      "name": "Sighting",
+      "subtitle": "Name that country",
+      "help": "A flag appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
     }
   },
   "round": {
@@ -210,6 +215,10 @@
       "missed": "The answer is {capitals}. Press Next.",
       "noMatch": "No capital by that name. Try again."
     }
+  },
+  "sighting": {
+    "prompt": "Whose flag is this?",
+    "flag": "Flag of the place to name"
   },
   "zoom": {
     "in": "Zoom in",

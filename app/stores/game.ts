@@ -85,7 +85,7 @@ export const useGameStore = defineStore('game', () => {
   );
 
   const firstCapitalNameOf = (placeId: string, locale: string) => {
-    const firstCapitalId = game!.capitalsOf(placeId)[0];
+    const [firstCapitalId] = game!.capitalsOf(placeId);
     return (firstCapitalId && (names.value[placeId] as PlaceNames | undefined)?.capitals?.[firstCapitalId]?.[locale as Locale]?.name) || placeId;
   };
 

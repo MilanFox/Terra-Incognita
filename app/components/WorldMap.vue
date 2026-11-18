@@ -503,6 +503,7 @@ onBeforeUnmount(() => map?.remove());
 defineExpose({
   focus: () => map?.getCanvas().focus(),
   getMap: () => map,
+  flyTo,
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),
   isAtMinZoom,

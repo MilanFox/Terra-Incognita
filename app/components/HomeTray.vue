@@ -18,6 +18,7 @@ const gridId = useId();
 const subtitleId = useId();
 const nameSubtitleId = useId();
 const capitalSubtitleId = useId();
+const countrySubtitleId = useId();
 const dailySubtitleId = useId();
 const tray = useTemplateRef<HTMLElement>('tray');
 const body = useTemplateRef<HTMLElement>('body');
@@ -28,6 +29,7 @@ const dateLine = useTemplateRef<HTMLElement>('dateLine');
 const modeTile = useTemplateRef<HTMLButtonElement>('modeTile');
 const nameModeTile = useTemplateRef<HTMLButtonElement>('nameModeTile');
 const capitalModeTile = useTemplateRef<HTMLButtonElement>('capitalModeTile');
+const countryModeTile = useTemplateRef<HTMLButtonElement>('countryModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
 
@@ -88,7 +90,7 @@ defineExpose({
   focusModeTile: async (mode: Mode) => {
     isOpen.value = true;
     await nextTick();
-    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile })[mode].value?.focus({ preventScroll: true });
+    ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
@@ -352,6 +354,31 @@ defineExpose({
               :id="capitalSubtitleId"
               class="mode-tile__subtitle"
             >{{ $t('modes.capital.subtitle') }}</span>
+          </span>
+        </button>
+
+        <button
+          ref="countryModeTile"
+          type="button"
+          class="tile mode-tile"
+          :aria-label="$t('modes.country.name')"
+          :aria-describedby="countrySubtitleId"
+          @click="emit('openSetup', 'country')"
+        >
+          <span
+            class="mode-tile__glyph"
+            aria-hidden="true"
+          >
+            <ModeGlyph mode="country" />
+          </span>
+
+          <span class="mode-tile__text">
+            <span class="mode-tile__name">{{ $t('modes.country.name') }}</span>
+
+            <span
+              :id="countrySubtitleId"
+              class="mode-tile__subtitle"
+            >{{ $t('modes.country.subtitle') }}</span>
           </span>
         </button>
       </div>

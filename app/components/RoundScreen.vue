@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isTypedMode, pausesPerRound } from '#shared/game/game';
+import { isNoMapMode, isTypedMode, pausesPerRound } from '#shared/game/game';
 import type { GameState, ProgressCell } from '#shared/game/game';
 import { useDurationText } from '~/composables/useDurationText';
 import { useGameStore } from '~/stores/game';
@@ -19,6 +19,7 @@ const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && pr
 
 const isTyped = computed(() => isTypedMode(props.state.setup.mode));
 const isCapital = computed(() => props.state.setup.mode === 'capital');
+const isNoMap = computed(() => isNoMapMode(props.state.setup.mode));
 const isNameShown = computed(() => isCapital.value || props.state.setup.variant === 'name' || props.state.setup.variant === 'both' || props.state.phase === 'verdict');
 const isFlagShown = computed(() => props.state.setup.variant === 'flag' || props.state.setup.variant === 'both');
 const isRetrying = computed(() => props.state.phase === 'prompt' && props.state.wrongTapPlaceIds.length > 0);
@@ -29,7 +30,7 @@ const kickerText = computed(() => {
   if (state.phase === 'verdict') return state.answer.outcome === 'missed' ? t('typed.missed') : t(`round.${state.answer.outcome}`);
   if (isRetrying.value) return t('round.triesLeft', { count: state.attemptsLeft }, state.attemptsLeft);
   if (isCapital.value) return t('capital.prompt');
-  return isTyped.value ? t('typed.prompt') : t('round.findPrompt');
+  return isTyped.value ? t(isNoMap.value ? 'sighting.prompt' : 'typed.prompt') : t('round.findPrompt');
 });
 const flipOutMs = 140;
 const flipInMs = 160;
@@ -204,7 +205,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
         v-show="shownFace === 'card'"
         :key="state.promptNumber"
         class="tile prompt-card"
-        :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving']"
+        :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving', isNoMap && state.phase === 'verdict' && 'prompt-card--flag-beside-name']"
         :style="{ '--fade': fade }"
       >
         <p class="kicker prompt-card__kicker">
@@ -214,7 +215,7 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
         <img
           v-if="isFlagShown"
           :src="`/data/flags/${state.placeId}.svg`"
-          alt=""
+          :alt="isNoMap ? $t('sighting.flag') : ''"
           class="prompt-card__flag"
         />
 
@@ -557,6 +558,26 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
 
   &--arriving {
     animation: content-in 420ms ease-out;
+  }
+
+  &--flag-beside-name {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 10px;
+
+    > * {
+      grid-column: 1 / -1;
+    }
+
+    .prompt-card__flag {
+      grid-column: 1;
+      height: 32px;
+      margin-block: 0;
+    }
+
+    .prompt-card__place {
+      grid-column: 2;
+    }
   }
 
   &__place {
