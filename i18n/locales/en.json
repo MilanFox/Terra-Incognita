@@ -134,7 +134,8 @@
         "version": "Data version {dataVersion} · built {builtAt}",
         "licences": "Licences",
         "flagOf": "Flag of {place}",
-        "flagCredit": "{flag}: {artist}, {licence}, via Wikimedia Commons"
+        "flagCredit": "{flag}: {artist}, {licence}, via Wikimedia Commons",
+        "commonsContributors": "Wikimedia Commons contributors"
       }
     }
   },

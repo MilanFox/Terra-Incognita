@@ -66,7 +66,7 @@ All sorted by id.
 | `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): polygons, `{ id, tier, group? }`, sorted by id then group; one feature per line. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
 | `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: { qid: { en: { name, aliases[] }, de: { name, aliases[] } } } } }`, one place per line |
 | `flags/<id>.svg` | the Commons SVG with `<metadata>` and comments stripped and, where the root has none (116 of 239 do not), a `viewBox="0 0 <width> <height>"` taken from its pixel width and height; not minified |
-| `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). Nothing shows it yet (milestone 9) |
+| `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). `artist` is `null` when Commons gives only a placeholder; the About the map footer then names the Commons contributors in the interface language |
 | `THIRD-PARTY-NOTICES.txt` | Unicode License v3 (CLDR), MapLibre GL JS 6.19.0's licence in full, and the ODbL notice for mledoze/countries (`names.json` carries the matching `_license` entry) |
 | `version.json` | `{ dataVersion, ne, builtAt, counts, sources: { cldr, wikidataDate, flagsDate }, idMoves, removed }`; counts are places per `tier` value. One file covers all three maps. See [Data versions](#data-versions) |
 

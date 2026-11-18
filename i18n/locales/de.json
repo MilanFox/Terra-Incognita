@@ -134,7 +134,8 @@
         "version": "Datenversion {dataVersion} · erstellt am {builtAt}",
         "licences": "Lizenzen",
         "flagOf": "Flagge von {place}",
-        "flagCredit": "{flag}: {artist}, {licence}, über Wikimedia Commons"
+        "flagCredit": "{flag}: {artist}, {licence}, über Wikimedia Commons",
+        "commonsContributors": "Mitwirkende von Wikimedia Commons"
       }
     }
   },
