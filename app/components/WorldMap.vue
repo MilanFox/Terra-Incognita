@@ -136,7 +136,7 @@ const routeMaxZoom = 5.5;
 const placeNameShownMs = 1800;
 const zoomTilesWidthPx = 50;
 const chainLayers = ['chain-tint', 'chain-outline'];
-const chainOutlineColour = '#807560';
+const chainOutlineColour = () => settings.isHighContrast ? colours.ink : '#807560';
 const chainFadeStartZoom = 5.5;
 const chainHiddenZoom = 7;
 
@@ -212,7 +212,7 @@ const styleFor = ({ places, specks, chains }: TierMap): StyleSpecification => ({
   layers: [
     { id: 'water', type: 'background', paint: { 'background-color': waterColour() } },
     { id: 'chain-tint', type: 'fill', source: 'chains', maxzoom: chainHiddenZoom, layout: { visibility: chainVisibility() }, paint: { 'fill-color': placeFillOver(landFill), 'fill-opacity': ['case', isChainTinted, 0.3, 0] } },
-    { id: 'chain-outline', type: 'line', source: 'chains', maxzoom: chainHiddenZoom, layout: { 'visibility': chainVisibility(), 'line-join': 'round' }, paint: { 'line-color': ['case', isChainTinted, colours.ink, chainOutlineColour], 'line-width': ['case', isChainTinted, 2, 1.2], 'line-dasharray': [3, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], chainFadeStartZoom, 1, chainHiddenZoom, 0] } },
+    { id: 'chain-outline', type: 'line', source: 'chains', maxzoom: chainHiddenZoom, layout: { 'visibility': chainVisibility(), 'line-join': 'round' }, paint: { 'line-color': ['case', isChainTinted, colours.ink, chainOutlineColour()], 'line-width': ['case', isChainTinted, 2, 1.2], 'line-dasharray': [3, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], chainFadeStartZoom, 1, chainHiddenZoom, 0] } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchNameOf(hatchName), 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
@@ -544,6 +544,7 @@ const showLand = () => {
   map.setPaintProperty('place-status-border', 'line-width', statusBorderWidth());
   map.setPaintProperty('place-target-outline', 'line-color', outlineOf('targetOutline'));
   map.setPaintProperty('place-hatch', 'fill-pattern', hatchNameOf(hatchName));
+  map.setPaintProperty('chain-outline', 'line-color', ['case', isChainTinted, colours.ink, chainOutlineColour()]);
 };
 
 const dimOutsidePool = () => {
