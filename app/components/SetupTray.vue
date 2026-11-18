@@ -14,6 +14,8 @@ const title = useTemplateRef<HTMLHeadingElement>('title');
 
 const choices = computed(() => game.choicesFor(props.setup));
 
+const isWayfinder = computed(() => props.setup.mode === 'wayfinder');
+
 const countText = (count: number) => t('setup.places', { count }, count);
 
 const accessibleName = (name: string, count: number, isAvailable: boolean) =>
@@ -112,7 +114,17 @@ defineExpose({ element: tray });
       </div>
     </header>
 
-    <div class="setup-tray__rows">
+    <p
+      v-if="isWayfinder"
+      class="setup-tray__scope"
+    >
+      {{ $t('setup.regions.world') }} · {{ $t('setup.tiers.sovereign') }}
+    </p>
+
+    <div
+      v-else
+      class="setup-tray__rows"
+    >
       <RadioTiles
         v-if="variantOptions.length > 1"
         :label="$t('setup.groups.variant')"
@@ -181,7 +193,7 @@ defineExpose({ element: tray });
         class="tile setup-tray__play-tile"
         @click="emit('play')"
       >
-        {{ $t('setup.play', { count: choices.playCount }, choices.playCount) }}
+        {{ isWayfinder ? $t('wayfinder.play') : $t('setup.play', { count: choices.playCount }, choices.playCount) }}
       </button>
     </div>
   </section>
@@ -236,6 +248,12 @@ defineExpose({ element: tray });
   &__rows {
     display: grid;
     gap: 12px;
+  }
+
+  &__scope {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
   }
 
   &__switch {

@@ -111,6 +111,11 @@
       "name": "Sighting",
       "subtitle": "Name that country",
       "help": "A flag or a silhouette appears at the top and you type the name of its place on the keyboard below, in English or German. The map gives nothing away until you answer, then flies to the place. Small typos are forgiven; “I don't know” shows you the answer and counts as missed."
+    },
+    "wayfinder": {
+      "name": "Wayfinder",
+      "subtitle": "Shortest distance",
+      "help": "Link the start and the target by typing the places in between, in any order, in English or German. As many places as the shortest route needs are free; each one beyond that costs one of your five detours, and the round ends when they're spent. Only borders on the mainland count: exclaves, overseas parts and islands don't link places."
     }
   },
   "round": {
@@ -238,5 +243,26 @@
     "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
     "findName": "Find on the map: {place}",
     "timeLeft": "{time} left."
+  },
+  "wayfinder": {
+    "play": "Play",
+    "route": "Route {number}",
+    "detoursLeft": "{count} detour left | {count} detours left",
+    "to": "to",
+    "named": "Named places",
+    "complete": "Route complete",
+    "outOfDetours": "Out of detours",
+    "rejected": {
+      "named": "{place} is already named",
+      "start": "{place} is the start",
+      "target": "{place} is the target"
+    },
+    "endLine": "The route you're on is lost, and an ended round doesn't count for your bests.",
+    "live": {
+      "route": "Route {number}: from {start} to {target}. {detours}.",
+      "entry": "{place}. {detours}.",
+      "complete": "{place}. Route complete. Press Next.",
+      "outOfDetours": "{place}. Out of detours. Press Next."
+    }
   }
 }

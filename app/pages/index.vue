@@ -7,6 +7,7 @@ import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
 import { usePlayFeedback } from '~/composables/usePlayFeedback';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
+import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
 
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
@@ -17,6 +18,9 @@ const setupTray = useTemplateRef('setupTray');
 const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
 const typedAnswerTray = useTemplateRef('typedAnswerTray');
+const wayfinderScreen = useTemplateRef<{ cardBottom: number }>('wayfinderScreen');
+const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
+const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
 const dailyDraft = ref<DailyVariant | null>(null);
@@ -25,12 +29,15 @@ const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.elemen
 const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element);
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const { height: typedAnswerTrayHeight } = useElementSize(() => typedAnswerTray.value?.element, undefined, { box: 'border-box' });
+const { height: wayfinderAnswerTrayHeight } = useElementSize(() => wayfinderAnswerTray.value?.element, undefined, { box: 'border-box' });
+const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderResultsTray.value?.element, undefined, { box: 'border-box' });
 const isSettingsOpen = ref(false);
 
 usePlayFeedback(() => game.state);
 
 const { message: liveMessage, announce } = useLiveRegion();
 useRoundAnnouncements(() => game.state, announce);
+useWayfinderAnnouncements(() => game.state, announce);
 
 const foundPlaceIds = ref<string[]>([]);
 watch(() => game.state, (state) => {
@@ -39,6 +46,8 @@ watch(() => game.state, (state) => {
 });
 const isTypedRound = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && isTypedMode(game.state.setup.mode));
 const isRoundPlay = computed(() => (game.state.phase === 'prompt' || game.state.phase === 'verdict') && !isTypedRound.value);
+const isWayfinderRound = computed(() => game.state.phase === 'wayfinder');
+const routeMarks = computed(() => (game.state.phase === 'wayfinder' ? { startId: game.state.route.start, targetId: game.state.route.target, namedPlaceIds: game.state.route.entries } : null));
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);
@@ -67,11 +76,13 @@ const resultPlaces = computed(() => {
 const frameInset = computed(() => {
   if (setupDraft.value) return setupTrayHeight.value;
   if (dailyDraft.value) return dailySetupTrayHeight.value;
+  if (game.state.phase === 'wayfinderResults') return wayfinderResultsTrayHeight.value;
   return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
 });
 
-const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results'
-  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && (game.state.isConfirmingEnd || game.state.isPaused)));
+const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results' || game.state.phase === 'wayfinderResults'
+  || ((game.state.phase === 'prompt' || game.state.phase === 'verdict') && (game.state.isConfirmingEnd || game.state.isPaused))
+  || (game.state.phase === 'wayfinder' && game.state.isConfirmingEnd));
 
 const handleTap = (placeId?: string) => {
   if (game.state.phase !== 'home') game.send({ type: 'tap', placeId });
@@ -106,7 +117,11 @@ const playDaily = async (variant: DailyVariant) => {
   worldMap.value?.focus();
 };
 
-const focusAnswering = () => (isTypedRound.value ? typedAnswerTray.value?.focus() : worldMap.value?.focus());
+const focusAnswering = () => {
+  if (isWayfinderRound.value) wayfinderAnswerTray.value?.focus();
+  else if (isTypedRound.value) typedAnswerTray.value?.focus();
+  else worldMap.value?.focus();
+};
 
 const play = async (setup: RoundSetup | undefined) => {
   setupDraft.value = null;
@@ -126,11 +141,11 @@ const dontKnow = () => {
 };
 
 const playAgainFromResults = () => {
-  if (game.state.phase === 'results') play(game.state.setup);
+  if (game.state.phase === 'results' || game.state.phase === 'wayfinderResults') play(game.state.setup);
 };
 
 const changeSetup = () => {
-  if (game.state.phase !== 'results') return;
+  if (game.state.phase !== 'results' && game.state.phase !== 'wayfinderResults') return;
   const { mode } = game.state.setup;
   game.send({ type: 'leave' });
   openSetup(mode);
@@ -219,6 +234,39 @@ onMounted(game.load);
       />
     </Transition>
 
+    <Transition name="drop">
+      <WayfinderRoundScreen
+        v-if="isShellReady && game.state.phase === 'wayfinder'"
+        ref="wayfinderScreen"
+        :state="game.state"
+        :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+        :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+        @next="next"
+        @zoom-in="worldMap?.zoomIn()"
+        @zoom-out="worldMap?.zoomOut()"
+      />
+    </Transition>
+
+    <Transition name="tray">
+      <WayfinderAnswerTray
+        v-if="isShellReady && game.state.phase === 'wayfinder'"
+        ref="wayfinderAnswerTray"
+        :state="game.state"
+        @next="next"
+      />
+    </Transition>
+
+    <Transition name="tray">
+      <WayfinderResultsTray
+        v-if="isShellReady && game.state.phase === 'wayfinderResults'"
+        ref="wayfinderResultsTray"
+        :state="game.state"
+        @play-again="playAgainFromResults"
+        @change-setup="changeSetup"
+        @leave="leave"
+      />
+    </Transition>
+
     <Transition name="tray">
       <ResultsTray
         v-if="isShellReady && game.state.phase === 'results'"
@@ -251,7 +299,10 @@ onMounted(game.load);
       :is-round-play="isRoundPlay"
       :found-place-ids="foundPlaceIds"
       :highlighted-place-id="highlightedPlaceId"
-      :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : 0"
+      :keyboard-inset="isTypedRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
+      :route="routeMarks"
+      :land-shown="isWayfinderRound ? 0 : 1"
+      :top-inset="wayfinderScreen?.cardBottom ?? 0"
       @drawn="isMapDrawn = true"
       @tap="handleTap"
       @announce="announce"

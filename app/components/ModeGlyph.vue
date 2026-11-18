@@ -61,6 +61,36 @@ defineProps<{ mode: Mode }>();
       />
     </template>
 
+    <template v-else-if="mode === 'wayfinder'">
+      <circle
+        cx="7.5"
+        cy="24.5"
+        r="4.5"
+        fill="currentColor"
+      />
+
+      <rect
+        x="19.5"
+        y="3.5"
+        width="9"
+        height="9"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-dasharray="3.5 2"
+      />
+
+      <path
+        d="M11 21l5-5-3-4 6-3"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </template>
+
     <template v-else>
       <path
         d="M16 3a9 9 0 0 0-9 9c0 6.5 9 17 9 17s9-10.5 9-17a9 9 0 0 0-9-9z"

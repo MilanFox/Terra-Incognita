@@ -111,6 +111,11 @@
       "name": "Sighting",
       "subtitle": "Benenne das Land",
       "help": "Oben erscheint eine Flagge oder ein Umriss, und du schreibst auf der Tastatur darunter den Namen des Orts, auf Deutsch oder Englisch. Die Karte verrät nichts, bis du antwortest, dann fliegt sie zum Ort. Kleine Tippfehler werden verziehen; „Weiß ich nicht“ zeigt dir die Antwort und zählt als verpasst."
+    },
+    "wayfinder": {
+      "name": "Wayfinder",
+      "subtitle": "Kürzester Weg",
+      "help": "Verbinde Start und Ziel, indem du die Orte dazwischen schreibst, in beliebiger Reihenfolge, auf Deutsch oder Englisch. So viele Orte, wie der kürzeste Weg braucht, sind frei; jeder weitere kostet einen deiner fünf Umwege, und die Runde endet, wenn sie aufgebraucht sind. Nur Grenzen auf dem Festland zählen: Exklaven, Überseegebiete und Inseln verbinden keine Orte."
     }
   },
   "round": {
@@ -238,5 +243,26 @@
     "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
     "findName": "Finde auf der Karte: {place}",
     "timeLeft": "{time} übrig."
+  },
+  "wayfinder": {
+    "play": "Spielen",
+    "route": "Route {number}",
+    "detoursLeft": "{count} Umweg übrig | {count} Umwege übrig",
+    "to": "nach",
+    "named": "Genannte Orte",
+    "complete": "Route geschafft",
+    "outOfDetours": "Keine Umwege mehr",
+    "rejected": {
+      "named": "{place} ist schon genannt",
+      "start": "{place} ist der Start",
+      "target": "{place} ist das Ziel"
+    },
+    "endLine": "Die angefangene Route geht verloren, und eine beendete Runde zählt nicht für deine Bestwerte.",
+    "live": {
+      "route": "Route {number}: von {start} nach {target}. {detours}.",
+      "entry": "{place}. {detours}.",
+      "complete": "{place}. Route geschafft. Drücke Weiter.",
+      "outOfDetours": "{place}. Keine Umwege mehr. Drücke Weiter."
+    }
   }
 }
