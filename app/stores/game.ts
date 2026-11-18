@@ -5,6 +5,8 @@ import type { DailyVariant, DataVersion, Game, GameEvent, GameState, Mode, Place
 import type { Streak } from '#shared/game/daily';
 import type { NamesFile, PlaceNames } from '#shared/game/matcher';
 import type { DailyRecord } from '#shared/game/records';
+import { createStats } from '#shared/game/stats';
+import type { Stats } from '#shared/game/stats';
 import { drawSilhouette } from '#shared/utils/silhouette';
 import type { Bbox } from '#shared/utils/silhouette';
 
@@ -28,6 +30,7 @@ export const useGameStore = defineStore('game', () => {
   let shippedPlacesById = new Map<string, ShippedPlace>();
   let ownLandLoad: Promise<void> | undefined;
   let game: Game | undefined;
+  let stats: Stats | undefined;
 
   const load = async () => {
     const [places, placeNames, version] = await Promise.all([
@@ -36,6 +39,7 @@ export const useGameStore = defineStore('game', () => {
       fetchJson<DataVersion>('/data/version.json'),
     ]);
     game = createGame({ places, names: placeNames, version, random: Math.random, clock: Date.now, storage: localStorage });
+    stats = createStats({ places, storage: localStorage });
     names.value = placeNames;
     shippedPlacesById = new Map(places.map(place => [place.id, place]));
     state.value = game.state;
@@ -97,6 +101,8 @@ export const useGameStore = defineStore('game', () => {
     return (firstCapitalId && (names.value[placeId] as PlaceNames | undefined)?.capitals?.[firstCapitalId]?.[locale as Locale]?.name) || placeId;
   };
 
+  const allGamesStats = () => stats!.allGames();
+
   const loadOwnLand = () => {
     ownLandLoad ??= fetchJson<FeatureCollection<Polygon | MultiPolygon, { id: string }>>('/data/map-dependencies.geojson').then(({ features }) => {
       ownLandById.value = new Map(features.map(({ properties, geometry }) => [properties.id, geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates]));
@@ -109,5 +115,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats };
 });

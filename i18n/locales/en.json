@@ -245,6 +245,36 @@
     "in": "Zoom in",
     "out": "Zoom out"
   },
+  "stats": {
+    "open": "Stats",
+    "title": "Stats",
+    "close": "Close",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "pages": "Stats pages",
+    "allGames": {
+      "name": "All games",
+      "subtitle": "Find, Name, Country and Capital together"
+    },
+    "roundsPlayed": "Rounds played",
+    "streak": "Daily streak",
+    "streakValue": "{current} / {longest}",
+    "streakNote": "now / longest",
+    "streakSpoken": "{current} now, longest {longest}",
+    "placesSolid": "Places solid",
+    "placesWeak": "Places weak",
+    "legend": "Map key",
+    "ratings": {
+      "noData": "No data",
+      "weak": "Weak",
+      "shaky": "Shaky",
+      "solid": "Solid"
+    },
+    "empty": {
+      "title": "No rounds yet",
+      "line": "Play a round and this page fills in. Places you know well turn dark on the map."
+    }
+  },
   "live": {
     "place": "Place",
     "placeFound": "Place, found",

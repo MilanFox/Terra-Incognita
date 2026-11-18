@@ -6,7 +6,7 @@ import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 
 const props = defineProps<{ lastSetup?: RoundSetup, todaysDaily?: DailyRecord, streak: Streak }>();
-const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [] }>();
+const emit = defineEmits<{ playAgain: [], openSetup: [mode: Mode], openDaily: [], interact: [], settings: [], stats: [] }>();
 
 const liftMs = 180;
 
@@ -38,6 +38,7 @@ const missingModeTile = useTemplateRef<HTMLButtonElement>('missingModeTile');
 const wayfinderModeTile = useTemplateRef<HTMLButtonElement>('wayfinderModeTile');
 const handle = useTemplateRef<HTMLButtonElement>('handle');
 const settingsTile = useTemplateRef<HTMLButtonElement>('settingsTile');
+const statsTile = useTemplateRef<HTMLButtonElement>('statsTile');
 
 const isOpen = ref(false);
 const isLaunching = ref(false);
@@ -99,6 +100,7 @@ defineExpose({
     ({ find: modeTile, name: nameModeTile, capital: capitalModeTile, country: countryModeTile, fill: fillModeTile, missing: missingModeTile, wayfinder: wayfinderModeTile })[mode].value?.focus({ preventScroll: true });
   },
   focusSettings: () => settingsTile.value?.focus({ preventScroll: true }),
+  focusStats: () => statsTile.value?.focus({ preventScroll: true }),
   focusDailyTile: () => dailyTile.value?.focus({ preventScroll: true }),
 });
 </script>
@@ -119,6 +121,16 @@ defineExpose({
     @click.capture="onClickCapture"
   >
     <Teleport to="body">
+      <button
+        ref="statsTile"
+        type="button"
+        class="tile stats-tile"
+        :aria-label="$t('stats.open')"
+        @click="emit('stats')"
+      >
+        <StatsGlyph />
+      </button>
+
       <button
         ref="settingsTile"
         type="button"
@@ -473,6 +485,17 @@ defineExpose({
   z-index: 1;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   right: calc(env(safe-area-inset-right, 0px) + 12px);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+
+.stats-tile {
+  position: fixed;
+  z-index: 1;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: calc(env(safe-area-inset-left, 0px) + 12px);
   display: grid;
   place-items: center;
   width: 44px;

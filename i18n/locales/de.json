@@ -245,6 +245,36 @@
     "in": "Vergrößern",
     "out": "Verkleinern"
   },
+  "stats": {
+    "open": "Statistik",
+    "title": "Statistik",
+    "close": "Schließen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
+    "pages": "Statistikseiten",
+    "allGames": {
+      "name": "Alle Spiele",
+      "subtitle": "Finden, Benennen, Land und Hauptstadt zusammen"
+    },
+    "roundsPlayed": "Gespielte Runden",
+    "streak": "Tagesserie",
+    "streakValue": "{current} / {longest}",
+    "streakNote": "jetzt / längste",
+    "streakSpoken": "{current} jetzt, längste {longest}",
+    "placesSolid": "Orte sicher",
+    "placesWeak": "Orte schwach",
+    "legend": "Legende",
+    "ratings": {
+      "noData": "Keine Daten",
+      "weak": "Schwach",
+      "shaky": "Wackelig",
+      "solid": "Sicher"
+    },
+    "empty": {
+      "title": "Noch keine Runden",
+      "line": "Spiel eine Runde, dann füllt sich diese Seite. Orte, die du gut kennst, werden auf der Karte dunkel."
+    }
+  },
   "live": {
     "place": "Ort",
     "placeFound": "Ort, gefunden",
