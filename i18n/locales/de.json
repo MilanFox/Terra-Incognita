@@ -384,11 +384,20 @@
       "target": "{place} ist das Ziel"
     },
     "endLine": "Die angefangene Route geht verloren, und eine beendete Runde zählt nicht für deine Bestwerte.",
+    "shortest": "Kürzeste {shortest}",
+    "shortestAndYours": "Kürzeste {shortest} · Deine {yours}",
+    "routes": "{count} Route | {count} Routen",
+    "withoutDetours": "{count} ohne Umweg",
+    "resultsLine": "{routes} · {withoutDetours}",
+    "newBest": "Neue Bestleistung",
+    "newBestEasy": "Neue Bestleistung · Einfacher Modus",
     "live": {
       "route": "Route {number}: von {start} nach {target}. {detours}.",
       "entry": "{place}. {detours}.",
-      "complete": "{place}. Route geschafft. Drücke Weiter.",
-      "outOfDetours": "{place}. Keine Umwege mehr. Drücke Weiter."
+      "complete": "{place}. Route geschafft. {score}. Drücke Weiter.",
+      "outOfDetours": "{place}. Keine Umwege mehr. Eine kürzeste Route: {route}. {score}. Drücke Weiter.",
+      "completeLonger": "{place}. Route geschafft. Kürzeste {shortest}, deine {yours}. Eine kürzeste Route: {route}. {score}. Drücke Weiter.",
+      "score": "{count} Route geschafft | {count} Routen geschafft"
     }
   }
 }

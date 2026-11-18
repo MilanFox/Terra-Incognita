@@ -121,12 +121,30 @@ defineExpose({ element: tray });
       </div>
     </header>
 
-    <p
+    <div
       v-if="isWayfinder"
-      class="setup-tray__scope"
+      class="setup-tray__rows"
     >
-      {{ $t('setup.regions.world') }} · {{ $t('setup.tiers.sovereign') }}
-    </p>
+      <p class="setup-tray__scope">
+        {{ $t('setup.regions.world') }} · {{ $t('setup.tiers.sovereign') }}
+      </p>
+
+      <button
+        type="button"
+        role="switch"
+        class="tile setup-tray__switch"
+        :aria-checked="setup.easy"
+        @click="change({ easy: !setup.easy })"
+      >
+        <span>{{ $t('setup.easy') }}</span>
+
+        <span
+          class="setup-tray__switch-state"
+          :class="{ 'setup-tray__switch-state--on': setup.easy }"
+          aria-hidden="true"
+        >{{ setup.easy ? $t('setup.on') : $t('setup.off') }}</span>
+      </button>
+    </div>
 
     <div
       v-else

@@ -10,6 +10,18 @@ export const useWayfinderAnnouncements = (state: () => GameState, announce: Retu
 
   const detoursLeftText = (count: number) => t('wayfinder.detoursLeft', { count }, count);
 
+  const placeListOf = (placeIds: string[]) => new Intl.ListFormat(locale.value, { type: 'conjunction' }).format(placeIds.map(nameOf));
+
+  const revealTextOf = (round: Extract<GameState, { phase: 'wayfinder' }>, place: string) => {
+    const { route, reveal, routes } = round;
+    const score = routes.filter(({ outcome }) => outcome === 'complete').length;
+    const scoreText = t('wayfinder.live.score', { count: score }, score);
+    const shortestRoute = placeListOf(reveal?.shortestRoute ?? []);
+    if (route.outcome === 'failed') return t('wayfinder.live.outOfDetours', { place, route: shortestRoute, score: scoreText });
+    if (!reveal?.shortestRoute) return t('wayfinder.live.complete', { place, score: scoreText });
+    return t('wayfinder.live.completeLonger', { place, shortest: route.shortest, yours: reveal.yourRoute?.length ?? 0, route: shortestRoute, score: scoreText });
+  };
+
   const wayfinderRound = () => {
     const current = state();
     return current.phase === 'wayfinder' ? current : null;
@@ -25,9 +37,8 @@ export const useWayfinderAnnouncements = (state: () => GameState, announce: Retu
     const round = wayfinderRound();
     if (!round || !count || count <= (previousCount ?? 0)) return;
     const place = nameOf(round.route.entries.at(-1)!);
-    if (round.route.outcome === 'complete') announce(t('wayfinder.live.complete', { place }));
-    else if (round.route.outcome === 'failed') announce(t('wayfinder.live.outOfDetours', { place }));
-    else announce(t('wayfinder.live.entry', { place, detours: detoursLeftText(round.detoursLeft) }));
+    if (round.route.outcome === 'open') announce(t('wayfinder.live.entry', { place, detours: detoursLeftText(round.detoursLeft) }));
+    else announce(revealTextOf(round, place));
   });
 
   watch(() => wayfinderRound()?.rejectedEntries.length, (count) => {

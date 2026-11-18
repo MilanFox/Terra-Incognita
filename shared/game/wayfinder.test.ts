@@ -109,6 +109,14 @@ const storedRoundOf = (routes: { start: string, target: string, outcome: RouteOu
 
 const storedRoundFrom = (start: string, target: string) => storedRoundOf([{ start, target, outcome: 'open' }]);
 
+const storedJson = (storage: KeyValueStorage, key: string) => JSON.parse(storage.getItem(key) ?? 'null');
+
+const spendDetours = (game: Game) => {
+  const { route, detoursLeft } = routeOf(game);
+  enter(game, placesWithoutMainland.slice(0, Math.max(0, route.shortest - route.entries.length) + detoursLeft));
+  game.send({ type: 'next' });
+};
+
 describe('Wayfinder setup', () => {
   it('is whole world and sovereign tier only, untimed, with no deck', () => {
     const game = boot();
@@ -130,6 +138,18 @@ describe('Wayfinder setup', () => {
   it('starts on the first route with no places named and five detours', () => {
     expect(routeOf(startWayfinder())).toMatchObject({ routeNumber: 1, route: { entries: [], detours: 0, outcome: 'open' }, detoursLeft: detourBudget, rejectedEntries: [], isConfirmingEnd: false });
     expect(detourBudget).toBe(5);
+  });
+});
+
+describe('Easy mode', () => {
+  it('plays the same round with the same detours, and is remembered', () => {
+    const storage = memoryStorage();
+    const game = boot({ storage });
+    game.send({ type: 'start', setup: { ...game.setupFor('wayfinder'), easy: true } });
+
+    expect(routeOf(game)).toMatchObject({ setup: { easy: true }, routeNumber: 1, detoursLeft: detourBudget });
+    expect(boot({ storage: memoryStorage() }).setupFor('wayfinder').easy).toBe(false);
+    expect(boot({ storage }).setupFor('wayfinder').easy).toBe(true);
   });
 });
 
@@ -491,6 +511,150 @@ describe('mainland only', () => {
 
     expect(linkingRoute(graph, { start: 'PRT', target: 'POL', entries: ['ISL', 'CHE', 'ESP', 'CZE', 'FRA', 'AUT'] })).toEqual(['PRT', 'ESP', 'FRA', 'CHE', 'AUT', 'CZE', 'POL']);
     expect(linkingRoute(graph, { start: 'PRT', target: 'DZA', entries: ['ESP', 'MAR'] })).toBeNull();
+  });
+});
+
+describe('the reveal', () => {
+  it('waits until the route is finished', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['ESP', 'FRA']);
+
+    expect(routeOf(game).reveal).toBeNull();
+  });
+
+  it('shows your route alone when it is a shortest one', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['DEU', 'ESP', 'FRA']);
+
+    expect(routeOf(game).reveal).toEqual({ yourRoute: ['ESP', 'FRA', 'DEU'], shortestRoute: null });
+  });
+
+  it('shows your route through your own places, and where it is longer one shortest route', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['ISL', 'CHE', 'ESP', 'CZE', 'FRA', 'AUT']);
+
+    expect(routeOf(game).reveal).toEqual({ yourRoute: ['ESP', 'FRA', 'CHE', 'AUT', 'CZE'], shortestRoute: ['ESP', 'FRA', 'DEU'] });
+  });
+
+  it('picks the shortest route that shares the most places with yours', () => {
+    const game = storedRoundFrom('ESP', 'SVK');
+    enter(game, ['FRA', 'ITA', 'SVN', 'HUN']);
+
+    expect(routeOf(game).reveal).toEqual({ yourRoute: ['FRA', 'ITA', 'SVN', 'HUN'], shortestRoute: ['FRA', 'ITA', 'AUT'] });
+  });
+
+  it('shows one shortest route and no route of yours when the detours run out', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['ESP', ...placesWithoutMainland.slice(0, 7)]);
+
+    expect(routeOf(game)).toMatchObject({ detoursLeft: 0, route: { outcome: 'failed' }, reveal: { yourRoute: null, shortestRoute: ['ESP', 'FRA', 'DEU'] } });
+  });
+
+  it('comes back after a relaunch', () => {
+    const storage = memoryStorage();
+    const game = startWayfinder({ storage });
+    const { route } = routeOf(game);
+    enter(game, shortestInBetween(route.start, route.target));
+
+    expect(routeOf(boot({ storage })).reveal).toEqual({ yourRoute: shortestInBetween(route.start, route.target), shortestRoute: null });
+  });
+});
+
+describe('results', () => {
+  it('score the routes completed and count those without detours', () => {
+    const game = startWayfinder();
+    playCleanly(game);
+    const { route } = routeOf(game);
+    const between = shortestInBetween(route.start, route.target);
+    enter(game, between.slice(0, -1));
+    enter(game, placesWithoutMainland.slice(0, 2));
+    enter(game, between.slice(-1));
+
+    expect(routeOf(game)).toMatchObject({ detoursLeft: 3, route: { detours: 2, outcome: 'complete' } });
+
+    game.send({ type: 'next' });
+    spendDetours(game);
+
+    expect(resultsOf(game)).toMatchObject({ score: 2, routesWithoutDetours: 1, isComplete: true });
+    expect(resultsOf(game).routes.map(({ outcome }) => outcome)).toEqual(['complete', 'complete', 'failed']);
+  });
+
+  it('log a round ended by its spent detours as complete, with its elapsed time, and count it for the best', () => {
+    let now = 1_000_000;
+    const storage = memoryStorage();
+    const game = startWayfinder({ storage, clock: () => now });
+    now += 40_000;
+    playCleanly(game);
+    now += 25_000;
+    spendDetours(game);
+
+    expect(resultsOf(game)).toMatchObject({ score: 1, isComplete: true, elapsedMs: 65_000, isNewBest: true });
+    expect(storedJson(storage, 'ti:rounds')).toEqual([{
+      date: 1_000_000,
+      mode: 'wayfinder',
+      variant: 'map',
+      region: 'world',
+      tier: 'sovereign',
+      deckSize: 2,
+      timed: false,
+      easy: false,
+      daily: false,
+      learn: false,
+      score: 1,
+      complete: true,
+      elapsedMs: 65_000,
+      pausesUsed: 0,
+      dataVersion: shippedVersion.dataVersion,
+    }]);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ 'wayfinder:normal': { score: 1, fastestPerfectMs: null } });
+  });
+
+  it('log a round ended with End round as incomplete, and leave the best alone', () => {
+    const storage = memoryStorage();
+    const game = startWayfinder({ storage });
+    playCleanly(game);
+    game.send({ type: 'askEnd' });
+    game.send({ type: 'end' });
+
+    expect(resultsOf(game)).toMatchObject({ score: 1, isComplete: false, isNewBest: false });
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ mode: 'wayfinder', score: 1, complete: false })]);
+    expect(storage.getItem('ti:bests')).toBeNull();
+  });
+
+  it('keep one personal best per Easy setting, with no tier in its key and no fastest perfect', () => {
+    const storage = memoryStorage();
+    const game = boot({ storage });
+    const play = (easy: boolean, cleanRoutes: number) => {
+      game.send({ type: 'start', setup: { ...game.setupFor('wayfinder'), easy } });
+      Array.from({ length: cleanRoutes }, () => playCleanly(game));
+      spendDetours(game);
+      return resultsOf(game);
+    };
+
+    expect(play(false, 2).isNewBest).toBe(true);
+    expect(play(false, 1).isNewBest).toBe(false);
+    expect(play(true, 1)).toMatchObject({ isNewBest: true, setup: { easy: true } });
+    expect(play(true, 3).isNewBest).toBe(true);
+    expect(storedJson(storage, 'ti:bests')).toEqual({
+      'wayfinder:normal': { score: 2, fastestPerfectMs: null },
+      'wayfinder:easy': { score: 3, fastestPerfectMs: null },
+    });
+    expect(storedJson(storage, 'ti:rounds').map(({ easy }: { easy: boolean }) => easy)).toEqual([false, false, true, true]);
+  });
+
+  it('record no fastest perfect, even when every route was completed', () => {
+    const storage = memoryStorage();
+    const game = startWayfinder({ storage });
+    playCleanly(game);
+    const { route } = routeOf(game);
+    const between = shortestInBetween(route.start, route.target);
+    enter(game, between.slice(0, -1));
+    enter(game, placesWithoutMainland.slice(0, 5));
+    enter(game, between.slice(-1));
+    game.send({ type: 'next' });
+
+    expect(resultsOf(game)).toMatchObject({ score: 2, routesWithoutDetours: 1, isComplete: true });
+    expect(storedJson(storage, 'ti:bests')).toEqual({ 'wayfinder:normal': { score: 2, fastestPerfectMs: null } });
   });
 });
 

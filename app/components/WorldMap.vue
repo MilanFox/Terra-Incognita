@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl';
+import { Map as MapLibreMap, Popup, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
-import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLat, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 type Tier = 'sovereign' | 'defacto' | 'dependencies';
 type RegionChoice = 'world' | 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania';
-type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal' | 'missed' | 'start' | 'target' | 'named';
+type PlaceStatus = 'selected' | 'right' | 'wrong' | 'reveal' | 'missed' | 'start' | 'target' | 'named' | 'route' | 'unused';
 
 interface PlaceProperties {
   id: string
@@ -38,6 +38,7 @@ interface RouteMarks {
   startId: string
   targetId: string
   namedPlaceIds: string[]
+  reveal?: { routePlaceIds: string[], shortestPlaceIds: string[] } | null
 }
 
 const props = withDefaults(defineProps<{
@@ -59,7 +60,8 @@ const props = withDefaults(defineProps<{
   landShown?: number
   topInset?: number
   bottomCover?: number
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0 });
+  nameablePlaces?: Record<string, string> | null
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isStatsMap: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, nameablePlaces: null });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string] }>();
 
 const { t, locale } = useI18n();
@@ -112,8 +114,12 @@ const routeColours = {
   targetOutline: '#a85a40',
   named: '#cdb27a',
   namedOutline: '#8c7b56',
+  route: '#a9c98f',
+  routeOutline: '#5f8a4a',
+  unused: '#b3ac9f',
 };
 const routeMaxZoom = 5.5;
+const placeNameShownMs = 1800;
 const zoomTilesWidthPx = 50;
 
 const channelsOf = (hex: string) => [1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16));
@@ -135,12 +141,13 @@ const landFillAt = (landShown: number): ExpressionSpecification => {
 const landFill = landFillAt(1);
 const fadeState: ExpressionSpecification = ['coalesce', ['feature-state', 'fade'], 0];
 const fadingGreen: ExpressionSpecification = ['interpolate', ['linear'], fadeState, 0, colours.green, 1, landFill];
-const placeFillOver = (land: ExpressionSpecification): ExpressionSpecification => ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, 'start', routeColours.start, 'target', routeColours.target, 'named', routeColours.named, land]];
-const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 'start', 1.2, 'named', 0.6, 0]];
-const statusBorderColour: ExpressionSpecification = ['match', status, 'start', routeColours.startOutline, 'named', routeColours.namedOutline, colours.ink];
-const isRouteMark: ExpressionSpecification = ['match', status, ['start', 'target', 'named'], true, false];
-const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', ['any', isCursor, ['==', status, 'selected']], colours.ink, ['match', status, 'start', routeColours.startOutline, 'target', routeColours.targetOutline, 'named', routeColours.namedOutline, mixedColour(colours.water, colours.border, landShown)]];
+const placeFillOver = (land: ExpressionSpecification): ExpressionSpecification => ['case', isCursor, colours.mustard, ['match', status, 'selected', colours.mustard, 'right', fadingGreen, 'wrong', colours.brick, 'reveal', colours.green, 'missed', colours.sand, 'start', routeColours.start, 'target', routeColours.target, 'named', routeColours.named, 'route', routeColours.route, 'unused', routeColours.unused, land]];
+const statusBorderWidth: ExpressionSpecification = ['case', isCursor, 2, ['match', status, 'selected', 1, 'right', ['*', 0.9, ['-', 1, fadeState]], 'wrong', 0.9, 'reveal', 1.2, 'missed', 0.9, 'start', 1.2, 'named', 0.6, 'route', 1.2, 'unused', 0.6, 0]];
+const statusBorderColour: ExpressionSpecification = ['match', status, 'start', routeColours.startOutline, 'named', routeColours.namedOutline, 'route', routeColours.routeOutline, 'unused', colours.border, colours.ink];
+const isRouteMark: ExpressionSpecification = ['match', status, ['start', 'target', 'named', 'route', 'unused'], true, false];
+const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', ['any', isCursor, ['==', status, 'selected']], colours.ink, ['match', status, 'start', routeColours.startOutline, 'target', routeColours.targetOutline, 'named', routeColours.namedOutline, 'route', routeColours.routeOutline, 'unused', colours.border, mixedColour(colours.water, colours.border, landShown)]];
 const targetOutlineFilterFor = (targetId: string | undefined): FilterSpecification => ['==', ['get', 'id'], targetId ?? ''];
+const shortestOutlineFilterFor = (placeIds: string[] = []): FilterSpecification => ['in', ['get', 'id'], ['literal', placeIds]];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
 
@@ -171,7 +178,9 @@ const loadTierMap = async (shownTier: Tier) => {
   return { places, specks };
 };
 
-const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): StyleSpecification => ({
+type TierMap = Awaited<ReturnType<typeof loadTierMap>>;
+
+const styleFor = ({ places, specks }: TierMap): StyleSpecification => ({
   version: 8,
   sources: {
     places: { type: 'geojson', data: places, promoteId: 'id' },
@@ -185,6 +194,7 @@ const styleFor = ({ places, specks }: Awaited<ReturnType<typeof loadTierMap>>): 
     { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': dimColour, 'fill-opacity': 0.7 } },
     { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': mixedColour(colours.water, colours.border, props.landShown), 'line-width': 0.6 } },
     { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': statusBorderColour, 'line-width': statusBorderWidth } },
+    { id: 'place-shortest-outline', type: 'line', source: 'places', filter: shortestOutlineFilterFor(props.route?.reveal?.shortestPlaceIds), layout: { 'line-join': 'round' }, paint: { 'line-color': colours.ink, 'line-width': 1.8, 'line-dasharray': [2, 1.5] } },
     { id: 'place-target-outline', type: 'line', source: 'places', filter: targetOutlineFilterFor(props.route?.targetId), layout: { 'line-join': 'round' }, paint: { 'line-color': routeColours.targetOutline, 'line-width': 2.6, 'line-dasharray': [2, 1.2] } },
     {
       id: 'speck',
@@ -271,22 +281,71 @@ const tierMapOf = (shownTier: Tier) => {
   return loadedTierMaps.get(shownTier)!;
 };
 let shownTier: Tier | undefined;
+let shownTierMap: TierMap | undefined;
+let drawnOutsideTier: string | null = null;
+
+const placeIdsOutsideTier = () => {
+  const tierPlaceIds = new Set(shownTierMap?.places.features.map(({ properties }) => properties.id));
+  return routePlaceIdsOf(props.route).filter(placeId => !tierPlaceIds.has(placeId));
+};
+
+// A named place outside the tier has no shape of its own there, so it is drawn on top from the dependencies-tier map.
+const drawMapData = async () => {
+  const outsideIds = placeIdsOutsideTier();
+  const outsideMap = outsideIds.length > 0 ? await tierMapOf('dependencies') : undefined;
+  const tierMap = shownTierMap;
+  if (!map || !hasLoaded || !tierMap || placeIdsOutsideTier().join() !== outsideIds.join() || drawnOutsideTier === outsideIds.join()) return;
+  const isOutside = ({ properties }: { properties: { id: string } }) => outsideIds.includes(properties.id);
+  loadedPlaces = { ...tierMap.places, features: [...tierMap.places.features, ...(outsideMap?.places.features.filter(isOutside) ?? [])] };
+  loadedSpecks = { ...tierMap.specks, features: [...tierMap.specks.features, ...(outsideMap?.specks.features.filter(isOutside) ?? [])] };
+  labelPoints = labelPointsOf(loadedSpecks);
+  drawnOutsideTier = outsideIds.join();
+  (map.getSource('places') as GeoJSONSource).setData(loadedPlaces);
+  (map.getSource('specks') as GeoJSONSource).setData(loadedSpecks);
+  if (outsideIds.length > 0) fitRoute();
+};
 
 const swapTierMap = async (nextTier: Tier) => {
   const tierMap = await tierMapOf(nextTier);
   if (!map || nextTier !== props.tier) return;
-  loadedPlaces = tierMap.places;
-  loadedSpecks = tierMap.specks;
-  labelPoints = labelPointsOf(tierMap.specks);
   shownTier = nextTier;
-  (map.getSource('places') as GeoJSONSource).setData(tierMap.places);
-  (map.getSource('specks') as GeoJSONSource).setData(tierMap.specks);
+  shownTierMap = tierMap;
+  drawnOutsideTier = null;
+  await drawMapData();
+};
+
+let placeNamePopup: Popup | undefined;
+let placeNameTimer: ReturnType<typeof setTimeout> | undefined;
+const canHover = useMediaQuery('(hover: hover)');
+
+const hidePlaceName = () => {
+  clearTimeout(placeNameTimer);
+  placeNamePopup?.remove();
+};
+
+const showPlaceName = (placeId: string | undefined, lngLat: LngLat, shownMs?: number) => {
+  const name = placeId ? props.nameablePlaces?.[placeId] : undefined;
+  if (!map || !name) {
+    hidePlaceName();
+    return;
+  }
+  clearTimeout(placeNameTimer);
+  placeNamePopup ??= new Popup({ closeButton: false, closeOnClick: false, focusAfterOpen: false, anchor: 'bottom', offset: 10, maxWidth: 'none', className: 'world-map__place-name' });
+  placeNamePopup.setLngLat(lngLat).setText(name);
+  if (!placeNamePopup.isOpen()) placeNamePopup.addTo(map);
+  placeNamePopup.getElement()?.setAttribute('aria-hidden', 'true');
+  if (shownMs) placeNameTimer = setTimeout(hidePlaceName, shownMs);
 };
 
 const handleClick = (event: MapMouseEvent) => {
   const placeId = pickPlaceId(event.point);
   if (props.isStatsMap && placeId) lastSelectedPlaceId = placeId;
+  if (props.nameablePlaces) showPlaceName(placeId, event.lngLat, placeNameShownMs);
   emit('tap', placeId);
+};
+
+const handlePointerMove = (event: MapMouseEvent) => {
+  if (props.nameablePlaces && canHover.value) showPlaceName(pickPlaceId(event.point), event.lngLat);
 };
 
 const setPlaceStatus = (placeId: string, placeStatus: PlaceStatus | null) => {
@@ -397,17 +456,25 @@ const flyToRegion = (region = props.frameRegion) => {
   map.fitBounds(regionFrames[region], { duration, padding: { ...regionFramePadding, bottom: 0 } });
 };
 
-const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds] : []);
+const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
+
+const namedStatusOf = (placeId: string, route: RouteMarks): PlaceStatus => {
+  if (!route.reveal) return 'named';
+  return route.reveal.routePlaceIds.includes(placeId) ? 'route' : 'unused';
+};
 
 const routeStatusesOf = (route: RouteMarks | null): [string, PlaceStatus][] => (route
-  ? [...route.namedPlaceIds.map((placeId): [string, PlaceStatus] => [placeId, 'named']), [route.startId, 'start'], [route.targetId, 'target']]
+  ? [...route.namedPlaceIds.map((placeId): [string, PlaceStatus] => [placeId, namedStatusOf(placeId, route)]), [route.startId, 'start'], [route.targetId, 'target']]
   : []);
+
+const routeLookOf = (route: RouteMarks | null) => [...routeStatusesOf(route).flat(), ...route?.reveal?.shortestPlaceIds ?? []].join();
 
 const markRoute = (route: RouteMarks | null) => {
   if (!hasLoaded) return;
   for (const [placeId] of routeStatusesOf(markedRoute)) setPlaceStatus(placeId, null);
   for (const [placeId, placeStatus] of routeStatusesOf(route)) setPlaceStatus(placeId, placeStatus);
   map?.setFilter('place-target-outline', targetOutlineFilterFor(route?.targetId));
+  map?.setFilter('place-shortest-outline', shortestOutlineFilterFor(route?.reveal?.shortestPlaceIds));
   markedRoute = route;
 };
 
@@ -560,7 +627,12 @@ watch([() => props.isRoundPlay, () => props.isStatsMap], applyRoundPlay);
 watch([() => props.isRoundPlay, () => props.isStatsMap, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
 watch(() => props.poolPlaceIds, dimOutsidePool);
-watch(() => routePlaceIdsOf(props.route).join(), () => markRoute(props.route), { flush: 'post' });
+watch(() => routeLookOf(props.route), () => {
+  if (props.route) tierMapOf('dependencies');
+  markRoute(props.route);
+  drawMapData();
+}, { flush: 'post' });
+watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
 watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
 watch(() => props.landShown, showLand);
 watch(() => [props.frameRegion, props.frameInset], () => flyToRegion());
@@ -571,6 +643,8 @@ onMounted(async () => {
   loadedSpecks = tierMap.specks;
   labelPoints = labelPointsOf(tierMap.specks);
   shownTier = props.tier;
+  shownTierMap = tierMap;
+  drawnOutsideTier = '';
   setWorkerUrl(workerUrl);
   map = new MapLibreMap({
     container: mapContainer.value!,
@@ -589,6 +663,8 @@ onMounted(async () => {
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
   map.on('click', handleClick);
+  map.on('mousemove', handlePointerMove);
+  map.on('mouseout', hidePlaceName);
   map.on('zoom', () => {
     isAtMinZoom.value = map!.getZoom() <= minZoom + 0.01;
     isAtMaxZoom.value = map!.getZoom() >= maxZoom - 0.01;
@@ -614,11 +690,15 @@ onMounted(async () => {
     if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
     markRoute(props.route);
     fitRoute();
+    drawMapData();
   });
   if (props.tier !== shownTier) swapTierMap(props.tier);
 });
 
-onBeforeUnmount(() => map?.remove());
+onBeforeUnmount(() => {
+  clearTimeout(placeNameTimer);
+  map?.remove();
+});
 
 defineExpose({
   focus: () => map?.getCanvas().focus(),
@@ -644,6 +724,25 @@ defineExpose({
 .world-map {
   position: absolute;
   inset: 0;
+
+  :deep(.world-map__place-name) {
+    .maplibregl-popup-tip {
+      display: none;
+    }
+
+    .maplibregl-popup-content {
+      padding: 4px 8px;
+      border: 2px solid $color-ink;
+      border-radius: 4px;
+      background: $color-surface;
+      box-shadow: none;
+      color: $color-ink;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  }
 
   :deep(.maplibregl-canvas):focus-visible {
     outline: none;
