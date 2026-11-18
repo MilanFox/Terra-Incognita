@@ -76,6 +76,7 @@ export const useRoundAnnouncements = (state: () => GameState, announce: ReturnTy
     }
     else if (current.phase === 'prompt') {
       const lastUnresolved = current.unresolvedAnswers.at(-1);
+      if (current.learning?.isEverythingLearned && !lastUnresolved && current.wrongTapPlaceIds.length === 0) announce(t('learn.liveEverythingLearned'));
       if (lastUnresolved) announce(lastUnresolved === 'ambiguous' ? t('typed.ambiguous') : t(current.setup.mode === 'capital' ? 'capital.live.noMatch' : 'typed.live.noMatch'));
       else if (current.wrongTapPlaceIds.length > 0) announce(t('round.triesLeft', { count: current.attemptsLeft }, current.attemptsLeft));
       else if (current.setup.mode === 'capital') announce(t('capital.promptLive', { place: nameOf(current.placeId) }));

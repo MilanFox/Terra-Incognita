@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Streak } from '#shared/game/daily';
+import { isLearnSetup } from '#shared/game/game';
 import type { Mode, RoundSetup } from '#shared/game/game';
 import type { DailyRecord } from '#shared/game/records';
 import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
@@ -50,7 +51,7 @@ const dateText = computed(() => new Intl.DateTimeFormat(locale.value, { weekday:
 const playAgainSummary = computed(() => props.lastSetup && [
   t(`setup.regions.${props.lastSetup.region}`),
   t(`setup.tiers.${props.lastSetup.tier}`),
-  props.lastSetup.mode === 'wayfinder' ? null : t(`setup.playAgain.deckSizes.${props.lastSetup.deckSize}`),
+  props.lastSetup.mode === 'wayfinder' ? null : props.lastSetup.roundKind === 'weak' || isLearnSetup(props.lastSetup) ? t(`setup.roundKinds.${props.lastSetup.roundKind}`) : t(`setup.playAgain.deckSizes.${props.lastSetup.deckSize}`),
 ].filter(Boolean).join(' · '));
 
 const measure = () => {

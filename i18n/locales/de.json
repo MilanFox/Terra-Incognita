@@ -58,7 +58,8 @@
     },
     "roundKinds": {
       "quiz": "Quiz",
-      "weak": "Schwache Orte"
+      "weak": "Schwache Orte",
+      "learn": "Lernen"
     },
     "variants": {
       "flag": "Flagge",
@@ -145,6 +146,20 @@
     "next": "Weiter",
     "triesLeft": "Das war es nicht · noch {count} Versuch | Das war es nicht · noch {count} Versuche",
     "clock": "Verbleibende Zeit"
+  },
+  "learn": {
+    "learned": "{count} gelernt",
+    "everythingLearned": "Hier ist alles gelernt",
+    "liveEverythingLearned": "Hier ist alles gelernt.",
+    "results": {
+      "learned": "Gelernt",
+      "learnedText": "{count} Ort gelernt | {count} Orte gelernt",
+      "answers": "Antworten",
+      "answersText": "{count} Antwort gegeben | {count} Antworten gegeben",
+      "firstTry": "Gleich richtig",
+      "firstTryText": "{share} beim ersten Versuch richtig",
+      "playAgain": "Nochmal lernen"
+    }
   },
   "results": {
     "title": "Runde geschafft",

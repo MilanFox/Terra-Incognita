@@ -9,7 +9,7 @@ const emit = defineEmits<{ next: [], dontKnow: [], zoomIn: [], zoomOut: [] }>();
 const { locale, t } = useI18n();
 const game = useGameStore();
 
-const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && props.state.progress[props.state.promptNumber - 2] === 'right');
+const isArrivingAfterRight = computed(() => props.state.phase === 'prompt' && (props.state.learning ? props.state.learning.previousOutcome : props.state.progress[props.state.promptNumber - 2]) === 'right');
 
 const isTyped = computed(() => isTypedMode(props.state.setup.mode));
 const isCapital = computed(() => props.state.setup.mode === 'capital');
@@ -47,16 +47,25 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
     @zoom-out="emit('zoomOut')"
   >
     <template #hud>
-      <ProgressCells
-        :cells="state.progress"
-        :label="$t('round.progress', { current: state.promptNumber, total: state.deckSize })"
-      />
+      <p
+        v-if="state.learning"
+        class="tile learned-tile"
+      >
+        {{ $t('learn.learned', { count: state.learning.learnedCount }) }}
+      </p>
 
-      <ScoreTile
-        :count="state.score"
-        :total="state.deckSize"
-        :label="$t('round.score', { score: state.score })"
-      />
+      <template v-else>
+        <ProgressCells
+          :cells="state.progress"
+          :label="$t('round.progress', { current: state.promptNumber, total: state.deckSize })"
+        />
+
+        <ScoreTile
+          :count="state.score"
+          :total="state.deckSize"
+          :label="$t('round.score', { score: state.score })"
+        />
+      </template>
     </template>
 
     <template #card="{ isShown }">
@@ -67,6 +76,13 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
         :class="[state.phase === 'verdict' && `prompt-card--${state.answer.outcome}`, isArrivingAfterRight && 'prompt-card--arriving', state.phase === 'verdict' && (isFlagShown || isSilhouetteShown) && 'prompt-card--image-beside-name']"
         :style="{ '--fade': fade }"
       >
+        <p
+          v-if="state.learning?.isEverythingLearned"
+          class="prompt-card__all-learned"
+        >
+          {{ $t('learn.everythingLearned') }}
+        </p>
+
         <p class="kicker prompt-card__kicker">
           {{ kickerText }}
         </p>
@@ -161,6 +177,18 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
 </template>
 
 <style scoped lang="scss">
+.learned-tile {
+  flex: 1 1 96px;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 12px;
+  box-shadow: 0 3px 0 $color-ink;
+  font-family: $font-serif;
+  font-size: 20px;
+  font-weight: 900;
+}
+
 .prompt-card {
   display: grid;
   gap: 4px;
@@ -255,6 +283,18 @@ const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.va
     s {
       text-decoration-thickness: 2px;
     }
+  }
+
+  &__all-learned {
+    justify-self: start;
+    margin: 0 0 4px;
+    padding: 4px 10px;
+    border: 2px solid $color-ink;
+    border-radius: 4px;
+    background: $color-mustard;
+    color: $color-ink;
+    font-size: 14px;
+    font-weight: 800;
   }
 
   &__retype {
