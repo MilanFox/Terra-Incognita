@@ -164,7 +164,7 @@ const playDaily = async (variant: DailyVariant) => {
 const focusAnswering = () => {
   if (isWayfinderRound.value) wayfinderAnswerTray.value?.focus();
   else if (isTypedRound.value || isFillRound.value) typedAnswerTray.value?.focus();
-  else worldMap.value?.focus();
+  else if (isRoundPlay.value) worldMap.value?.focus();
 };
 
 const play = async (setup: RoundSetup | undefined) => {
@@ -469,6 +469,7 @@ onMounted(game.load);
         :frame-inset="frameInset"
         :inert="isMapInert"
         :is-round-play="isRoundPlay"
+        :is-focusable="isRoundPlay || isWayfinderRound || isFillRound || isStatsOpen || isAboutOpen"
         :is-stats-map="isStatsOpen || isAboutOpen"
         :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : 0"
         :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : markedPlaceId"
@@ -485,6 +486,7 @@ onMounted(game.load);
         @tap="handleTap"
         @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : statsTray?.placeLabel($event) ?? '')"
         @announce="announce"
+        @next="next"
       />
 
       <div

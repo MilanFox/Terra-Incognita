@@ -410,7 +410,7 @@
       "next": "Weiter"
     },
     "live": {
-      "wrong": "Falsch. Du hast {typed} geschrieben. Die Antwort ist {answer}. Drücke Weiter.",
+      "wrong": "Falsch. Du hast geschrieben: {typed}. Die Antwort ist {answer}. Drücke Weiter.",
       "missed": "Die Antwort ist {answer}. Drücke Weiter.",
       "noMatch": "Kein Ort mit diesem Namen. Versuch es nochmal."
     }
@@ -504,7 +504,7 @@
       "recent": "{right} von den letzten {count} richtig",
       "lifetime": "Insgesamt: {right} / {total}",
       "easy": "Leichter Modus: {right} / {total}",
-      "confusedWith": "Zuletzt verwechselt mit {name}",
+      "confusedWith": "Zuletzt verwechselt mit: {name}",
       "why": "Warum?"
     }
   },
@@ -513,7 +513,7 @@
     "placeFound": "Ort, gefunden",
     "selected": "Ausgewählt.",
     "right": "Richtig: {place}.",
-    "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
+    "wrong": "Falsch. Du hast getippt: {tapped}. Die Antwort ist {answer}. Drücke Weiter.",
     "findName": "Finde auf der Karte: {place}",
     "timeLeft": "{time} übrig.",
     "statsPlace": "{name}, {rating}"
@@ -556,7 +556,7 @@
     "live": {
       "start": "Zehn Orte fehlen. Tippe dorthin, wo sie liegen. {count} Tipps.",
       "found": "Gefunden: {place}. {found} von {total}.",
-      "wrongPlace": "Falsch. Du hast {place} getippt. {taps}.",
+      "wrongPlace": "Falsch. Du hast getippt: {place}. {taps}.",
       "sea": "Falsch. Das ist das Meer. {taps}."
     },
     "foundCount": "{found} gefunden",
@@ -568,7 +568,7 @@
     "play": "Spielen",
     "route": "Route {number}",
     "detoursLeft": "{count} Umweg übrig | {count} Umwege übrig",
-    "to": "nach",
+    "to": ", Ziel:",
     "named": "Genannte Orte",
     "complete": "Route geschafft",
     "outOfDetours": "Keine Umwege mehr",

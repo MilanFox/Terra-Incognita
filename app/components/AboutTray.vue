@@ -129,7 +129,9 @@ onMounted(async () => {
   }
   await nextTick();
   if (!tray.value || props.openingSection === 'intro') return;
-  document.getElementById(headingIdOf(props.openingSection))?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  const heading = document.getElementById(headingIdOf(props.openingSection));
+  heading?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  if (document.activeElement === title.value) heading?.focus({ preventScroll: true });
 });
 useResizeObserver(tray, measure);
 
@@ -498,11 +500,6 @@ defineExpose({ titleId, trayHeight });
     font-size: 21px;
     font-weight: 800;
     line-height: 1.2;
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: none;
-    }
   }
 
   &__ruling {
