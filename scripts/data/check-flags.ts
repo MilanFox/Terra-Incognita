@@ -1,4 +1,4 @@
-import { hasViewBox, maxShippedBytes } from './steps/flags.ts';
+import { hasViewBox, isPlaceholderArtist, maxShippedBytes } from './steps/flags.ts';
 import type { CheckLine } from './check.ts';
 import type { FlagJoin, FlagSources } from './steps/flags.ts';
 
@@ -17,7 +17,7 @@ const creditWarnings = ({ credits }: FlagJoin, { previousCredits }: FlagSources)
 };
 
 export const checkFlags = (flagJoin: FlagJoin, sources: FlagSources): FlagsCheck => {
-  const { flags, svgs, failures } = flagJoin;
+  const { flags, svgs, credits, failures } = flagJoin;
   const flagCount = Object.keys(svgs).length;
   return {
     lines: [
@@ -32,6 +32,10 @@ export const checkFlags = (flagJoin: FlagJoin, sources: FlagSources): FlagsCheck
       {
         label: 'every flag SVG is under 2 MiB',
         failures: Object.entries(svgs).filter(([, svg]) => Buffer.byteLength(svg) >= maxShippedBytes).map(([id]) => id),
+      },
+      {
+        label: 'every credit names an artist',
+        failures: credits.filter(({ artist }) => isPlaceholderArtist(artist)).map(({ id }) => id),
       },
     ],
     warnings: creditWarnings(flagJoin, sources),
