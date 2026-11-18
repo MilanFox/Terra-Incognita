@@ -13,7 +13,8 @@
   },
   "map": {
     "label": "World map",
-    "playLabel": "Map. Arrow keys move between places, Enter selects"
+    "playLabel": "Map. Arrow keys move between places, Enter selects",
+    "statsLabel": "Map. Arrow keys move between places, Enter opens details"
   },
   "home": {
     "label": "Play"
@@ -273,6 +274,18 @@
     "empty": {
       "title": "No rounds yet",
       "line": "Play a round and this page fills in. Places you know well turn dark on the map."
+    },
+    "regionsTitle": "Regions",
+    "regionWeak": "{count} weak",
+    "regionSolid": "{count} solid",
+    "regionUnplayed": "{count} unplayed",
+    "bubble": {
+      "closeDetails": "Close details",
+      "notPlayed": "Not played yet",
+      "recent": "{right} of the last {count} right",
+      "lifetime": "All time: {right} / {total}",
+      "easy": "Easy mode: {right} / {total}",
+      "confusedWith": "Recently confused with {name}"
     }
   },
   "live": {
@@ -282,7 +295,8 @@
     "right": "Right: {place}.",
     "wrong": "Wrong. You tapped {tapped}. The answer is {answer}. Press Next.",
     "findName": "Find on the map: {place}",
-    "timeLeft": "{time} left."
+    "timeLeft": "{time} left.",
+    "statsPlace": "{name}, {rating}"
   },
   "fill": {
     "progress": "{count} of {total} filled",

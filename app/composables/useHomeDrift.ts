@@ -32,6 +32,11 @@ export const useHomeDrift = (getMap: () => MapLibreMap | undefined, isDrifting: 
     };
     let last = performance.now();
     const step = (now: number) => {
+      if (map.isMoving()) {
+        last = now;
+        frame = requestAnimationFrame(step);
+        return;
+      }
       const { lng, lat } = map.getCenter();
       map.jumpTo({ center: [((lng + degreesPerSecond * (now - last) / 1000 + 540) % 360) - 180, lat] });
       last = now;

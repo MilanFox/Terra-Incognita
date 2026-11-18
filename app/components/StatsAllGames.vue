@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { Streak } from '#shared/game/daily';
-import type { AllGamesStats } from '#shared/game/stats';
+import type { Region } from '#shared/game/game';
+import type { AllGamesStats, RegionCounts } from '#shared/game/stats';
 
-const props = defineProps<{ stats: AllGamesStats, streak: Streak, moreId: string, isExpanded: boolean }>();
+const props = defineProps<{ stats: AllGamesStats, streak: Streak, moreId: string, isExpanded: boolean, regions: RegionCounts[] }>();
+const emit = defineEmits<{ flyToRegion: [region: Region] }>();
 
 const { t } = useI18n();
 const more = useTemplateRef<HTMLElement>('more');
@@ -47,7 +49,12 @@ defineExpose({ more });
       ref="more"
       class="stats-page__more"
       :inert="!isExpanded"
-    />
+    >
+      <StatsRegionList
+        :regions="regions"
+        @fly="emit('flyToRegion', $event)"
+      />
+    </div>
   </div>
 </template>
 

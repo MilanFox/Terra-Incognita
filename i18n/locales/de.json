@@ -13,7 +13,8 @@
   },
   "map": {
     "label": "Weltkarte",
-    "playLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe wählt aus"
+    "playLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe wählt aus",
+    "statsLabel": "Karte. Pfeiltasten bewegen zwischen Orten, Eingabe öffnet Details"
   },
   "home": {
     "label": "Spielen"
@@ -273,6 +274,18 @@
     "empty": {
       "title": "Noch keine Runden",
       "line": "Spiel eine Runde, dann füllt sich diese Seite. Orte, die du gut kennst, werden auf der Karte dunkel."
+    },
+    "regionsTitle": "Regionen",
+    "regionWeak": "{count} schwach",
+    "regionSolid": "{count} sicher",
+    "regionUnplayed": "{count} ungespielt",
+    "bubble": {
+      "closeDetails": "Details schließen",
+      "notPlayed": "Noch nicht gespielt",
+      "recent": "{right} von den letzten {count} richtig",
+      "lifetime": "Insgesamt: {right} / {total}",
+      "easy": "Leichter Modus: {right} / {total}",
+      "confusedWith": "Zuletzt verwechselt mit {name}"
     }
   },
   "live": {
@@ -282,7 +295,8 @@
     "right": "Richtig: {place}.",
     "wrong": "Falsch. Du hast {tapped} getippt. Die Antwort ist {answer}. Drücke Weiter.",
     "findName": "Finde auf der Karte: {place}",
-    "timeLeft": "{time} übrig."
+    "timeLeft": "{time} übrig.",
+    "statsPlace": "{name}, {rating}"
   },
   "fill": {
     "progress": "{count} von {total} gefüllt",

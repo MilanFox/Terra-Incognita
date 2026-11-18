@@ -6,7 +6,7 @@ import type { Streak } from '#shared/game/daily';
 import type { NamesFile, PlaceNames } from '#shared/game/matcher';
 import type { DailyRecord } from '#shared/game/records';
 import { createStats } from '#shared/game/stats';
-import type { Stats } from '#shared/game/stats';
+import type { Stats, StatsScope } from '#shared/game/stats';
 import { drawSilhouette } from '#shared/utils/silhouette';
 import type { Bbox } from '#shared/utils/silhouette';
 
@@ -102,6 +102,8 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const allGamesStats = () => stats!.allGames();
+  const regionCounts = (scope?: StatsScope) => stats!.regionCounts(scope);
+  const placeDetails = (placeId: string, scope?: StatsScope) => stats!.placeDetails(placeId, scope);
 
   const loadOwnLand = () => {
     ownLandLoad ??= fetchJson<FeatureCollection<Polygon | MultiPolygon, { id: string }>>('/data/map-dependencies.geojson').then(({ features }) => {
@@ -115,5 +117,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, regionCounts, placeDetails };
 });
