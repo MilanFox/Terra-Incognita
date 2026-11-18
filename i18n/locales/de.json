@@ -284,12 +284,15 @@
     "title": "Runde geschafft",
     "score": "Punkte",
     "scoreText": "{score} von {total} richtig",
+    "scoreLabelled": "Punkte: {score}",
     "right": "{place}: richtig",
     "wrong": "{place}: falsch",
     "home": "Hauptmenü",
     "titleEnded": "Runde beendet",
     "wrongCount": "Falsch",
+    "wrongCountText": "{count} falsch",
     "missedCount": "Verpasst",
+    "missedCountText": "{count} verpasst",
     "missed": "{place}: verpasst",
     "unreachedList": "Nicht erreicht: {places}",
     "playAgain": "Nochmal spielen",
@@ -536,7 +539,8 @@
       "start": "Nenne irgendeinen Ort auf der Karte. {total} zu füllen."
     },
     "results": {
-      "unreached": "Nicht erreicht"
+      "unreached": "Nicht erreicht",
+      "unreachedText": "{count} nicht erreicht"
     }
   },
   "missing": {
