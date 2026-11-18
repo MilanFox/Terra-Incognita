@@ -324,7 +324,7 @@ defineExpose({ titleId, trayHeight });
                     >{{ $t('about.sections.sources.flagOf', { place: game.nameOf(credit.id, locale) }) }}<span class="visually-hidden"> {{ $t('about.newTab') }}</span></a>
                   </template>
 
-                  <template #artist>{{ credit.artist }}</template>
+                  <template #artist>{{ credit.artist ?? $t('about.sections.sources.commonsContributors') }}</template>
 
                   <template #licence>
                     <a

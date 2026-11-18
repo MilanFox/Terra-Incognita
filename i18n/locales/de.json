@@ -25,116 +25,117 @@
     "showFewer": "Weniger anzeigen"
   },
   "about": {
-    "open": "About the map",
-    "title": "About the map",
-    "close": "Close",
+    "open": "Über die Karte",
+    "title": "Über die Karte",
+    "close": "Schließen",
     "backTo": {
       "setup": "Zurück zu den Einstellungen",
       "stats": "Zurück zur Statistik"
     },
-    "index": "Sections",
-    "showOnMap": "Shows it on the map.",
-    "newTab": "(opens in a new tab)",
-    "feedback": "Spotted something out of date?",
+    "index": "Abschnitte",
+    "showOnMap": "Zeigt es auf der Karte.",
+    "newTab": "(öffnet in einem neuen Tab)",
+    "feedback": "Etwas Veraltetes entdeckt?",
     "notes": {
       "UKR": {
-        "text": "Crimea is drawn as Russia.",
+        "text": "Die Krim wird als Russland gezeichnet.",
         "section": "ukraine"
       },
       "RUS": {
-        "text": "Crimea is drawn as part of Russia.",
+        "text": "Die Krim wird als Teil Russlands gezeichnet.",
         "section": "ukraine"
       },
       "MAR": {
-        "text": "Most of Western Sahara is drawn as Morocco.",
+        "text": "Der größte Teil der Westsahara wird als Marokko gezeichnet.",
         "section": "westernSahara"
       },
       "SAH": {
-        "text": "Drawn as the strip east of the Berm.",
+        "text": "Gezeichnet als der Streifen östlich des Berms.",
         "section": "westernSahara"
       },
       "PSX": {
-        "text": "Ramallah counts as its capital.",
+        "text": "Ramallah zählt als Hauptstadt.",
         "section": "capitals"
       },
       "ISR": {
-        "text": "East Jerusalem is drawn as Israel.",
+        "text": "Ostjerusalem wird als Israel gezeichnet.",
         "section": "capitals"
       },
       "AFG": {
-        "text": "Shows the Taliban government's flag.",
+        "text": "Zeigt die Flagge der Taliban-Regierung.",
         "section": "flags"
       },
       "CUB": {
-        "text": "Guantánamo Bay is drawn as Cuba.",
+        "text": "Die Guantánamo-Bucht wird als Kuba gezeichnet.",
         "section": "leases"
       },
       "KAZ": {
-        "text": "Baikonur is drawn as Kazakhstan.",
+        "text": "Baikonur wird als Kasachstan gezeichnet.",
         "section": "leases"
       },
       "CYP": {
-        "text": "The British bases are drawn as Cyprus.",
+        "text": "Die britischen Stützpunkte werden als Zypern gezeichnet.",
         "section": "leases"
       },
       "GBR": {
-        "text": "The Chagos Archipelago is drawn as British.",
+        "text": "Der Chagos-Archipel wird als britisch gezeichnet.",
         "section": "leases"
       }
     },
     "sections": {
       "intro": {
-        "heading": "Intro",
-        "text": "Terra Incognita is a game, not an atlas. Its borders, capitals and flags follow a few plain rules, and this page explains them, so you can see why the map looks the way it does. None of it is a political statement."
+        "heading": "Einleitung",
+        "text": "Terra Incognita ist ein Spiel, kein Atlas. Seine Grenzen, Hauptstädte und Flaggen folgen ein paar einfachen Regeln, und diese Seite erklärt sie, damit du siehst, warum die Karte so aussieht, wie sie aussieht. Nichts davon ist eine politische Aussage."
       },
       "borders": {
-        "heading": "How borders are drawn",
-        "text": "Borders follow who actually controls the land, not who claims it. Where control is disputed, the map shows the line that holds on the ground. The lines come from Natural Earth, used as they are except where this page says otherwise. So, for example, the Golan Heights and East Jerusalem are drawn as Israel, Kashmir is split along the Line of Control, Arunachal Pradesh is India, the Kuril Islands are Russia, and Karabakh is Azerbaijan."
+        "heading": "Wie Grenzen gezeichnet werden",
+        "text": "Grenzen folgen dem, der ein Gebiet tatsächlich kontrolliert, nicht dem, der es beansprucht. Wo die Kontrolle umstritten ist, zeigt die Karte die Linie, die vor Ort Bestand hat. Die Linien stammen von Natural Earth und werden unverändert übernommen, außer wo diese Seite etwas anderes sagt. So werden zum Beispiel die Golanhöhen und Ostjerusalem als Israel gezeichnet, Kaschmir ist entlang der Kontrolllinie geteilt, Arunachal Pradesh ist Indien, die Kurilen sind Russland und Karabach ist Aserbaidschan."
       },
       "tiers": {
-        "heading": "Tiers",
-        "lead": "Every round is played in one of three tiers. Each tier contains the one before it.",
-        "sovereign": "{tier}: {count} places: the 193 UN members plus Vatican City, Palestine, Kosovo and Taiwan, which aren't UN members but are commonly counted as countries.",
-        "defacto": "{tier}: adds {count} places that govern themselves but are recognised by few or no states: Somaliland, Northern Cyprus, Abkhazia, South Ossetia, Transnistria and the part of Western Sahara held by the Sahrawi Republic.",
-        "dependencies": "{tier}: adds {count} territories governed by another state that have their own country code, such as Greenland, Puerto Rico or Hong Kong.",
-        "text": "Each tier draws only the places it asks about. Places left out are drawn as part of the country that holds them, so dependencies sit inside their sovereign state and breakaway states inside the state they broke away from."
+        "heading": "Stufen",
+        "lead": "Jede Runde wird in einer von drei Stufen gespielt. Jede Stufe enthält die vorherige.",
+        "sovereign": "{tier}: {count} Orte: die 193 UN-Mitglieder sowie Vatikanstadt, Palästina, Kosovo und Taiwan, die keine UN-Mitglieder sind, aber üblicherweise als Länder gezählt werden.",
+        "defacto": "{tier}: zusätzlich {count} Orte, die sich selbst regieren, aber von wenigen oder keinen Staaten anerkannt werden: Somaliland, Nordzypern, Abchasien, Südossetien, Transnistrien und der Teil der Westsahara, den die Sahrauische Republik hält.",
+        "dependencies": "{tier}: zusätzlich {count} Gebiete, die von einem anderen Staat regiert werden und einen eigenen Ländercode haben, etwa Grönland, Puerto Rico oder Hongkong.",
+        "text": "Jede Stufe zeichnet nur die Orte, nach denen sie fragt. Ausgelassene Orte werden als Teil des Landes gezeichnet, das sie hält, sodass abhängige Gebiete innerhalb ihres souveränen Staats liegen und abgespaltene Staaten innerhalb des Staats, von dem sie sich abgespalten haben."
       },
       "ukraine": {
         "heading": "Ukraine",
-        "text": "Crimea is drawn as Russia: Russia has controlled it since 2014 and that line has not moved. The rest of Ukraine is drawn as Ukraine, including the areas Russia has held since 2014 and 2022, because an active front has no settled line. This isn't fully consistent, since parts of Donetsk and Luhansk have been held as long as Crimea. We'll revisit it when a line settles."
+        "text": "Die Krim wird als Russland gezeichnet: Russland kontrolliert sie seit 2014, und diese Linie hat sich nicht bewegt. Der Rest der Ukraine wird als Ukraine gezeichnet, auch die Gebiete, die Russland seit 2014 und 2022 hält, weil eine aktive Front keine feste Linie hat. Das ist nicht ganz konsequent, denn Teile von Donezk und Luhansk werden schon genauso lange gehalten wie die Krim. Wir prüfen das neu, sobald sich eine Linie festigt."
       },
       "westernSahara": {
-        "heading": "Western Sahara",
-        "text": "Morocco controls most of Western Sahara, west of a long sand wall called the Berm. The Sahrawi Republic holds the strip east of it. In the de facto and dependencies tiers, that strip is its own place, Western Sahara, and the rest is drawn as Morocco. In the sovereign tier, the strip isn't asked, so all of Western Sahara is drawn as Morocco."
+        "heading": "Westsahara",
+        "text": "Marokko kontrolliert den größten Teil der Westsahara, westlich eines langen Sandwalls namens Berm. Die Sahrauische Republik hält den Streifen östlich davon. In den Stufen „De facto“ und „Abhängige Gebiete“ ist dieser Streifen ein eigener Ort, Westsahara, und der Rest wird als Marokko gezeichnet. In der Stufe „Souverän“ wird der Streifen nicht abgefragt, also wird die ganze Westsahara als Marokko gezeichnet."
       },
       "capitals": {
-        "heading": "Capitals",
-        "text": "A capital counts only if it lies inside the land drawn for its place. So Palestine's capital is Ramallah, where its government sits, not East Jerusalem, which the map draws as Israel. Western Sahara's is Tifariti, not Laayoune, which lies on the Moroccan side. Israel's is Jerusalem. Where a place has more than one capital, any of them is right. A few territories have no capital and never come up in Name the capital: Heard and McDonald Islands, the US Minor Outlying Islands, the French Southern Lands, the British Indian Ocean Territory, Hong Kong and Macau."
+        "heading": "Hauptstädte",
+        "text": "Eine Hauptstadt zählt nur, wenn sie in dem Gebiet liegt, das für ihren Ort gezeichnet ist. Deshalb ist Palästinas Hauptstadt Ramallah, wo seine Regierung sitzt, nicht Ostjerusalem, das die Karte als Israel zeichnet. Bei der Westsahara ist es Tifariti, nicht Laayoune, das auf der marokkanischen Seite liegt. Bei Israel ist es Jerusalem. Hat ein Ort mehr als eine Hauptstadt, ist jede davon richtig. Einige Gebiete haben keine Hauptstadt und kommen in „Nenne die Hauptstadt“ nie vor: die Heard und McDonaldinseln, die Amerikanischen Überseeinseln, die Französischen Süd- und Antarktisgebiete, das Britische Territorium im Indischen Ozean, Hongkong und Macau."
       },
       "flags": {
-        "heading": "Flags",
-        "text": "Each place shows the flag of whoever governs it. Afghanistan shows the white flag of the Taliban government, in control since 2021. Six territories have no flag of their own, only their sovereign's, and are left out of flag rounds: Saint Barthélemy, Saint Martin, Saint Pierre and Miquelon, Wallis and Futuna, the US Minor Outlying Islands, and Heard and McDonald Islands."
+        "heading": "Flaggen",
+        "text": "Jeder Ort zeigt die Flagge dessen, der ihn regiert. Afghanistan zeigt die weiße Flagge der Taliban-Regierung, die seit 2021 an der Macht ist. Sechs Gebiete haben keine eigene Flagge, nur die ihres souveränen Staats, und werden in Flaggenrunden ausgelassen: Saint-Barthélemy, Saint-Martin, Saint-Pierre und Miquelon, Wallis und Futuna, die Amerikanischen Überseeinseln sowie die Heard und McDonaldinseln."
       },
       "leases": {
-        "heading": "Leases, bases and small territories",
-        "text": "Some land is run by another state under a lease or treaty. The map draws it as part of the country it lies in: Guantánamo Bay is Cuba, Baikonur is Kazakhstan, and the British bases on Cyprus, Akrotiri and Dhekelia, are Cyprus, as is the UN buffer zone. Small uninhabited territories with no country code of their own, such as Clipperton Island or the Coral Sea Islands, are part of the state that holds them. The Spratly Islands, claimed by several states, are left off the map. The Chagos Archipelago (British Indian Ocean Territory) is drawn as British, as Natural Earth has it. The UK has agreed to hand it to Mauritius; once that takes effect, the map will follow."
+        "heading": "Pacht, Stützpunkte und kleine Gebiete",
+        "text": "Manche Gebiete werden von einem anderen Staat per Pacht oder Vertrag verwaltet. Die Karte zeichnet sie als Teil des Landes, in dem sie liegen: Die Guantánamo-Bucht ist Kuba, Baikonur ist Kasachstan, und die britischen Stützpunkte auf Zypern, Akrotiri und Dekelia, sind Zypern, ebenso wie die UN-Pufferzone. Kleine unbewohnte Gebiete ohne eigenen Ländercode, etwa die Clipperton-Insel oder die Korallenmeerinseln, sind Teil des Staats, der sie hält. Die Spratly-Inseln, die mehrere Staaten beanspruchen, werden auf der Karte weggelassen. Der Chagos-Archipel (Britisches Territorium im Indischen Ozean) wird als britisch gezeichnet, wie bei Natural Earth. Das Vereinigte Königreich hat vereinbart, ihn an Mauritius zu übergeben; sobald das in Kraft tritt, folgt die Karte."
       },
       "unclaimed": {
-        "heading": "Unclaimed land",
-        "text": "Some land is held by no place on the map: Antarctica; Bir Tawil, between Egypt and Sudan, which neither claims; and a stretch of the Southern Patagonian Ice Field whose border Argentina and Chile haven't agreed. It is drawn, but it can't be selected and is never asked."
+        "heading": "Unbeanspruchtes Land",
+        "text": "Manches Land gehört zu keinem Ort auf der Karte: die Antarktis; Bir Tawil zwischen Ägypten und dem Sudan, das keiner der beiden beansprucht; und ein Abschnitt des Südlichen Patagonischen Eisfelds, über dessen Grenze sich Argentinien und Chile nicht geeinigt haben. Es wird gezeichnet, lässt sich aber nicht auswählen und wird nie abgefragt."
       },
       "sources": {
-        "heading": "Where the data comes from",
-        "borders": "Borders: Natural Earth 1:10m, version {ne}. Made with Natural Earth.",
-        "names": "Names: Unicode CLDR {cldr}, © Unicode, Inc., used under the Unicode License v3.",
-        "aliases": "Alternative names: partly from mledoze/countries (ODbL 1.0).",
-        "capitals": "Capitals and flag choices: Wikidata (CC0), as of {wikidataDate}.",
-        "flags": "Flag images: Wikimedia Commons, public domain except where listed below.",
-        "rulings": "Corrections and rulings: made by hand for this game, as described above.",
-        "version": "Data version {dataVersion} · built {builtAt}",
-        "licences": "Licences",
-        "flagOf": "Flag of {place}",
-        "flagCredit": "{flag}: {artist}, {licence}, via Wikimedia Commons"
+        "heading": "Woher die Daten stammen",
+        "borders": "Grenzen: Natural Earth 1:10m, Version {ne}. Erstellt mit Natural Earth.",
+        "names": "Namen: Unicode CLDR {cldr}, © Unicode, Inc., verwendet unter der Unicode License v3.",
+        "aliases": "Alternative Namen: zum Teil aus mledoze/countries (ODbL 1.0).",
+        "capitals": "Hauptstädte und Wahl der Flaggen: Wikidata (CC0), Stand {wikidataDate}.",
+        "flags": "Flaggenbilder: Wikimedia Commons, gemeinfrei, sofern unten nicht anders aufgeführt.",
+        "rulings": "Korrekturen und Festlegungen: von Hand für dieses Spiel erstellt, wie oben beschrieben.",
+        "version": "Datenversion {dataVersion} · erstellt am {builtAt}",
+        "licences": "Lizenzen",
+        "flagOf": "Flagge von {place}",
+        "flagCredit": "{flag}: {artist}, {licence}, über Wikimedia Commons",
+        "commonsContributors": "Mitwirkende von Wikimedia Commons"
       }
     }
   },

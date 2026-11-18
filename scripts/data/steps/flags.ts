@@ -76,7 +76,7 @@ export const joinFlags = (places: FlagPlace[], sources: FlagSources): FlagJoin =
     if (licence.file !== file) failures.mismatches.push(`${id}: the snapshot is of ${licence.file}, the ruling is ${file}: run npm run data:fetch -- --flags`);
     flags[id] = flagSvgName(id);
     svgs[id] = withViewBox(withoutMetadataAndComments(withLineFeeds(readFileSync(svgPath, 'utf8'))));
-    if (licence.attributionRequired) credits.push({ id, file, artist: isPlaceholderArtist(licence.artist) ? 'Wikimedia Commons contributors' : licence.artist, license: licence.license, licenseUrl: licence.licenseUrl });
+    if (licence.attributionRequired) credits.push({ id, file, artist: isPlaceholderArtist(licence.artist) ? null : licence.artist, license: licence.license, licenseUrl: licence.licenseUrl });
   }
   return { flags, svgs, credits, failures };
 };
