@@ -33,7 +33,18 @@ export const useAppUpdate = () => {
 
   const isUpdateReady = computed(() => Boolean($pwa?.needRefresh) && !isRoundStored.value && !isDismissed.value);
 
-  const applyUpdate = () => $pwa?.updateServiceWorker();
+  // vite-pwa only reloads pages a service worker controlled at load; others would stay on the old version.
+  const applyUpdate = () => {
+    const waitingWorker = $pwa?.getSWRegistration()?.waiting;
+    if (!waitingWorker) {
+      window.location.reload();
+      return;
+    }
+    waitingWorker.addEventListener('statechange', () => {
+      if (waitingWorker.state === 'activated') window.location.reload();
+    });
+    $pwa?.updateServiceWorker();
+  };
   const dismissUpdate = () => {
     isDismissed.value = true;
   };
