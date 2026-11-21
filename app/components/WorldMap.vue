@@ -5,7 +5,8 @@ import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLa
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
-import { seaAssistPlaceId } from '#shared/utils/seaAssist';
+import { aidedPlaceId, chainOutlineShown } from '#shared/utils/chainOutlines';
+import type { MapDrawing } from '#shared/utils/chainOutlines';
 import type { MapFreeArea } from '~/composables/useMapFreeArea';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useSettingsStore } from '~/stores/settings';
@@ -71,7 +72,8 @@ const props = withDefaults(defineProps<{
   bottomCover?: number
   freeArea?: MapFreeArea | null
   nameablePlaces?: Record<string, string> | null
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null });
+  gapPlaceIds?: string[]
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null, gapPlaceIds: () => [] });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string], next: [] }>();
 
 const { t, locale } = useI18n();
@@ -177,6 +179,7 @@ const shortestOutlineFilterFor = (placeIds: string[] = []): FilterSpecification 
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
 const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
 const isChainTinted: ExpressionSpecification = ['any', isCursor, ['!=', status, '']];
+const chainOutlineShownState: ExpressionSpecification = ['number', ['feature-state', 'outlineShown'], 0];
 const chainVisibility = () => (settings.isChainOutlinesOn ? 'visible' : 'none');
 
 // MapLibre only allows ['zoom'] as the input of a top-level interpolate, so the per-place cut-off sits inside each stop.
@@ -218,8 +221,8 @@ const styleFor = ({ places, specks, chains }: TierMap): StyleSpecification => ({
   },
   layers: [
     { id: 'water', type: 'background', paint: { 'background-color': waterColour() } },
-    { id: 'chain-tint', type: 'fill', source: 'chains', maxzoom: chainHiddenZoom, layout: { visibility: chainVisibility() }, paint: { 'fill-color': placeFillOver(landFill), 'fill-opacity': ['case', isChainTinted, 0.3, 0] } },
-    { id: 'chain-outline', type: 'line', source: 'chains', maxzoom: chainHiddenZoom, layout: { 'visibility': chainVisibility(), 'line-join': 'round' }, paint: { 'line-color': ['case', isChainTinted, colours.ink, chainOutlineColour()], 'line-width': ['case', isChainTinted, 2, 1.2], 'line-dasharray': [3, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], chainFadeStartZoom, 1, chainHiddenZoom, 0] } },
+    { id: 'chain-tint', type: 'fill', source: 'chains', maxzoom: chainHiddenZoom, layout: { visibility: chainVisibility() }, paint: { 'fill-color': placeFillOver(landFill), 'fill-opacity': ['case', isChainTinted, ['*', 0.3, chainOutlineShownState], 0] } },
+    { id: 'chain-outline', type: 'line', source: 'chains', maxzoom: chainHiddenZoom, layout: { 'visibility': chainVisibility(), 'line-join': 'round' }, paint: { 'line-color': ['case', isChainTinted, colours.ink, chainOutlineColour()], 'line-width': ['case', isChainTinted, 2, 1.2], 'line-dasharray': [3, 2.5], 'line-opacity': ['interpolate', ['linear'], ['zoom'], chainFadeStartZoom, chainOutlineShownState, chainHiddenZoom, 0] } },
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchNameOf(hatchName), 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
@@ -297,16 +300,23 @@ let hasLoaded = false;
 let lastSelectedPlaceId: string | null = null;
 let framedRegion: RegionChoice | null = null;
 
+const mapDrawing = (): MapDrawing => ({ landShown: props.landShown, drawnPlaceIds: routePlaceIdsOf(props.route), poolPlaceIds: props.poolPlaceIds, gapPlaceIds: props.gapPlaceIds });
+
+const showChainOutlines = () => {
+  if (!map || !hasLoaded) return;
+  const drawing = mapDrawing();
+  for (const { properties: { id } } of shownTierMap?.chains.features ?? []) map.setFeatureState({ source: 'chains', id }, { outlineShown: chainOutlineShown(id, drawing) });
+};
+
 const pickAidedPlaceId = (shownMap: MapLibreMap, point: MapMouseEvent['point']) => {
-  const [outlined] = shownMap.queryRenderedFeatures(point, { layers: ['chain-tint'] });
-  if (outlined) return outlined.properties.id as string;
+  const outlinedPlaceIds = shownMap.queryRenderedFeatures(point, { layers: ['chain-tint'] }).map(({ properties }) => properties.id as string);
   const tapLongitude = shownMap.unproject(point).lng;
   // Each point is taken on the world copy nearest the tap, so islands by the antimeridian are caught on either side of it.
   const specks = (loadedSpecks?.features ?? []).map(({ properties: { id, speckZoom }, geometry: { coordinates: [longitude = 0, latitude = 0] } }) => {
     const { x, y } = shownMap.project([longitude + 360 * Math.round((tapLongitude - longitude) / 360), latitude]);
     return { placeId: id, x, y, speckZoom };
   });
-  return seaAssistPlaceId(point, specks, shownMap.getZoom());
+  return aidedPlaceId({ tap: point, outlinedPlaceIds, specks, zoom: shownMap.getZoom() }, mapDrawing());
 };
 
 const pickPlaceId = (point: MapMouseEvent['point']) => {
@@ -348,6 +358,7 @@ const drawMapData = async () => {
   (map.getSource('places') as GeoJSONSource).setData(loadedPlaces);
   (map.getSource('specks') as GeoJSONSource).setData(loadedSpecks);
   (map.getSource('chains') as GeoJSONSource).setData(tierMap.chains);
+  showChainOutlines();
   if (outsideIds.length > 0) fitRoute();
 };
 
@@ -742,6 +753,7 @@ watch(() => routeLookOf(props.route), () => {
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
 watch([() => props.route?.framedPlaceIds.join(), () => props.freeArea && Object.values(props.freeArea).join()], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
+watch([() => props.landShown, () => props.poolPlaceIds, () => props.gapPlaceIds, () => routePlaceIdsOf(props.route).join()], showChainOutlines);
 watch(() => settings.isChainOutlinesOn, () => {
   if (!hasLoaded) return;
   for (const layer of chainLayers) map?.setLayoutProperty(layer, 'visibility', chainVisibility());
@@ -797,6 +809,7 @@ onMounted(async () => {
     for (const { placeId, outcome } of props.resultPlaces ?? []) setPlaceStatus(placeId, outcome);
     applyRatings(props.placeRatings);
     dimOutsidePool();
+    showChainOutlines();
     applyHighlight(props.highlightedPlaceId);
     if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
     markRoute(props.route);
