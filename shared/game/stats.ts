@@ -14,6 +14,11 @@ export interface StatsScope {
 
 export type PlaceRatings = Record<string, Rating>;
 
+export interface AnswerTally {
+  right: number
+  count: number
+}
+
 export interface AllGamesStats {
   tier: Tier
   roundsPlayed: number
@@ -74,6 +79,7 @@ export interface StatsDependencies {
 const placesStorageKey = 'ti:places';
 export const regularModes: Mode[] = ['find', 'name', 'capital', 'country'];
 export const specialModes: Mode[] = ['fill', 'missing', 'wayfinder'];
+const modeVariantsTestingSameKnowledge = [['find:name', 'find:both', 'name:map'], ['find:flag', 'country:flag'], ['capital:map'], ['country:silhouette']];
 const regionsInOrder: Region[] = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 const tiersInOrder: Tier[] = ['sovereign', 'defacto', 'dependencies'];
 const fewestAnswersToJudge = 3;
@@ -139,6 +145,20 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
     return Object.fromEntries(places
       .filter(place => tiersInOrder.indexOf(place.tier) <= tiersInOrder.indexOf(tier) && isEligibleInScope(place, scope))
       .map(({ id }) => [id, ratingOf(pooledAnswers.get(id) ?? [])]));
+  };
+
+  const sameKnowledgeAnswers = ({ mode, variant }: { mode: Mode, variant: Variant }): Record<string, AnswerTally> => {
+    const sameKnowledge = modeVariantsTestingSameKnowledge.find(modeVariants => modeVariants.includes(`${mode}:${variant}`)) ?? [];
+    const tallies: Record<string, AnswerTally> = {};
+    for (const [modeVariant, byPlaceId] of Object.entries(readPlaceRecords(storage))) {
+      if (!sameKnowledge.includes(modeVariant)) continue;
+      for (const [placeId, { recent, easySeen, easyCorrect }] of Object.entries(byPlaceId)) {
+        const tally = tallies[placeId] ??= { right: 0, count: 0 };
+        tally.right += recent.filter(answer => answer === 1).length + easyCorrect;
+        tally.count += recent.length + easySeen;
+      }
+    }
+    return tallies;
   };
 
   const regionCounts = (scope: StatsScope = {}): RegionCounts[] => {
@@ -227,7 +247,7 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
     };
   };
 
-  return { placeRatings, regionCounts, placeDetails, allGames, modeStats };
+  return { placeRatings, sameKnowledgeAnswers, regionCounts, placeDetails, allGames, modeStats };
 };
 
 export type Stats = ReturnType<typeof createStats>;

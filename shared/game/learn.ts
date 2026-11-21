@@ -1,10 +1,12 @@
 import type { Answer, Outcome } from './game';
+import type { AnswerTally } from './stats';
 
 export const workingSetSize = 4;
 const firstComebackAfter = 3;
 const secondComebackAfter = 6;
 const rightsToClear = 2;
 const joinWindowSize = 15;
+const reachFromShare = 0.8;
 
 export interface Miss {
   placeId: string
@@ -33,10 +35,30 @@ export const shuffledWithinWindow = (placeIdsByEase: readonly string[], random: 
   return drawn;
 };
 
-export const startLoop = (toJoin: string[]): LearningLoop => ({
+const reachOf = (placeIdsByEase: readonly string[], answersByPlaceId: Record<string, AnswerTally>) => {
+  let reach = 0;
+  let rightShares = 0;
+  placeIdsByEase.forEach((placeId, index) => {
+    const answers = answersByPlaceId[placeId];
+    // A place never answered counts as wrong, and the reach only ever ends on an answered place.
+    if (!answers?.count) return;
+    rightShares += answers.right / answers.count;
+    if (rightShares / (index + 1) >= reachFromShare) reach = index + 1;
+  });
+  return reach;
+};
+
+export const knownBeforeReach = (placeIdsByEase: readonly string[], answersByPlaceId: Record<string, AnswerTally>) => placeIdsByEase
+  .slice(0, reachOf(placeIdsByEase, answersByPlaceId))
+  .filter((placeId) => {
+    const answers = answersByPlaceId[placeId];
+    return !answers?.count || answers.right / answers.count >= reachFromShare;
+  });
+
+export const startLoop = (toJoin: string[], toReview: string[]): LearningLoop => ({
   toJoin,
   misses: [],
-  toReview: [],
+  toReview,
   firstAnswers: [],
   learnedPlaceIds: [],
   answerCount: 0,

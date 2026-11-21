@@ -5,7 +5,7 @@ import { drawGaps, gapCount, isStoredProgress, judgeTap, missingTimeLimitMs, tap
 import type { MissingTap } from './missing';
 import { fillBudgetPerPlaceMs, isStoredFill, judgeFill } from './fill';
 import type { FillInput } from './fill';
-import { afterAnswer, isFirstAnswerTo, isStoredLoop, nextPrompt, shuffledWithinWindow, startLoop } from './learn';
+import { afterAnswer, isFirstAnswerTo, isStoredLoop, knownBeforeReach, nextPrompt, shuffledWithinWindow, startLoop } from './learn';
 import type { LearningLoop } from './learn';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
@@ -315,13 +315,17 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
       .map(({ id }) => id);
   };
 
-  const joinOrderOf = (learnSetup: RoundSetup) => {
+  const startingLoopOf = (learnSetup: RoundSetup) => {
     const ratings = stats.placeRatings({ mode: learnSetup.mode, variant: learnSetup.variant });
     const placeRecords = records.placeRecordsOf(learnSetup);
     const byEase = inEaseOrder(learnSetup, poolOf(learnSetup));
+    const known = knownBeforeReach(byEase, stats.sameKnowledgeAnswers(learnSetup));
     const ratedAs = (...wanted: Rating[]) => byEase.filter(id => wanted.includes(ratings[id] ?? 'noData'));
     const isShakyOnlyByCount = (placeId: string) => ratings[placeId] === 'shaky' && !placeRecords[placeId]?.recent.includes(0);
-    return [...ratedAs('weak', 'shaky').filter(id => !isShakyOnlyByCount(id)), ...shuffledWithinWindow(ratedAs('noData'), random), ...byEase.filter(isShakyOnlyByCount)];
+    const isSkipped = (placeId: string) => known.includes(placeId);
+    const newPlaces = ratedAs('noData');
+    const toJoin = [...ratedAs('weak', 'shaky').filter(id => !isShakyOnlyByCount(id)), ...shuffledWithinWindow(newPlaces.filter(id => !isSkipped(id)), random), ...byEase.filter(isShakyOnlyByCount)];
+    return startLoop(toJoin, newPlaces.filter(isSkipped));
   };
 
   const reviewOrderOf = (learnSetup: RoundSetup) => (excludedPlaceIds: string[]) => {
@@ -524,7 +528,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const startLearning = (requestedSetup: RoundSetup) => {
     const roundSetup: RoundSetup = { ...requestedSetup, timed: false };
-    const { loop, placeId } = nextPrompt(startLoop(joinOrderOf(roundSetup)), undefined, reviewOrderOf(roundSetup));
+    const { loop, placeId } = nextPrompt(startingLoopOf(roundSetup), undefined, reviewOrderOf(roundSetup));
     begin(roundSetup, [placeId], null);
     learningLoop = loop;
     rememberSetup(roundSetup);
