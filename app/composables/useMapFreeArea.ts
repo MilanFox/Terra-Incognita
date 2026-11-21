@@ -23,7 +23,8 @@ const layoutBoxOf = (element: HTMLElement) => {
 };
 
 export const useMapFreeArea = ({ map, top, bottom, right }: { map: Cover, top?: Cover, bottom?: Cover, right?: Cover }) => {
-  const sizes = [map, top, bottom, right].map(cover => useElementSize(() => toValue(cover), undefined, { box: 'border-box' }));
+  const coversAndTheirParents = [top, bottom, right].flatMap(cover => [cover, () => toValue(cover)?.parentElement]);
+  const sizes = [map, ...coversAndTheirParents].map(element => useElementSize(() => toValue(element), undefined, { box: 'border-box' }));
 
   const edgesOf = (cover?: Cover) => {
     const element = toValue(cover);
@@ -31,7 +32,7 @@ export const useMapFreeArea = ({ map, top, bottom, right }: { map: Cover, top?: 
   };
 
   return computed<MapFreeArea | null>(() => {
-    // Offsets aren't reactive, so every observed size is read for its changes to recompute the free area; the first is the map's.
+    // Offsets aren't reactive, so every observed size is read for its changes to recompute the free area (a cover moves when its parent grows); the first is the map's.
     const [mapSize] = sizes.map(({ width, height }) => width.value * height.value);
     const mapEdges = edgesOf(map);
     if (!mapEdges || !mapSize) return null;
