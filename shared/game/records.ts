@@ -57,7 +57,7 @@ const dailyStorageKey = 'ti:daily';
 const recentLength = 8;
 const roundLogLength = 1000;
 
-const modeVariantOf = ({ mode, variant }: RoundSetup) => `${mode}:${variant}`;
+export const modeVariantOf = ({ mode, variant }: RoundSetup) => `${mode}:${variant}`;
 
 export const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy, timed }: RoundSetup) => (mode === 'wayfinder'
   ? [mode, easy ? 'easy' : 'normal']

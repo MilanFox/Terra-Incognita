@@ -4,11 +4,10 @@ import { pieceAreaKm2 } from '../land-area.ts';
 import { byId, polygonsOf, tiers } from '../model.ts';
 import { curatedDir } from '../paths.ts';
 import { bboxOf } from './compute.ts';
-import { fittedOutline } from './fitted-outline.ts';
+import { fittedOutline } from '../fitted-outline.ts';
+import type { Point } from '../fitted-outline.ts';
 import type { Bbox, Ring, Tier, TieredPlaces } from '../model.ts';
 import type { TierMaps } from './dissolve.ts';
-
-type Point = [number, number];
 
 export type ChainOutline = { id: string, tier: Tier, ring: Ring };
 export type ChainRulings = {
@@ -42,12 +41,12 @@ export const readChainRulings = (): ChainRulings =>
 const bboxAreaKm2 = ([west, south, east, north]: Bbox) =>
   earthRadiusKm ** 2 * ((east >= west ? east - west : east + 360 - west) * radians) * (Math.sin(north * radians) - Math.sin(south * radians));
 
-const convexHull = (points: [number, number][]) => {
+const convexHull = (points: Point[]) => {
   const sorted = [...points].sort((first, second) => first[0] - second[0] || first[1] - second[1]);
-  const cross = (origin: [number, number], first: [number, number], second: [number, number]) =>
+  const cross = (origin: Point, first: Point, second: Point) =>
     (first[0] - origin[0]) * (second[1] - origin[1]) - (first[1] - origin[1]) * (second[0] - origin[0]);
-  const halfHull = (list: [number, number][]) => {
-    const half: [number, number][] = [];
+  const halfHull = (list: Point[]) => {
+    const half: Point[] = [];
     for (const point of list) {
       while (half.length >= 2 && cross(half[half.length - 2]!, half[half.length - 1]!, point) <= 0) half.pop();
       half.push(point);
@@ -80,7 +79,7 @@ const roundedOutline = (hull: Ring, roundness: number): Ring => {
   const radius = Math.max(paddingDegrees, narrowSide * roundness);
   const padded = convexHull(hull.flatMap(([longitude, latitude]) => Array.from({ length: roundedCornerSteps }, (_, step) => {
     const angle = step * 2 * Math.PI / roundedCornerSteps;
-    return [longitude + radius * Math.cos(angle), latitude + radius * Math.sin(angle)] as [number, number];
+    return [longitude + radius * Math.cos(angle), latitude + radius * Math.sin(angle)] as Point;
   })));
   return chaikin(padded, smoothingIterations);
 };
@@ -137,7 +136,7 @@ const fitCloser = (candidate: Candidate, isClashing: () => boolean) => {
 // A bbox that crosses the antimeridian has west > east; the land east of the line then moves a turn further east,
 // so the chain is one run of longitudes.
 const unbrokenOuterRings = (polygons: Ring[][], [west, , east]: Bbox): Ring[] => polygons.map(([outer = []]) =>
-  outer.map(([longitude, latitude]): [number, number] => [west > east && longitude < west ? longitude + 360 : longitude, latitude]));
+  outer.map(([longitude, latitude]): Point => [west > east && longitude < west ? longitude + 360 : longitude, latitude]));
 
 export const chainsOf = (maps: TierMaps, places: TieredPlaces, rulings: ChainRulings): Chains => {
   const candidates: Candidate[] = [];
@@ -193,7 +192,7 @@ export const chainsOf = (maps: TierMaps, places: TieredPlaces, rulings: ChainRul
 
   const outlines = candidates
     .map(({ id, tier, ring }): ChainOutline => {
-      const rounded = ring.map(([longitude, latitude]) => [Math.round(longitude * 1000) / 1000, Math.round(latitude * 1000) / 1000] as [number, number]);
+      const rounded = ring.map(([longitude, latitude]) => [Math.round(longitude * 1000) / 1000, Math.round(latitude * 1000) / 1000] as Point);
       return { id, tier, ring: [...rounded, rounded[0]!] };
     })
     .sort(byId);

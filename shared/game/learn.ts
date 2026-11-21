@@ -6,7 +6,7 @@ const firstComebackAfter = 3;
 const secondComebackAfter = 6;
 const rightsToClear = 2;
 const joinWindowSize = 15;
-const reachFromShare = 0.8;
+const reliablyRightShare = 0.8;
 
 export interface Miss {
   placeId: string
@@ -43,16 +43,16 @@ const reachOf = (placeIdsByEase: readonly string[], answersByPlaceId: Record<str
     // A place never answered counts as wrong, and the reach only ever ends on an answered place.
     if (!answers?.count) return;
     rightShares += answers.right / answers.count;
-    if (rightShares / (index + 1) >= reachFromShare) reach = index + 1;
+    if (rightShares / (index + 1) >= reliablyRightShare) reach = index + 1;
   });
   return reach;
 };
 
-export const knownBeforeReach = (placeIdsByEase: readonly string[], answersByPlaceId: Record<string, AnswerTally>) => placeIdsByEase
+export const skippedBeforeReach = (placeIdsByEase: readonly string[], answersByPlaceId: Record<string, AnswerTally>) => placeIdsByEase
   .slice(0, reachOf(placeIdsByEase, answersByPlaceId))
   .filter((placeId) => {
     const answers = answersByPlaceId[placeId];
-    return !answers?.count || answers.right / answers.count >= reachFromShare;
+    return !answers?.count || answers.right / answers.count >= reliablyRightShare;
   });
 
 export const startLoop = (toJoin: string[], toReview: string[]): LearningLoop => ({
