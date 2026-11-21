@@ -37,10 +37,15 @@ watchEffect(() => isSilhouetteShown.value && game.loadOwnLand());
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 const pickedName = (placeId: string) => (isCapital.value ? game.firstCapitalNameOf(placeId, locale.value) : placeName(placeId));
 const capitalNames = (placeId: string) => game.capitalNamesOf(placeId, locale.value);
+
+const chrome = useTemplateRef('chrome');
+
+defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed(() => chrome.value?.zoomTiles) });
 </script>
 
 <template>
   <RoundChrome
+    ref="chrome"
     :state="state"
     :end-line="$t('endRound.line')"
     :is-at-min-zoom="isAtMinZoom"

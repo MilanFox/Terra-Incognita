@@ -12,10 +12,15 @@ const game = useGameStore();
 const gapCells = computed(() => props.state.gapPlaceIds.map((placeId): ProgressCell => (props.state.foundPlaceIds.includes(placeId) ? 'right' : 'pending')));
 const placeName = (placeId: string) => game.nameOf(placeId, locale.value);
 const shownTap = computed(() => (props.isMarked ? null : props.state.lastTap));
+
+const chrome = useTemplateRef('chrome');
+
+defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed(() => chrome.value?.zoomTiles) });
 </script>
 
 <template>
   <RoundChrome
+    ref="chrome"
     :state="state"
     :end-line="$t('missing.endLine')"
     :is-at-min-zoom="isAtMinZoom"

@@ -15,10 +15,15 @@ const inputLine = computed(() => {
   if (!lastInput) return '';
   return t(`fill.input.${lastInput.kind}`, { place: 'placeId' in lastInput ? game.nameOf(lastInput.placeId, locale.value) : '' });
 });
+
+const chrome = useTemplateRef('chrome');
+
+defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed(() => chrome.value?.zoomTiles) });
 </script>
 
 <template>
   <RoundChrome
+    ref="chrome"
     :state="state"
     :end-line="$t('fill.endLine')"
     :is-at-min-zoom="isAtMinZoom"
