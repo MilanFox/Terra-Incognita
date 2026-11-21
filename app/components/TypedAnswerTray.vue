@@ -17,6 +17,7 @@ const isRejected = ref(false);
 
 const outcome = computed(() => (props.state.phase === 'verdict' ? props.state.answer.outcome : null));
 const isAwaitingNext = computed(() => outcome.value !== null || (props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open'));
+const isRouteRevealed = computed(() => props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open');
 const submitKey = computed(() => (isAwaitingNext.value && (outcome.value !== 'right' || settings.isWaitForNextOn) ? 'next' : 'submit'));
 const isPaused = computed(() => props.state.phase !== 'wayfinder' && props.state.isPaused);
 const unresolvedCount = computed(() => {
@@ -73,6 +74,7 @@ watch(unresolvedCount, async (count) => {
 
 useEventListener(document, 'keydown', (event) => {
   const { target } = event;
+  if (isRouteRevealed.value && event.key === 'Enter' && target === document.body) emit('next');
   if (isAwaitingNext.value || event.ctrlKey || event.metaKey || event.altKey || !/^[\p{L}-]$/u.test(event.key)) return;
   if (target === input.value || (target instanceof Element && target.closest('[role="dialog"], [role="alertdialog"], input, textarea'))) return;
   input.value?.focus({ preventScroll: true });
@@ -119,7 +121,7 @@ defineExpose({
     </form>
 
     <TileKeyboard
-      v-if="!settings.isSystemKeyboardOn"
+      v-if="!settings.isSystemKeyboardOn && !isRouteRevealed"
       :submit-key="submitKey"
       @type="type"
       @erase="erase"

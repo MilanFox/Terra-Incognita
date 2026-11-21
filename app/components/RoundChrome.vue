@@ -21,6 +21,7 @@ const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
 const flipPhase = ref<'out' | 'in' | null>(null);
 const root = useTemplateRef<HTMLElement>('root');
 const cardFlip = useTemplateRef<HTMLElement>('cardFlip');
+const zoomTiles = useTemplateRef<ComponentPublicInstance>('zoomTiles');
 const confirmEndTile = useTemplateRef<HTMLButtonElement>('confirmEndTile');
 const keepPlayingTile = useTemplateRef<HTMLButtonElement>('keepPlayingTile');
 const closeTile = useTemplateRef<HTMLButtonElement>('closeTile');
@@ -88,7 +89,7 @@ useEventListener(document, 'keydown', (event) => {
 
 onBeforeUnmount(() => clearTimeout(flipTimer));
 
-defineExpose({ root, cardFlip });
+defineExpose({ root, cardFlip, zoomTiles: computed(() => zoomTiles.value?.$el as HTMLElement | undefined) });
 </script>
 
 <template>
@@ -224,6 +225,7 @@ defineExpose({ root, cardFlip });
     </div>
 
     <ZoomTiles
+      ref="zoomTiles"
       class="round-zoom"
       :inert="isConfirming"
       :is-at-min-zoom="isAtMinZoom"

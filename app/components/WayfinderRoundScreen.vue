@@ -47,14 +47,7 @@ watch(() => route.value.outcome, (outcome) => {
 
 const chrome = useTemplateRef('chrome');
 
-const { height: cardHeight } = useElementSize(() => chrome.value?.cardFlip, undefined, { box: 'border-box' });
-// Offsets, not the bounding box: the screen drops in with a transform, which a bounding box would catch mid-flight.
-const cardBottom = computed(() => {
-  const { root, cardFlip } = chrome.value ?? {};
-  return cardHeight.value && root && cardFlip ? root.offsetTop + cardFlip.offsetTop + cardHeight.value : 0;
-});
-
-defineExpose({ cardBottom });
+defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed(() => chrome.value?.zoomTiles) });
 </script>
 
 <template>

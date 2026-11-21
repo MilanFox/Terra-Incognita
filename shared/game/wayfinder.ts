@@ -32,7 +32,7 @@ export interface RouteReveal {
 }
 
 export type WayfinderState
-  = | { phase: 'wayfinder', setup: RoundSetup, routeNumber: number, route: Route, routes: Route[], detoursLeft: number, rejectedEntries: RejectedEntry[], isConfirmingEnd: boolean, reveal: RouteReveal | null }
+  = | { phase: 'wayfinder', setup: RoundSetup, routeNumber: number, route: Route, routes: Route[], detoursLeft: number, rejectedEntries: RejectedEntry[], isConfirmingEnd: boolean, reveal: RouteReveal | null, framedPlaceIds: string[] }
     | { phase: 'wayfinderResults', setup: RoundSetup, routes: Route[], score: number, routesWithoutDetours: number, isComplete: boolean, elapsedMs: number, isNewBest: boolean };
 
 export type MainlandGraph = ReadonlyMap<string, readonly string[]>;
@@ -142,13 +142,21 @@ export const createWayfinder = ({ places, matcher, random, clock, storage, dataV
     return { yourRoute, shortestRoute: yourRoute?.length === route.shortest ? null : closestShortestRoute(graph, route) };
   };
 
+  const framedPlaceIdsOf = ({ start: routeStart, target, entries }: Route, reveal: RouteReveal | null) => {
+    if (reveal) return [...new Set([routeStart, target, ...reveal.shortestRoute ?? [], ...reveal.yourRoute ?? []])];
+    const picks = new Set(entries);
+    const linked = new Set([...searchFrom(graph, routeStart, picks).keys(), ...searchFrom(graph, target, picks).keys()]);
+    return [routeStart, target, ...entries.filter(placeId => linked.has(placeId))];
+  };
+
   const snapshot = (): WayfinderState | null => {
     if (phase === 'idle') return null;
     if (phase === 'wayfinderResults') {
       return { phase, setup, routes: [...routes], score: completedRoutes().length, routesWithoutDetours: completedRoutes().filter(({ detours }) => detours === 0).length, isComplete, elapsedMs, isNewBest };
     }
     const route = currentRoute();
-    return { phase, setup, routeNumber: routes.length, route, routes: [...routes], detoursLeft: detoursLeft(), rejectedEntries: [...rejectedEntries], isConfirmingEnd, reveal: revealOf(route) };
+    const reveal = revealOf(route);
+    return { phase, setup, routeNumber: routes.length, route, routes: [...routes], detoursLeft: detoursLeft(), rejectedEntries: [...rejectedEntries], isConfirmingEnd, reveal, framedPlaceIds: framedPlaceIdsOf(route, reveal) };
   };
 
   let state = snapshot();
