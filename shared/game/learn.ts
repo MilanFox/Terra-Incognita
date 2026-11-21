@@ -4,6 +4,7 @@ export const workingSetSize = 4;
 const firstComebackAfter = 3;
 const secondComebackAfter = 6;
 const rightsToClear = 2;
+const joinWindowSize = 15;
 
 export interface Miss {
   placeId: string
@@ -24,6 +25,13 @@ export interface LearningLoop {
 
 // eslint-disable-next-line no-unused-vars
 export type ReviewOrder = (excludedPlaceIds: string[]) => string[];
+
+export const shuffledWithinWindow = (placeIdsByEase: readonly string[], random: () => number) => {
+  const waiting = [...placeIdsByEase];
+  const drawn: string[] = [];
+  while (waiting.length > 0) drawn.push(...waiting.splice(Math.floor(random() * Math.min(joinWindowSize, waiting.length)), 1));
+  return drawn;
+};
 
 export const startLoop = (toJoin: string[]): LearningLoop => ({
   toJoin,
