@@ -5,7 +5,7 @@ import { drawGaps, gapCount, isStoredProgress, judgeTap, missingTimeLimitMs, tap
 import type { MissingTap } from './missing';
 import { fillBudgetPerPlaceMs, isStoredFill, judgeFill } from './fill';
 import type { FillInput } from './fill';
-import { afterAnswer, isFirstAnswerTo, isStoredLoop, nextPrompt, startLoop } from './learn';
+import { afterAnswer, isFirstAnswerTo, isStoredLoop, nextPrompt, shuffledWithinWindow, startLoop } from './learn';
 import type { LearningLoop } from './learn';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
@@ -317,9 +317,11 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const joinOrderOf = (learnSetup: RoundSetup) => {
     const ratings = stats.placeRatings({ mode: learnSetup.mode, variant: learnSetup.variant });
+    const placeRecords = records.placeRecordsOf(learnSetup);
     const byEase = inEaseOrder(learnSetup, poolOf(learnSetup));
     const ratedAs = (...wanted: Rating[]) => byEase.filter(id => wanted.includes(ratings[id] ?? 'noData'));
-    return [...ratedAs('weak', 'shaky'), ...ratedAs('noData')];
+    const isShakyOnlyByCount = (placeId: string) => ratings[placeId] === 'shaky' && !placeRecords[placeId]?.recent.includes(0);
+    return [...ratedAs('weak', 'shaky').filter(id => !isShakyOnlyByCount(id)), ...shuffledWithinWindow(ratedAs('noData'), random), ...byEase.filter(isShakyOnlyByCount)];
   };
 
   const reviewOrderOf = (learnSetup: RoundSetup) => (excludedPlaceIds: string[]) => {

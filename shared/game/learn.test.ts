@@ -34,7 +34,9 @@ const memoryStorage = (): KeyValueStorage => {
 
 const now = Date.UTC(2026, 10, 18, 9);
 
-const boot = (storage: KeyValueStorage = memoryStorage(), places: Place[] = allPlaces) => createGame({ places, names, version: shippedVersion, random: seededRandom(5), clock: () => now, storage });
+const easiestFirst = () => 0;
+
+const boot = (storage: KeyValueStorage = memoryStorage(), places: Place[] = allPlaces, random: () => number = easiestFirst) => createGame({ places, names, version: shippedVersion, random, clock: () => now, storage });
 
 const learnEurope: RoundSetup = { mode: 'find', variant: 'name', region: 'Europe', tier: 'sovereign', deckSize: 10, easy: false, timed: false, roundKind: 'learn' };
 const learnOceania: RoundSetup = { ...learnEurope, region: 'Oceania' };
@@ -79,6 +81,12 @@ const playAllRight = (game: Game, count: number) => play(game, right.repeat(coun
 
 const startLearning = (setup: RoundSetup, storage?: KeyValueStorage, places?: Place[]) => {
   const game = boot(storage, places);
+  game.send({ type: 'start', setup });
+  return game;
+};
+
+const startLearningWith = (random: () => number, setup: RoundSetup, storage: KeyValueStorage = memoryStorage()) => {
+  const game = boot(storage, allPlaces, random);
   game.send({ type: 'start', setup });
   return game;
 };
@@ -165,8 +173,29 @@ describe('ease order', () => {
   });
 });
 
+describe('the shuffled window', () => {
+  it.each([false, true])('opens with different places for different random sources, Easy mode %s', (easy) => {
+    const setup: RoundSetup = { ...learnEurope, region: 'world', easy };
+    const openingWith = (seed: number) => playAllRight(startLearningWith(seededRandom(seed), setup), 5);
+
+    expect(openingWith(1)).not.toEqual(openingWith(2));
+  });
+
+  it('draws each new place from the next 15 not-yet-learned places in ease order', () => {
+    const easeOrder = playAllRight(startLearning(learnEurope), 46);
+
+    const asked = playAllRight(startLearningWith(seededRandom(1), learnEurope), 46);
+
+    asked.forEach((placeId, index) => {
+      const nextFifteen = easeOrder.filter(id => !asked.slice(0, index).includes(id)).slice(0, 15);
+      expect(nextFifteen).toContain(placeId);
+    });
+    expect(asked).not.toEqual(easeOrder);
+  });
+});
+
 describe('the working set', () => {
-  it('fills with weak and shaky places first, then unplayed ones, in ease order, and skips solid places', () => {
+  it('fills with weak places and shaky ones with a miss first, then unplayed ones, in ease order, and skips solid places', () => {
     const storage = storageWithRecords({ NZL: [0, 0, 0], FJI: [1, 1, 0], AUS: [1, 1, 1] });
 
     const asked = playAllRight(startLearning(learnOceania, storage, fiveOceaniaPlaces), 4);
@@ -174,10 +203,34 @@ describe('the working set', () => {
     expect(asked).toEqual(['NZL', 'FJI', 'PNG', 'WSM']);
   });
 
+  it('lines up places only ever answered right, but too few times to be solid, behind new places', () => {
+    const storage = storageWithRecords({ AUS: [1], NZL: [1, 1], FJI: [1, 0], PNG: [0, 0, 1] });
+
+    const asked = playAllRight(startLearning(learnOceania, storage, fiveOceaniaPlaces), 5);
+
+    expect(asked).toEqual(['PNG', 'FJI', 'WSM', 'AUS', 'NZL']);
+  });
+
   it('lets a new place join only when no miss is waiting and fewer than 4 misses are in play', () => {
     const asked = play(startLearning(learnEurope), '✗✗✗✓✓✓✗✓✓✓');
 
     expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'RUS', 'DEU', 'FRA', 'GBR', 'RUS', 'ITA', 'GBR']);
+  });
+});
+
+describe('a returning player', () => {
+  it('meets the places missed last round first, then the new places, then the ones answered right', () => {
+    const storage = memoryStorage();
+    const firstRound = startLearningWith(seededRandom(1), learnOceania, storage);
+    const [missed, ...answeredRight] = new Set(play(firstRound, '✗✓✓✓✓'));
+    firstRound.send({ type: 'askEnd' });
+    const easeOrder = playAllRight(startLearning(learnOceania), 14);
+
+    const asked = playAllRight(startLearningWith(seededRandom(2), learnOceania, storage), 14);
+
+    expect(asked[0]).toBe(missed);
+    expect(asked.slice(1, 11).sort()).toEqual(easeOrder.filter(id => id !== missed && !answeredRight.includes(id)).sort());
+    expect(asked.slice(11)).toEqual(easeOrder.filter(id => answeredRight.includes(id)));
   });
 });
 
@@ -332,13 +385,13 @@ describe('resuming a learning round', () => {
   const continuation = '✓✗✓✓✓✓✓✓✓✓✓✓';
 
   it('comes back with the working set and miss queue intact', () => {
-    const uninterrupted = startLearning(learnEurope);
+    const uninterrupted = startLearningWith(seededRandom(3), learnEurope);
     const storage = memoryStorage();
-    const interrupted = startLearning(learnEurope, storage);
+    const interrupted = startLearningWith(seededRandom(3), learnEurope, storage);
     play(uninterrupted, script);
     play(interrupted, script);
 
-    const resumed = boot(storage);
+    const resumed = boot(storage, allPlaces, seededRandom(4));
 
     expect(resumed.state).toEqual(uninterrupted.state);
     expect(play(resumed, continuation)).toEqual(play(uninterrupted, continuation));
