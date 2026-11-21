@@ -80,8 +80,12 @@ Stopping a round before it ends by itself. Prompts not yet reached count as miss
 _Avoid_: Give up, quit
 
 **Learning round**:
-A round of a regular mode that starts with the easiest places, brings misses back until they are answered right twice in a row, and runs until the player ends it.
+A round of a regular mode that starts at the player's reach, brings misses back until they are answered right twice in a row, and runs until the player ends it.
 _Avoid_: Practice, training, session
+
+**Reach**:
+How far into a pool's places, easiest first, a player is still right on at least 80% of them, counting places never answered as wrong. Answers count together across the modes and variants that test the same knowledge of a place (its name, flag, capital or shape), Easy mode and the daily challenge included. A learning round's new places start there.
+_Avoid_: Level, progress
 
 **Daily challenge**:
 One round of find on the map per Berlin calendar day, drawing the same places for every player, played once by name or as a hard daily.

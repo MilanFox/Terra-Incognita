@@ -93,11 +93,16 @@ const startLearningWith = (random: () => number, setup: RoundSetup, storage: Key
 
 const record = (recent: (0 | 1)[]): PlaceRecord => ({ seen: recent.length, correct: recent.filter(Boolean).length, recent, easySeen: 0, easyCorrect: 0 });
 
-const storageWithRecords = (byPlaceId: Record<string, (0 | 1)[]>) => {
+const storageWithPlaceRecords = (byModeVariant: Record<string, Record<string, PlaceRecord>>) => {
   const storage = memoryStorage();
-  storage.setItem('ti:places', JSON.stringify({ 'find:name': Object.fromEntries(Object.entries(byPlaceId).map(([placeId, recent]) => [placeId, record(recent)])) }));
+  storage.setItem('ti:places', JSON.stringify(byModeVariant));
   return storage;
 };
+
+const storageWithAnswers = (byModeVariant: Record<string, Record<string, (0 | 1)[]>>) => storageWithPlaceRecords(Object.fromEntries(Object.entries(byModeVariant)
+  .map(([modeVariant, byPlaceId]) => [modeVariant, Object.fromEntries(Object.entries(byPlaceId).map(([placeId, recent]) => [placeId, record(recent)]))])));
+
+const storageWithRecords = (byPlaceId: Record<string, (0 | 1)[]>) => storageWithAnswers({ 'find:name': byPlaceId });
 
 const placeRecordOf = (storage: KeyValueStorage, placeId: string, modeVariant = 'find:name'): PlaceRecord => JSON.parse(storage.getItem('ti:places')!)[modeVariant][placeId];
 
@@ -231,6 +236,95 @@ describe('a returning player', () => {
     expect(asked[0]).toBe(missed);
     expect(asked.slice(1, 11).sort()).toEqual(easeOrder.filter(id => id !== missed && !answeredRight.includes(id)).sort());
     expect(asked.slice(11)).toEqual(easeOrder.filter(id => answeredRight.includes(id)));
+  });
+});
+
+describe('the reach', () => {
+  const learnWorld: RoundSetup = { ...learnEurope, region: 'world' };
+  const easeOrder = playAllRight(startLearning(learnWorld), 80);
+  const allRight = (placeIds: string[]) => Object.fromEntries(placeIds.map(placeId => [placeId, [1 as const]]));
+
+  it('starts the new places just past it, at least 80% right on the first 60 places across modes testing the same knowledge, missed places first', () => {
+    const answers: Record<string, Record<string, (0 | 1)[]>> = { 'find:name': {}, 'name:map': {}, 'find:both': {} };
+    easeOrder.slice(0, 60).forEach((placeId, index) => {
+      if (index % 10 === 4) answers['find:name']![placeId] = [0];
+      else if (index % 10 !== 7) answers[['find:name', 'name:map', 'find:both'][index % 3]!]![placeId] = [1];
+    });
+    const missed = easeOrder.slice(0, 60).filter((_, index) => index % 10 === 4);
+
+    const asked = playAllRight(startLearning(learnWorld, storageWithAnswers(answers)), 8);
+
+    expect(asked).toEqual([...missed, easeOrder[60], easeOrder[61]]);
+  });
+
+  it('pools flag knowledge apart from name knowledge: by flag in Find on the map and Name that country, by name in Find on the map and Name on the map', () => {
+    const learnByFlag: RoundSetup = { ...learnWorld, mode: 'country', variant: 'flag', easy: true };
+    const flagEaseOrder = playAllRight(startLearning(learnByFlag), 31);
+    const flagKnowledge = () => storageWithAnswers({ 'find:flag': allRight(flagEaseOrder.slice(0, 15)), 'country:flag': allRight(flagEaseOrder.slice(15, 30)) });
+    const nameKnowledge = () => storageWithAnswers({ 'find:name': allRight(easeOrder.slice(0, 15)), 'name:map': allRight(easeOrder.slice(15, 30)) });
+
+    expect(playAllRight(startLearning(learnWorld, flagKnowledge()), 1)).toEqual([easeOrder[0]]);
+    expect(playAllRight(startLearning(learnByFlag, nameKnowledge()), 1)).toEqual([flagEaseOrder[0]]);
+    expect(playAllRight(startLearning({ ...learnWorld, variant: 'flag' }, flagKnowledge()), 1)).toEqual([flagEaseOrder[30]]);
+    expect(playAllRight(startLearning({ ...learnWorld, mode: 'name', variant: 'map', easy: true }, nameKnowledge()), 1)).toEqual([easeOrder[30]]);
+  });
+
+  it('moves with Easy-mode answers', () => {
+    const storage = memoryStorage();
+    const easyRound = startLearning({ ...learnWorld, easy: true }, storage);
+    playAllRight(easyRound, 20);
+    easyRound.send({ type: 'askEnd' });
+
+    expect(playAllRight(startLearning(learnWorld, storage), 2)).toEqual([easeOrder[20], easeOrder[21]]);
+  });
+
+  it('moves with daily challenge answers', () => {
+    const tenSovereignOceaniaPlaces = allPlaces.filter(({ id, region }) => region === 'Oceania' && !['MHL', 'PLW', 'NRU', 'TUV'].includes(id));
+    const learnOceaniaByFlag: RoundSetup = { ...learnOceania, mode: 'country', variant: 'flag', tier: 'dependencies' };
+    const storage = memoryStorage();
+    const daily = boot(storage, tenSovereignOceaniaPlaces);
+    daily.send({ type: 'startDaily', variant: 'flag' });
+    playAllRight(daily, 10);
+
+    expect(resultsOf(daily)).toMatchObject({ dailyDate: '2026-11-18', score: 10 });
+    expect(promptOf(startLearning(learnOceaniaByFlag, memoryStorage(), tenSovereignOceaniaPlaces)).placeId).toBe('AUS');
+    expect(promptOf(startLearning(learnOceaniaByFlag, storage, tenSovereignOceaniaPlaces)).placeId).toBe('NCL');
+  });
+
+  it('skips the places before it never answered in the round\'s mode and variant until the pool is exhausted, then asks them before the solid ones', () => {
+    const oceaniaEaseOrder = playAllRight(startLearning(learnOceania), 14);
+    const [first, second, third, fourth, neverAnswered, sixth] = oceaniaEaseOrder;
+    const storage = storageWithAnswers({ 'name:map': { [first!]: [1], [second!]: [1], [third!]: [1], [fourth!]: [1], [sixth!]: [1] }, 'find:name': { [oceaniaEaseOrder[13]!]: [1, 1, 1] } });
+    const game = startLearning(learnOceania, storage);
+
+    const learned = playAllRight(game, 7);
+    const firstAfterExhausted = promptOf(game);
+    const reviewed = playAllRight(game, 7);
+
+    expect(learned).toEqual(oceaniaEaseOrder.slice(6, 13));
+    expect(firstAfterExhausted).toMatchObject({ placeId: first, learning: { isEverythingLearned: true } });
+    expect(reviewed).toEqual([first, second, third, fourth, neverAnswered, sixth, oceaniaEaseOrder[13]]);
+  });
+
+  it('counts places never answered against it, so scattered answers deeper in the ease order carry it only a little further', () => {
+    const answeredRight = easeOrder.filter((_, index) => index < 30 || index % 3 === 0);
+    const storage = storageWithAnswers({ 'name:map': Object.fromEntries(answeredRight.map(placeId => [placeId, [1]])) });
+
+    expect(playAllRight(startLearning(learnWorld, storage), 3)).toEqual(easeOrder.slice(43, 46));
+  });
+
+  it('does not skip a place before it that was missed in a mode testing the same knowledge', () => {
+    const storage = storageWithAnswers({ 'name:map': Object.fromEntries(easeOrder.slice(0, 30).map((placeId, index) => [placeId, [index === 9 ? 0 : 1]])) });
+
+    expect(playAllRight(startLearning(learnWorld, storage), 2)).toEqual([easeOrder[9], easeOrder[30]]);
+  });
+
+  it('starts at rank 1, still shuffled, when only answers testing other knowledge are stored', () => {
+    const otherKnowledge = () => storageWithAnswers({ 'capital:map': allRight(easeOrder.slice(0, 40)), 'country:silhouette': allRight(easeOrder.slice(0, 40)), 'find:flag': allRight(easeOrder.slice(0, 40)) });
+    const openingWith = (seed: number) => playAllRight(startLearningWith(seededRandom(seed), learnWorld, otherKnowledge()), 5);
+
+    expect(openingWith(1)).not.toEqual(openingWith(2));
+    expect(easeOrder.slice(0, 19)).toEqual(expect.arrayContaining([...openingWith(1), ...openingWith(2)]));
   });
 });
 
