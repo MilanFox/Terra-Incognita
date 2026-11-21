@@ -585,6 +585,7 @@ const dimOutsidePool = () => {
 const cameraMotion = (durationMs: number) => ({ duration: isMotionReduced.value ? 0 : durationMs, essential: true });
 
 const setCursorState = (placeId: string, isOn: boolean) => {
+  if (!hasLoaded) return;
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { cursor: isOn });
 };
 
@@ -818,6 +819,7 @@ onMounted(async () => {
     dimOutsidePool();
     showChainOutlines();
     applyHighlight(props.highlightedPlaceId);
+    if (cursorPlaceId) setCursorState(cursorPlaceId, true);
     if (framedPlaceId.value) flyTo(framedPlaceId.value);
     markRoute(props.route);
     fitRoute();
