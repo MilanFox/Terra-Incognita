@@ -504,7 +504,7 @@ const flyToRegion = (region = props.frameRegion, { freeArea = props.frameInset >
   if (!map || !region) return;
   framedRegion = region;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
-  if (resultBounds?.length) {
+  if (props.frameInset > 0 && resultBounds?.length) {
     fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });
     return;
   }
