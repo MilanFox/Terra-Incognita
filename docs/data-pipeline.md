@@ -48,7 +48,7 @@ Keyed by id, one entry per line. Notes are for maintainers and never shipped.
 | `carve.json` | places cut out of an NE feature. `source: "breakaway"`: the breakaway layer's `brkA3` polygon is erased from `from` and becomes the place; `from` keeps its own ruling. `source: "split"`: the parts of `from` inside `bbox` become the place; every part of `from` must fall in exactly one split's bbox |
 | `aliases.json` | per place id: `note` (why the additions exist, for maintainers), `add` (`en`, `de`: aliases to add; `capitals`: per capital QID, applied to that place's capital) and `drop` (list of `{ lang, alias, why }`, plus `capital`, a QID, for a capital's alias). Matched case-insensitively against what the sources supply, so a drop survives re-ordering; a drop that matches nothing is a warning |
 | `patches/*.geojson` | hand-drawn geometry: each feature `{ id, cut? }` replaces the land of place `id` and is erased from the places in `cut` |
-| `chains.json` | the island-chain overrides (see [Island chains](#island-chains)): `keep` and `drop` (id to note) and `groups` (id to a list of `{ name, bbox }`) |
+| `chains.json` | the island-chain overrides (see [Island chains](#island-chains)): `keep` and `drop` (id to note) |
 | `id-changes.json` | `{ idMoves: { "<version>": { old: new } }, removed: { "<version>": [id] } }`, copied whole into `version.json` (see [Data versions](#data-versions)) |
 | `dropped-borders.sovereign.json` | the reviewed sovereign dropped-border list (see [Dropped-border list](#dropped-border-list)): `review` (`pending` \| `accepted`) and `pairs`, keyed by the two ids sorted and joined with `-`, each with a note (names and reason) |
 
@@ -63,7 +63,7 @@ All sorted by id.
 | `map-sovereign.geojson`, `map-defacto.geojson`, `map-dependencies.geojson` | one map per tier: polygons, one feature per place of the tier plus Unclaimed land, `{ id, unclaimed? }`; one feature per line. 200 / 206 / 248 features |
 | `places.json` | array, one place per line: `{ id, qid, iso2?, tier, holder?, region, silhouette, silhouetteFrame?, flag, capitals, bbox, ease, neighbours, mainlandNeighbours, microstate }`; `silhouetteFrame` is present only where curated, same shape as `bbox` (an app drawing the silhouette keeps the pieces with a vertex inside it and fits the drawing to it, not to `bbox`); `flag` is `"<id>.svg"` or `null` for a flagless place; `capitals` is a list of QIDs, empty for a place outside Name the capital; `neighbours` and `microstate` each as `{ sovereign, defacto, dependencies }`; `mainlandNeighbours` is a plain sorted id array (sovereign tier only) |
 | `points.geojson` | one point per place (245), `{ id, speckZoom }`; one feature per line. The app filters them by tier |
-| `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): polygons, `{ id, tier, group? }`, sorted by id then group; one feature per line. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
+| `chain-outlines.geojson` | the island-chain outlines (see [Island chains](#island-chains)): one polygon per chain place, `{ id, tier }`, sorted by id; one feature per line. A ring that crosses the 180° line runs on past 180° of longitude instead of being cut there. One file for all tiers (G7). The app filters them by tier, as with `points.geojson` |
 | `names.json` | `{ "_license": "<ODbL notice>", id: { en: { name, aliases[] }, de: { name, aliases[] }, capitals: { qid: { en: { name, aliases[] }, de: { name, aliases[] } } } } }`, one place per line |
 | `flags/<id>.svg` | the Commons SVG with `<metadata>` and comments stripped and, where the root has none (116 of 239 do not), a `viewBox="0 0 <width> <height>"` taken from its pixel width and height; not minified |
 | `credits.json` | `[{ id, file, artist, license, licenseUrl }]`, only the flags whose licence requires attribution (Oman, OGL-om 1.0). `artist` is `null` when Commons gives only a placeholder; the About the map footer then names the Commons contributors in the interface language |
@@ -128,7 +128,7 @@ The build fails, and writes nothing, on:
 - a holder chain that does not end in a place of the tier, checked for every place outside each tier: no holder, a holder that is not a place, or a loop
 - asymmetric neighbours: in some tier a place lists another that doesn't list it back (this also catches a neighbour outside the tier, whose list there is empty)
 - the sovereign dropped borders differing from `data/curated/dropped-borders.sovereign.json`, whether or not that list is reviewed yet; a missing file counts as empty. `+` marks a pair the build drops that the list lacks, `-` a listed pair the build no longer drops
-- an island chain check (see [Island chains](#island-chains)): any of the 12 prototype sovereign chains missing, a tier's chains differing from the expected 16 / 0 / 15, Kiribati or St Helena not outlined in their groups, outlines overlapping outside the two accepted pairs, or a `keep` / `drop` that no longer applies
+- an island chain check (see [Island chains](#island-chains)): any of the 12 prototype sovereign chains missing, a tier's chains differing from the expected 16 / 0 / 15, a chain without exactly one outline, an outline wider than 180° of longitude, outlines overlapping outside the two accepted pairs, an accepted pair that no longer overlaps, or a `keep` / `drop` that no longer applies
 - a place without an EN or a DE name
 - a place with capitals none of which lies inside its geometry
 - a capital without an EN or a DE name
@@ -174,11 +174,16 @@ A place is an island chain when, on its own tier's map (sovereign places on the 
 
 - `keep`: a place that is a chain whatever the rule says. Bahamas, Antigua and Barbuda, Mauritius and São Tomé and Príncipe are the four extras kept beyond the prototype's 12.
 - `drop`: a place that is not a chain. `UMI` spans the Caribbean and the Pacific.
-- `groups`: a place outlined in several parts. Each piece goes to the group whose `bbox` holds the mean point of its outer ring, and every piece must land in exactly one group. A group of a single piece gets no outline. Kiribati is split into Gilbert, Phoenix and Line; St Helena into Ascension, Saint Helena and Tristan da Cunha, of which only Tristan da Cunha (two pieces) is outlined.
 
-Each outline is the convex hull of the chain's land, padded with a rounded corner (radius at least 0.4°, up to 0.35 of the hull's narrow side). Outlines that overlap get less round, in steps of 0.05, until they clear. Two overlaps cannot be cleared and are accepted: Bahamas / Turks and Caicos and the US / British Virgin Islands. An outline's ring is never wider than 180° of longitude: a chain that crosses the antimeridian stops the build until it is split into groups.
+Every chain gets exactly one outline around all its pieces. The map repeats sideways, so a chain that crosses the 180° line is taken as one run of longitudes (the land east of the line moves a turn further east) and its outline crosses the line with it: Kiribati's runs from 169° to 209°. St Helena's covers Ascension, St Helena and Tristan da Cunha.
 
-Current chains per tier (sovereign / de facto / dependencies): 16 / 0 / 15, and 33 outlines in the file (Kiribati and Tristan da Cunha as groups).
+Each outline starts as the convex hull of the chain's land, padded with a rounded corner (radius at least 0.4°, up to 0.35 of the hull's narrow side). Outlines that overlap get less round, in steps of 0.05, until they clear.
+
+A chain whose convex hull overlaps another outline even with the least padding gets a closer-fitting outline instead (`steps/fitted-outline.ts`), the longest chain first. It is the line a ball leaves when it rolls around the chain's islands and the shortest links between them, pushed out by the 0.4° padding. The ball starts as wide as the chain is long, which leaves nearly the convex hull, and shrinks by 0.7 per step until the outline is clear of every other one or the ball is as small as the padding. Kiribati is fitted this way, because its hull covers Penrhyn in the Cook Islands. Overlaps are tested on every world copy, across all tiers.
+
+Two overlaps remain with the closest fit and are accepted: Bahamas / Turks and Caicos and the US / British Virgin Islands; all four are drawn with their closest-fitting outline. Any other overlap fails the check, and so does an accepted pair that no longer overlaps, so the exception is removed with it. An outline wider than 180° of longitude fails the check too.
+
+Current chains per tier (sovereign / de facto / dependencies): 16 / 0 / 15, and 31 outlines in the file, one per chain.
 
 - Sovereign: the prototype's 12 (MDV SYC TUV MHL KIR FSM PLW TON CPV COM SLB VUT) plus BHS ATG MUS STP. The margin is thin (Comoros 10.6 against St Vincent 9.6), which is why the check names all 12.
 - Dependencies: TCA PCN PYF VIR AIA VGB CYM SHN GGY IOT COK WLF SGS ASM MNP.

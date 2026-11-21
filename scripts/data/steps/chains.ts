@@ -4,14 +4,16 @@ import { pieceAreaKm2 } from '../land-area.ts';
 import { byId, polygonsOf, tiers } from '../model.ts';
 import { curatedDir } from '../paths.ts';
 import { bboxOf } from './compute.ts';
+import { fittedOutline } from './fitted-outline.ts';
 import type { Bbox, Ring, Tier, TieredPlaces } from '../model.ts';
 import type { TierMaps } from './dissolve.ts';
 
-export type ChainOutline = { id: string, tier: Tier, group?: string, ring: Ring };
+type Point = [number, number];
+
+export type ChainOutline = { id: string, tier: Tier, ring: Ring };
 export type ChainRulings = {
   keep: Record<string, string>
   drop: Record<string, string>
-  groups: Record<string, { name: string, bbox: Bbox }[]>
 };
 export type Chains = {
   outlines: ChainOutline[]
@@ -31,6 +33,8 @@ const roundnessStep = 0.05;
 const maxRoundnessPasses = 8;
 const roundedCornerSteps = 24;
 const smoothingIterations = 3;
+const fittedSmoothingIterations = 2;
+const rollingRadiusStep = 0.7;
 
 export const readChainRulings = (): ChainRulings =>
   JSON.parse(readFileSync(resolve(curatedDir, 'chains.json'), 'utf8'));
@@ -81,48 +85,59 @@ const roundedOutline = (hull: Ring, roundness: number): Ring => {
   return chaikin(padded, smoothingIterations);
 };
 
-// Both rings are convex, so they overlap unless the normal of one of their edges separates them.
-const convexRingsOverlap = (first: Ring, second: Ring) => [first, second].every(ring => ring.every((point, index) => {
-  const next = ring[(index + 1) % ring.length]!;
-  const axis = [next[1] - point[1], point[0] - next[0]] as const;
-  const project = (other: Ring) => other.map(([longitude, latitude]) => longitude * axis[0] + latitude * axis[1]);
-  const [firstProjection, secondProjection] = [project(first), project(second)];
-  return Math.max(...firstProjection) > Math.min(...secondProjection)
-    && Math.max(...secondProjection) > Math.min(...firstProjection);
-}));
-
-const meanPoint = ([outer = []]: Ring[]) => [
-  outer.reduce((sum, [longitude]) => sum + longitude, 0) / outer.length,
-  outer.reduce((sum, [, latitude]) => sum + latitude, 0) / outer.length,
-] as const;
-
-type Candidate = { id: string, tier: Tier, group?: string, hull: Ring, roundness: number, ring: Ring };
-
-const hullOf = (id: string, polygons: Ring[][]) => {
-  const vertices = polygons.flatMap(([outer = []]) => outer);
-  const longitudes = vertices.map(([longitude]) => longitude);
-  if (Math.max(...longitudes) - Math.min(...longitudes) > 180) {
-    throw new Error(`chains: ${id} crosses the antimeridian; split it into groups in chains.json`);
-  }
-  return convexHull(vertices);
+const crosses = ([from, to]: [Point, Point], [otherFrom, otherTo]: [Point, Point]) => {
+  const sideOf = (start: Point, end: Point, point: Point) =>
+    Math.sign((end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]));
+  return sideOf(from, to, otherFrom) !== sideOf(from, to, otherTo) && sideOf(otherFrom, otherTo, from) !== sideOf(otherFrom, otherTo, to);
 };
 
-const groupsOf = (id: string, polygons: Ring[][], { groups }: ChainRulings) => {
-  const splits = groups[id];
-  if (!splits) return [{ group: undefined, polygons }];
-  const byGroup = splits.map(({ name, bbox: [west, south, east, north] }) => ({
-    group: name,
-    polygons: polygons.filter((polygon) => {
-      const [longitude, latitude] = meanPoint(polygon);
-      return longitude >= west && longitude < east && latitude >= south && latitude < north;
-    }),
-  }));
-  if (byGroup.reduce((sum, { polygons: inGroup }) => sum + inGroup.length, 0) !== polygons.length) {
-    throw new Error(`chains: the groups of ${id} in chains.json don't cover each of its pieces exactly once`);
-  }
-  // A group of one island has nothing to enclose.
-  return byGroup.filter(({ polygons: inGroup }) => inGroup.length >= 2);
+const contains = (ring: Ring, [longitude, latitude]: Point) => ring.reduce((isInside, [fromLon, fromLat], index) => {
+  const [toLon, toLat] = ring[(index + 1) % ring.length]!;
+  const isCrossed = (fromLat > latitude) !== (toLat > latitude)
+    && longitude < fromLon + (latitude - fromLat) / (toLat - fromLat) * (toLon - fromLon);
+  return isCrossed ? !isInside : isInside;
+}, false);
+
+const extentOf = (ring: Ring) => {
+  const longitudes = ring.map(([longitude]) => longitude);
+  const latitudes = ring.map(([, latitude]) => latitude);
+  return { west: Math.min(...longitudes), south: Math.min(...latitudes), east: Math.max(...longitudes), north: Math.max(...latitudes) };
 };
+
+const ringsOverlapAsDrawn = (first: Ring, second: Ring) => {
+  const [firstExtent, secondExtent] = [extentOf(first), extentOf(second)];
+  if (firstExtent.west > secondExtent.east || secondExtent.west > firstExtent.east
+    || firstExtent.south > secondExtent.north || secondExtent.south > firstExtent.north) return false;
+  return contains(first, second[0]!) || contains(second, first[0]!)
+    || first.some((point, index) => second.some((other, otherIndex) =>
+      crosses([point, first[(index + 1) % first.length]!], [other, second[(otherIndex + 1) % second.length]!])));
+};
+
+// The map repeats sideways, so two outlines also overlap when they meet a full turn apart.
+const ringsOverlap = (first: Ring, second: Ring) => [-360, 0, 360].some(turn =>
+  ringsOverlapAsDrawn(first, second.map(([longitude, latitude]): Point => [longitude + turn, latitude])));
+
+type Candidate = { id: string, tier: Tier, islands: Ring[], hull: Ring, roundness: number, ring: Ring, isFitted: boolean };
+
+const longSideOf = ({ hull }: Candidate) => {
+  const { west, south, east, north } = extentOf(hull);
+  return Math.max(east - west, north - south);
+};
+
+// The ball starts as wide as the chain is long, which leaves nearly the convex hull, and shrinks until the outline is
+// clear of the others or as tight as the padding lets it get.
+const fitCloser = (candidate: Candidate, isClashing: () => boolean) => {
+  for (let rollingRadius = longSideOf(candidate); rollingRadius >= paddingDegrees; rollingRadius *= rollingRadiusStep) {
+    candidate.ring = chaikin(fittedOutline(candidate.islands, rollingRadius, paddingDegrees), fittedSmoothingIterations);
+    candidate.isFitted = true;
+    if (!isClashing()) return;
+  }
+};
+
+// A bbox that crosses the antimeridian has west > east; the land east of the line then moves a turn further east,
+// so the chain is one run of longitudes.
+const unbrokenOuterRings = (polygons: Ring[][], [west, , east]: Bbox): Ring[] => polygons.map(([outer = []]) =>
+  outer.map(([longitude, latitude]): [number, number] => [west > east && longitude < west ? longitude + 360 : longitude, latitude]));
 
 export const chainsOf = (maps: TierMaps, places: TieredPlaces, rulings: ChainRulings): Chains => {
   const candidates: Candidate[] = [];
@@ -141,47 +156,54 @@ export const chainsOf = (maps: TierMaps, places: TieredPlaces, rulings: ChainRul
       if (isRuleHit) ruleHits.add(id);
       if (rulings.keep[id] && polygons.length < 2) staleRulings.push(`keep ${id}: fewer than two pieces in the ${tier} map`);
       const isChain = (isRuleHit && !rulings.drop[id]) || (rulings.keep[id] !== undefined && polygons.length >= 2);
-      if (!isChain) continue;
+      if (!isChain || !bbox) continue;
       idsByTier[tier].push(id);
-      for (const { group, polygons: inGroup } of groupsOf(id, polygons, rulings)) {
-        const hull = hullOf(id, inGroup);
-        candidates.push({ id, tier, ...(group && { group }), hull, roundness: startingRoundness, ring: roundedOutline(hull, startingRoundness) });
-      }
+      const islands = unbrokenOuterRings(polygons, bbox);
+      const hull = convexHull(islands.flat());
+      candidates.push({ id, tier, islands, hull, roundness: 0, ring: roundedOutline(hull, 0), isFitted: false });
     }
   }
   for (const id of Object.keys(rulings.drop).filter(dropped => !ruleHits.has(dropped))) {
     staleRulings.push(`drop ${id}: not a chain by the rule`);
   }
 
-  const clashingCandidates = () => new Set(candidates.flatMap((candidate, index) => candidates.slice(index + 1)
-    .filter(other => convexRingsOverlap(candidate.ring, other.ring))
-    .flatMap(other => [candidate, other])));
+  const isClashing = (candidate: Candidate) => candidates.some(other => other !== candidate && ringsOverlap(candidate.ring, other.ring));
+  // A chain whose convex outline overlaps another even with the least padding gets a closer-fitting one, the longest
+  // chain first, so a small chain inside a long one's hull keeps its convex outline.
+  for (const candidate of [...candidates].sort((first, second) => longSideOf(second) - longSideOf(first))) {
+    if (isClashing(candidate)) fitCloser(candidate, () => isClashing(candidate));
+  }
+  const convexCandidates = candidates.filter(({ isFitted }) => !isFitted);
+  for (const candidate of convexCandidates) {
+    candidate.roundness = startingRoundness;
+    candidate.ring = roundedOutline(candidate.hull, startingRoundness);
+  }
   // Overlapping outlines get less round, step by step, until they clear; at roundness 0 only the padding is left.
   for (let pass = 0; pass < maxRoundnessPasses; pass++) {
-    const clashing = clashingCandidates();
-    if (!clashing.size) break;
+    const clashing = convexCandidates.filter(isClashing);
+    if (!clashing.length) break;
     for (const candidate of clashing) {
       candidate.roundness = Math.max(0, candidate.roundness - roundnessStep);
       candidate.ring = roundedOutline(candidate.hull, candidate.roundness);
     }
   }
   const overlaps = candidates.flatMap((candidate, index) => candidates.slice(index + 1)
-    .filter(other => convexRingsOverlap(candidate.ring, other.ring))
+    .filter(other => ringsOverlap(candidate.ring, other.ring))
     .map(other => [candidate.id, other.id].sort().join('-')));
 
   const outlines = candidates
-    .map(({ id, tier, group, ring }): ChainOutline => {
+    .map(({ id, tier, ring }): ChainOutline => {
       const rounded = ring.map(([longitude, latitude]) => [Math.round(longitude * 1000) / 1000, Math.round(latitude * 1000) / 1000] as [number, number]);
-      return { id, tier, ...(group && { group }), ring: [...rounded, rounded[0]!] };
+      return { id, tier, ring: [...rounded, rounded[0]!] };
     })
-    .sort((first, second) => byId(first, second) || (first.group ?? '').localeCompare(second.group ?? ''));
+    .sort(byId);
   return { outlines, idsByTier, staleRulings, overlaps: [...new Set(overlaps)].sort() };
 };
 
 export const chainOutlinesText = (outlines: ChainOutline[]) => {
-  const features = outlines.map(({ id, tier, group, ring }) => ({
+  const features = outlines.map(({ id, tier, ring }) => ({
     type: 'Feature',
-    properties: { id, tier, ...(group && { group }) },
+    properties: { id, tier },
     geometry: { type: 'Polygon', coordinates: [ring] },
   }));
   return `{"type":"FeatureCollection","features":[\n${features.map(feature => JSON.stringify(feature)).join(',\n')}\n]}\n`;
