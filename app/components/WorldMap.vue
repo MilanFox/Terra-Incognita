@@ -497,11 +497,10 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 }, { flush: 'post' });
 
-const flyToRegion = (region = props.frameRegion) => {
+// Without a tray the region fills the whole map, as on home and until a round's card is drawn.
+const flyToRegion = (region = props.frameRegion, { freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered }: { freeArea?: MapFreeArea } = {}) => {
   if (!map || !region) return;
   framedRegion = region;
-  // Without a tray the region fills the whole map, as on home and at the start of a round.
-  const freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
     fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });

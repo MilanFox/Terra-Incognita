@@ -112,6 +112,11 @@ watch([verdict, freeAreaKey], ([answer]) => {
   if (answer?.outcome === 'right' && game.state.phase === 'verdict' && isNoMapMode(game.state.setup.mode)) worldMap.value?.flyTo(answer.placeId);
 }, { flush: 'post' });
 
+// The round's region is framed once, when its card is first drawn, so the card changing size later leaves the camera where it is.
+watch(() => roundScreen.value?.card, (card) => {
+  if (card && mapFreeArea.value && !isWayfinderRound.value && !highlightedPlaceId.value) worldMap.value?.flyToRegion(frameRegion.value, { freeArea: mapFreeArea.value });
+}, { flush: 'post' });
+
 const resultPlaces = computed(() => {
   if (game.state.phase === 'missing') return game.state.foundPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
   if (game.state.phase === 'fill') return game.state.filledLandPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
