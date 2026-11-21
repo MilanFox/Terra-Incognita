@@ -826,6 +826,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(placeNameTimer);
+  // Removing the map takes its style first and then blurs a focused canvas, which would clear the cursor on a map without a style.
+  map?.getCanvas().removeEventListener('blur', clearCursor);
   map?.remove();
 });
 
