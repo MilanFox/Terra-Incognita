@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { JumpToOptions } from 'maplibre-gl';
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
-import type { DailyVariant, Mode, RoundSetup } from '#shared/game/game';
+import type { DailyVariant, Mode, Region, RoundSetup } from '#shared/game/game';
 import type StatsTray from '~/components/StatsTray.vue';
 import type { StatsView } from '~/components/StatsTray.vue';
 import type AboutTray from '~/components/AboutTray.vue';
 import type { AboutSectionId } from '~/components/AboutTray.vue';
+import type WorldMap from '~/components/WorldMap.vue';
 import { useRightAnswerFade } from '~/composables/useRightAnswerFade';
 import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
@@ -23,13 +24,13 @@ const { locale } = useI18n();
 const isStartupRevealed = useStartupRevealed();
 const isMapDrawn = ref(false);
 const game = useGameStore();
-const worldMap = useTemplateRef('worldMap');
+const worldMap = useTemplateRef<InstanceType<typeof WorldMap>>('worldMap');
 const homeTray = useTemplateRef('homeTray');
 const setupTray = useTemplateRef('setupTray');
 const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
 const typedAnswerTray = useTemplateRef('typedAnswerTray');
-const wayfinderScreen = useTemplateRef<{ card?: HTMLElement | null, zoomTiles?: HTMLElement }>('wayfinderScreen');
+const roundScreen = useTemplateRef<{ card?: HTMLElement | null, zoomTiles?: HTMLElement }>('roundScreen');
 const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
 const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
 const statsTray = useTemplateRef<InstanceType<typeof StatsTray>>('statsTray');
@@ -43,10 +44,20 @@ const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.val
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const { height: typedAnswerTrayHeight } = useElementSize(() => typedAnswerTray.value?.element, undefined, { box: 'border-box' });
 const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderResultsTray.value?.element, undefined, { box: 'border-box' });
-const wayfinderFreeArea = useMapFreeArea({ map: () => worldMap.value?.$el, top: () => wayfinderScreen.value?.card, bottom: () => wayfinderAnswerTray.value?.element, right: () => wayfinderScreen.value?.zoomTiles });
+const coveredFreeArea = useMapFreeArea({
+  map: () => worldMap.value?.$el,
+  top: () => roundScreen.value?.card,
+  bottom: () => (typedAnswerTray.value ?? wayfinderAnswerTray.value ?? resultsTray.value ?? wayfinderResultsTray.value ?? setupTray.value ?? dailySetupTray.value ?? aboutTray.value)?.element,
+  right: () => roundScreen.value?.zoomTiles ?? aboutTray.value?.zoomTiles ?? statsTray.value?.zoomTiles,
+});
 const isSettingsOpen = ref(false);
 const isStatsOpen = ref(false);
 const isCameraHeld = ref(false);
+const statsRegion = ref<Region | null>(null);
+const rulingFrame = shallowRef<[[number, number], [number, number]] | null>(null);
+// The stats tray is shifted down to its peek, which its layout box doesn't show; a region tap always drops it there.
+const mapFreeArea = computed(() => (isStatsOpen.value && coveredFreeArea.value ? { ...coveredFreeArea.value, bottom: statsTray.value?.peekHeight ?? 0 } : coveredFreeArea.value));
+const freeAreaKey = () => mapFreeArea.value && Object.values(mapFreeArea.value).join();
 const aboutOpeningSection = ref<AboutSectionId | null>(null);
 const aboutOpener = shallowRef<AboutOpener>({ tray: 'home' });
 const isAboutOpen = computed(() => aboutOpeningSection.value !== null);
@@ -93,13 +104,13 @@ const poolPlaceIds = computed(() => {
   return game.state.phase === 'fill' ? game.poolOf(game.state.setup) : null;
 });
 const gapPlaceIds = computed(() => (game.state.phase === 'missing' ? game.state.gapPlaceIds : []));
-const frameRegion = computed(() => (isCameraHeld.value ? null : traySetup.value?.region ?? (game.state.phase === 'home' ? 'world' : game.state.setup.region)));
+const frameRegion = computed(() => (isCameraHeld.value ? null : traySetup.value?.region ?? (game.state.phase === 'home' ? statsRegion.value ?? 'world' : game.state.setup.region)));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
 
-watch(verdict, (answer) => {
+watch([verdict, freeAreaKey], ([answer]) => {
   if (answer?.outcome === 'right' && game.state.phase === 'verdict' && isNoMapMode(game.state.setup.mode)) worldMap.value?.flyTo(answer.placeId);
-});
+}, { flush: 'post' });
 
 const resultPlaces = computed(() => {
   if (game.state.phase === 'missing') return game.state.foundPlaceIds.map(placeId => ({ placeId, outcome: 'right' as const }));
@@ -211,6 +222,7 @@ const closeSettings = async () => {
 const closeStats = async () => {
   isStatsOpen.value = false;
   isCameraHeld.value = false;
+  statsRegion.value = null;
   await nextTick();
   homeTray.value?.focusStats();
 };
@@ -232,16 +244,29 @@ const swapStatsForAbout = (section: AboutSectionId, view: StatsView) => {
   openAbout(section, { tray: 'stats', view, camera: { center: map.getCenter(), zoom: map.getZoom(), padding: map.getPadding() } });
   isStatsOpen.value = false;
   isCameraHeld.value = false;
+  statsRegion.value = null;
+};
+
+const flyToStatsRegion = (region: Region) => {
+  isCameraHeld.value = false;
+  statsRegion.value = region;
+  worldMap.value?.flyToRegion(region);
 };
 
 const flyToRuling = (bounds: [[number, number], [number, number]]) => {
   isCameraHeld.value = true;
-  worldMap.value?.flyToBounds(bounds);
+  rulingFrame.value = bounds;
+  worldMap.value?.fitInFreeArea(bounds);
 };
+
+watch(freeAreaKey, () => {
+  if (rulingFrame.value) worldMap.value?.fitInFreeArea(rulingFrame.value);
+}, { flush: 'post' });
 
 const closeAbout = async () => {
   const opener = aboutOpener.value;
   aboutOpeningSection.value = null;
+  rulingFrame.value = null;
   if (opener.tray === 'setup') setupDraft.value = opener.setup;
   if (opener.tray === 'stats') isStatsOpen.value = true;
   isCameraHeld.value = opener.tray === 'stats';
@@ -312,6 +337,7 @@ onMounted(game.load);
     <Transition name="drop">
       <RoundScreen
         v-if="isShellReady && (game.state.phase === 'prompt' || game.state.phase === 'verdict')"
+        ref="roundScreen"
         :state="game.state"
         :fade="answerFade"
         :is-marked="!!markedPlaceId"
@@ -328,6 +354,7 @@ onMounted(game.load);
     <Transition name="drop">
       <FillScreen
         v-if="isShellReady && game.state.phase === 'fill'"
+        ref="roundScreen"
         :state="game.state"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
@@ -337,6 +364,7 @@ onMounted(game.load);
 
       <MissingRound
         v-else-if="isShellReady && game.state.phase === 'missing'"
+        ref="roundScreen"
         :state="game.state"
         :is-marked="!!markedPlaceId"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
@@ -371,7 +399,7 @@ onMounted(game.load);
     <Transition name="drop">
       <WayfinderRoundScreen
         v-if="isShellReady && game.state.phase === 'wayfinder'"
-        ref="wayfinderScreen"
+        ref="roundScreen"
         :state="game.state"
         :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
         :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
@@ -435,7 +463,7 @@ onMounted(game.load);
           :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
           @zoom-in="worldMap?.zoomIn()"
           @zoom-out="worldMap?.zoomOut()"
-          @fly-to-region="worldMap?.flyToRegion($event)"
+          @fly-to-region="flyToStatsRegion"
           @announce="announce"
           @why="swapStatsForAbout"
           @close="closeStats"
@@ -485,7 +513,7 @@ onMounted(game.load);
         :land-shown="landShown"
         :nameable-places="nameablePlaces"
         :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : 0"
-        :free-area="isWayfinderRound ? wayfinderFreeArea : null"
+        :free-area="mapFreeArea"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
         @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : statsTray?.placeLabel($event) ?? '')"

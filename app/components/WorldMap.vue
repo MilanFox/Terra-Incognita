@@ -83,10 +83,9 @@ const placeSources = ['places', 'specks', 'chains'] as const;
 const tapBoxPx = 8;
 const flightMs = 800;
 const flightMaxZoom = 4;
-const flightPadding = { top: 230, bottom: 60, left: 40, right: 40 };
 const minimumFlightFramePx = 120;
-const keyboardGapPx = 16;
 const freeAreaMarginPx = 16;
+const uncovered: MapFreeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 const minZoom = -1;
 const maxZoom = 10;
 // MapLibre's ease-out starts the glide at linearity / 0.6 of the release speed, so 0.6 lets the map leave the finger at the finger's speed.
@@ -143,7 +142,6 @@ const routeColours = {
 };
 const routeMaxZoom = 5.5;
 const placeNameShownMs = 1800;
-const zoomTilesWidthPx = 50;
 const chainLayers = ['chain-tint', 'chain-outline'];
 const chainOutlineColour = () => settings.isHighContrast ? colours.ink : '#807560';
 const chainFadeStartZoom = 5.5;
@@ -437,10 +435,7 @@ const boundsOf = (placeId: string) => {
 
 const flyTo = (placeId: string) => {
   const bounds = boundsOf(placeId);
-  if (!map || !bounds) return;
-  const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
-  const top = Math.max(0, Math.min(flightPadding.top, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
-  map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: flightMaxZoom, padding: { ...flightPadding, top, bottom } });
+  if (bounds) fitInFreeArea(bounds, { maxZoom: flightMaxZoom });
 };
 
 watch(() => props.verdict, (verdict, previousVerdict) => {
@@ -453,7 +448,6 @@ watch(() => props.verdict, (verdict, previousVerdict) => {
   }
   if (verdict.outcome === 'wrong') setPlaceStatus(verdict.tappedPlaceId, 'wrong');
   setPlaceStatus(verdict.placeId, 'reveal');
-  flyTo(verdict.placeId);
 });
 
 // After the verdict and results watchers, so a place they just cleared or coloured is not overwritten.
@@ -466,7 +460,10 @@ const applyHighlight = (placeId: string | null | undefined, previousPlaceId?: st
 
 watch(() => props.highlightedPlaceId, applyHighlight, { flush: 'post' });
 
-watch([() => props.highlightedPlaceId, () => props.keyboardInset], ([placeId]) => {
+const freeAreaKey = () => props.freeArea && Object.values(props.freeArea).join();
+const framedPlaceId = computed(() => (props.verdict && props.verdict.outcome !== 'right' ? props.verdict.placeId : props.highlightedPlaceId));
+
+watch([framedPlaceId, freeAreaKey], ([placeId]) => {
   if (placeId) flyTo(placeId);
 }, { flush: 'post' });
 
@@ -500,26 +497,17 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 }, { flush: 'post' });
 
-// fitBounds can't frame above a tray taller than the free map: the centre it needs falls off the map and nothing moves. The tray goes into the map's own padding instead, without a visible jump.
-const padAboveTray = (shownMap: MapLibreMap) => {
-  const { clientWidth, clientHeight } = shownMap.getContainer();
-  shownMap.jumpTo({ center: shownMap.unproject([clientWidth / 2, (clientHeight - props.frameInset) / 2]), padding: { top: 0, right: 0, bottom: props.frameInset, left: 0 } });
-};
-
 const flyToRegion = (region = props.frameRegion) => {
   if (!map || !region) return;
   framedRegion = region;
-  padAboveTray(map);
+  // Without a tray the region fills the whole map, as on home and at the start of a round.
+  const freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
   if (resultBounds?.length) {
-    map.fitBounds(boundsAround(resultBounds), { ...cameraMotion(flightMs), maxZoom: flightMaxZoom, padding: { ...regionFramePadding, top: 60 } });
+    fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });
     return;
   }
-  map.fitBounds(regionFrames[region], { ...cameraMotion(flightMs), padding: regionFramePadding });
-};
-
-const flyToBounds = (bounds: [[number, number], [number, number]]) => {
-  map?.fitBounds(bounds, { ...cameraMotion(flightMs), padding: { ...regionFramePadding, right: regionFramePadding.right + zoomTilesWidthPx } });
+  fitInFreeArea(regionFrames[region], { freeArea });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
@@ -544,16 +532,23 @@ const markRoute = (route: RouteMarks | null) => {
   markedRoute = route;
 };
 
+const freeAreaPaddingOf = (shownMap: MapLibreMap, { top, right, bottom, left }: MapFreeArea) => ({
+  top: Math.max(0, Math.min(top, shownMap.getContainer().clientHeight - bottom - minimumFlightFramePx)),
+  right,
+  bottom,
+  left,
+});
+
 // The free area becomes the map's own padding: MapLibre then keeps the world over that area only, so a fit sits clear of what covers the map and may zoom out past the whole-screen limit.
-const padToFreeArea = (shownMap: MapLibreMap, { top, right, bottom, left }: MapFreeArea) => {
+const padToFreeArea = (shownMap: MapLibreMap, freeArea: MapFreeArea) => {
   const { clientWidth, clientHeight } = shownMap.getContainer();
-  const roomyTop = Math.max(0, Math.min(top, clientHeight - bottom - minimumFlightFramePx));
-  shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (roomyTop + clientHeight - bottom) / 2]), padding: { top: roomyTop, right, bottom, left } });
+  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, freeArea);
+  shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (top + clientHeight - bottom) / 2]), padding: { top, right, bottom, left } });
 };
 
-const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom }: { maxZoom?: number } = {}) => {
-  if (!map || !props.freeArea) return;
-  padToFreeArea(map, props.freeArea);
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = props.freeArea ?? uncovered }: { maxZoom?: number, freeArea?: MapFreeArea } = {}) => {
+  if (!map) return;
+  padToFreeArea(map, freeArea);
   map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
 };
 
@@ -597,33 +592,41 @@ const clearCursor = () => {
   cursorPlaceId = null;
 };
 
+const shiftIntoView = ([low, high]: [number, number], [freeLow, freeHigh]: [number, number]) => (high - low > freeHigh - freeLow
+  ? (low + high - freeLow - freeHigh) / 2
+  : Math.min(0, low - freeLow) + Math.max(0, high - freeHigh));
+
+const freeAreaShiftOf = (shownMap: MapLibreMap, placeId: string): [number, number] => {
+  const bounds = boundsOf(placeId);
+  if (!bounds) return [0, 0];
+  const [{ x: west, y: south }, { x: east, y: north }] = [shownMap.project(bounds[0]), shownMap.project(bounds[1])];
+  const { clientWidth, clientHeight } = shownMap.getContainer();
+  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, props.freeArea ?? uncovered);
+  return [shiftIntoView([west, east], [left + freeAreaMarginPx, clientWidth - right - freeAreaMarginPx]), shiftIntoView([north, south], [top + freeAreaMarginPx, clientHeight - bottom - freeAreaMarginPx])];
+};
+
 const followCursor = (placeId: string) => {
   const lngLat = labelPoints.get(placeId);
   if (!map || !lngLat) return;
+  if (!props.isStatsMap) {
+    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, padding: freeAreaPaddingOf(map, props.freeArea ?? uncovered), ...cameraMotion(300) });
+    return;
+  }
   const { x, y } = map.project(lngLat);
   const { clientWidth, clientHeight } = map.getContainer();
-  const top = props.isStatsMap ? props.topInset : Math.min(flightPadding.top, clientHeight / 2.5);
-  const bottom = props.isStatsMap ? Math.max(map.getPadding().bottom ?? 0, props.bottomCover) : Math.min(flightPadding.bottom, clientHeight / 8);
+  const top = props.topInset;
+  const bottom = Math.max(map.getPadding().bottom ?? 0, props.bottomCover);
   const isInView = x >= cursorFollowMarginPx && x <= clientWidth - cursorFollowMarginPx
     && y >= top + cursorFollowMarginPx && y <= clientHeight - bottom - cursorFollowMarginPx;
   if (isInView) return;
   // On stats the tray is the map's own bottom padding, so the camera centre already sits above it.
-  map.easeTo(props.isStatsMap
-    ? { center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], ...cameraMotion(300) }
-    : { center: map.unproject([x, y - (top - bottom) / 2]), ...cameraMotion(300) });
+  map.easeTo({ center: lngLat, offset: [0, (top - bottom + (map.getPadding().bottom ?? 0)) / 2], ...cameraMotion(300) });
 };
 
 const bringIntoView = (placeId: string) => {
-  const lngLat = labelPoints.get(placeId);
-  if (!map || !lngLat) return;
-  const { x, y } = map.project(lngLat);
-  const { clientWidth, clientHeight } = map.getContainer();
-  const top = Math.min(flightPadding.top, clientHeight / 2.5) + cursorFollowMarginPx;
-  const bottom = clientHeight - props.keyboardInset - cursorFollowMarginPx;
-  const shiftedX = Math.min(Math.max(x, cursorFollowMarginPx), clientWidth - cursorFollowMarginPx);
-  const shiftedY = Math.min(Math.max(y, top), Math.max(top, bottom));
-  if (shiftedX === x && shiftedY === y) return;
-  map.panBy([x - shiftedX, y - shiftedY], cameraMotion(300));
+  if (!map) return;
+  const shift = freeAreaShiftOf(map, placeId);
+  if (shift.some(step => step !== 0)) map.panBy(shift, cameraMotion(300));
 };
 
 const placeCursor = (placeId: string, shouldAnnounce: boolean) => {
@@ -759,6 +762,9 @@ watch(() => settings.isChainOutlinesOn, () => {
   for (const layer of chainLayers) map?.setLayoutProperty(layer, 'visibility', chainVisibility());
 });
 watch(() => [props.frameRegion, props.frameInset], () => flyToRegion());
+watch(freeAreaKey, () => {
+  if (props.frameInset > 0) flyToRegion();
+}, { flush: 'post' });
 
 onMounted(async () => {
   const tierMap = await tierMapOf(props.tier);
@@ -811,7 +817,7 @@ onMounted(async () => {
     dimOutsidePool();
     showChainOutlines();
     applyHighlight(props.highlightedPlaceId);
-    if (props.highlightedPlaceId) flyTo(props.highlightedPlaceId);
+    if (framedPlaceId.value) flyTo(framedPlaceId.value);
     markRoute(props.route);
     fitRoute();
     drawMapData();
@@ -829,7 +835,6 @@ defineExpose({
   getMap: () => map,
   flyTo,
   flyToRegion,
-  flyToBounds,
   fitInFreeArea,
   reveal: followCursor,
   zoomIn: () => zoomBy(1),

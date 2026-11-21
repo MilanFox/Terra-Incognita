@@ -35,6 +35,7 @@ const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 const activePage = useTemplateRef<{ more: HTMLElement | null }>('activePage');
 const placeBubble = useTemplateRef<{ bottom: number, lines: string[], focusWhy: () => void }>('placeBubble');
+const zoomTiles = useTemplateRef<ComponentPublicInstance>('zoomTiles');
 
 const allGames = game.allGamesStats();
 const pages = computed<{ id: StatsPageId, name: string }[]>(() => [
@@ -184,7 +185,7 @@ onMounted(() => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, focusWhy: () => placeBubble.value?.focusWhy(), bubbleBottom });
+defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatings, openBubble, placeLabel, bubblePlaceId, focusWhy: () => placeBubble.value?.focusWhy(), bubbleBottom, zoomTiles: computed(() => zoomTiles.value?.$el as HTMLElement | undefined) });
 </script>
 
 <template>
@@ -344,10 +345,11 @@ defineExpose({ titleId, isSpecialPage, peekHeight, visibleTrayHeight, placeRatin
     </div>
 
     <ZoomTiles
-      v-show="hasRoomForZoomTiles"
+      ref="zoomTiles"
       class="stats-overlay__zoom"
       :class="{ 'stats-overlay__zoom--dragging': dragShift !== null }"
-      :style="{ bottom: `${visibleTrayHeight + zoomTilesGapPx}px` }"
+      :style="{ bottom: `${visibleTrayHeight + zoomTilesGapPx}px`, visibility: hasRoomForZoomTiles ? undefined : 'hidden' }"
+      :inert="!hasRoomForZoomTiles"
       :is-at-min-zoom="isAtMinZoom"
       :is-at-max-zoom="isAtMaxZoom"
       @zoom-in="emit('zoomIn')"

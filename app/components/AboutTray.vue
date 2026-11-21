@@ -61,6 +61,7 @@ const tray = useTemplateRef<HTMLElement>('tray');
 const title = useTemplateRef<HTMLHeadingElement>('title');
 const backButton = useTemplateRef<HTMLButtonElement>('backButton');
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton');
+const zoomTiles = useTemplateRef<ComponentPublicInstance>('zoomTiles');
 const shippedVersion = shallowRef<ShippedVersion>();
 const flagCredits = shallowRef<FlagCredit[]>([]);
 const trayHeight = ref(0);
@@ -135,7 +136,7 @@ onMounted(async () => {
 });
 useResizeObserver(tray, measure);
 
-defineExpose({ titleId, trayHeight });
+defineExpose({ titleId, trayHeight, element: tray, zoomTiles: computed(() => zoomTiles.value?.$el as HTMLElement | undefined) });
 </script>
 
 <template>
@@ -366,9 +367,10 @@ defineExpose({ titleId, trayHeight });
     </div>
 
     <ZoomTiles
-      v-show="hasRoomForZoomTiles"
+      ref="zoomTiles"
       class="about-overlay__zoom"
-      :style="{ bottom: `${trayHeight + zoomTilesGapPx}px` }"
+      :style="{ bottom: `${trayHeight + zoomTilesGapPx}px`, visibility: hasRoomForZoomTiles ? undefined : 'hidden' }"
+      :inert="!hasRoomForZoomTiles"
       :is-at-min-zoom="isAtMinZoom"
       :is-at-max-zoom="isAtMaxZoom"
       @zoom-in="emit('zoomIn')"
