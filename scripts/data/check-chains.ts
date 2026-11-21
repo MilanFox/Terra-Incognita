@@ -1,19 +1,23 @@
 import { tiers } from './model.ts';
 import type { CheckLine } from './check.ts';
 import type { Tier } from './model.ts';
-import type { Chains } from './steps/chains.ts';
+import type { ChainOutline, Chains } from './steps/chains.ts';
 
 const prototypeSovereignChains = ['MDV', 'SYC', 'TUV', 'MHL', 'KIR', 'FSM', 'PLW', 'TON', 'CPV', 'COM', 'SLB', 'VUT'];
 
-const expectedChains: Record<Tier, string[]> = {
+export const expectedChains: Record<Tier, string[]> = {
   sovereign: [...prototypeSovereignChains, 'BHS', 'ATG', 'MUS', 'STP'],
   defacto: [],
   dependencies: ['TCA', 'PCN', 'PYF', 'VIR', 'AIA', 'VGB', 'CYM', 'SHN', 'GGY', 'IOT', 'COK', 'WLF', 'SGS', 'ASM', 'MNP'],
 };
 
-const expectedGroups: Record<string, string[]> = { KIR: ['Gilbert', 'Line', 'Phoenix'], SHN: ['Tristan da Cunha'] };
+export const acceptedOverlaps = ['BHS-TCA', 'VGB-VIR'];
+const maxOutlineWidthDegrees = 180;
 
-const acceptedOverlaps = ['BHS-TCA', 'VGB-VIR'];
+const widthOf = ({ ring }: ChainOutline) => {
+  const longitudes = ring.map(([longitude]) => longitude);
+  return Math.max(...longitudes) - Math.min(...longitudes);
+};
 
 export const chainChecks = ({ outlines, idsByTier, staleRulings, overlaps }: Chains): CheckLine[] => [
   {
@@ -28,15 +32,22 @@ export const chainChecks = ({ outlines, idsByTier, staleRulings, overlaps }: Cha
     ]),
   },
   {
-    label: 'Kiribati and St Helena are outlined in groups',
-    failures: Object.entries(expectedGroups).flatMap(([id, expected]) => {
-      const groups = outlines.filter(outline => outline.id === id).map(({ group }) => group ?? '(whole)').sort();
-      return groups.join() === expected.join() ? [] : [`${id}: ${groups.join(', ') || 'none'}, expected ${expected.join(', ')}`];
+    label: 'every island chain has one outline',
+    failures: tiers.flatMap(tier => idsByTier[tier]).flatMap((id) => {
+      const count = outlines.filter(outline => outline.id === id).length;
+      return count === 1 ? [] : [`${id} has ${count} outlines`];
     }),
   },
   {
+    label: `no island chain outline is wider than ${maxOutlineWidthDegrees}°`,
+    failures: outlines.filter(outline => widthOf(outline) > maxOutlineWidthDegrees).map(outline => `${outline.id} is ${Math.round(widthOf(outline))}° wide`),
+  },
+  {
     label: `island chain outlines overlap only in ${acceptedOverlaps.join(', ')}`,
-    failures: overlaps.filter(pair => !acceptedOverlaps.includes(pair)).map(pair => `${pair} overlap`),
+    failures: [
+      ...overlaps.filter(pair => !acceptedOverlaps.includes(pair)).map(pair => `${pair} overlap`),
+      ...acceptedOverlaps.filter(pair => !overlaps.includes(pair)).map(pair => `${pair} no longer overlap; remove the exception`),
+    ],
   },
   { label: 'island chain rulings in chains.json apply', failures: staleRulings },
 ];
