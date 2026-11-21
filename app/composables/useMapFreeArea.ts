@@ -9,6 +9,8 @@ export interface MapFreeArea {
 
 type Cover = MaybeRefOrGetter<HTMLElement | null | undefined>;
 
+export const freeAreaKeyOf = (freeArea: MapFreeArea | null | undefined) => freeArea && Object.values(freeArea).join();
+
 // Offsets, not the bounding box: screens and trays move in with a transform, which a bounding box would catch mid-flight.
 const layoutBoxOf = (element: HTMLElement) => {
   let top = 0;
@@ -29,6 +31,7 @@ export const useMapFreeArea = ({ map, top, bottom, right }: { map: Cover, top?: 
   };
 
   return computed<MapFreeArea | null>(() => {
+    // Offsets aren't reactive, so every observed size is read for its changes to recompute the free area; the first is the map's.
     const [mapSize] = sizes.map(({ width, height }) => width.value * height.value);
     const mapEdges = edgesOf(map);
     if (!mapEdges || !mapSize) return null;

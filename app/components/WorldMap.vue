@@ -7,6 +7,7 @@ import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
 import { aidedPlaceId, chainOutlineShown } from '#shared/utils/chainOutlines';
 import type { MapDrawing } from '#shared/utils/chainOutlines';
+import { freeAreaKeyOf } from '~/composables/useMapFreeArea';
 import type { MapFreeArea } from '~/composables/useMapFreeArea';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useSettingsStore } from '~/stores/settings';
@@ -460,7 +461,8 @@ const applyHighlight = (placeId: string | null | undefined, previousPlaceId?: st
 
 watch(() => props.highlightedPlaceId, applyHighlight, { flush: 'post' });
 
-const freeAreaKey = () => props.freeArea && Object.values(props.freeArea).join();
+const freeAreaKey = () => freeAreaKeyOf(props.freeArea);
+const currentFreeArea = computed(() => props.freeArea ?? uncovered);
 const framedPlaceId = computed(() => (props.verdict && props.verdict.outcome !== 'right' ? props.verdict.placeId : props.highlightedPlaceId));
 
 watch([framedPlaceId, freeAreaKey], ([placeId]) => {
@@ -545,7 +547,7 @@ const padToFreeArea = (shownMap: MapLibreMap, freeArea: MapFreeArea) => {
   shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (top + clientHeight - bottom) / 2]), padding: { top, right, bottom, left } });
 };
 
-const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = props.freeArea ?? uncovered }: { maxZoom?: number, freeArea?: MapFreeArea } = {}) => {
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value }: { maxZoom?: number, freeArea?: MapFreeArea } = {}) => {
   if (!map) return;
   padToFreeArea(map, freeArea);
   map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
@@ -600,7 +602,7 @@ const freeAreaShiftOf = (shownMap: MapLibreMap, placeId: string): [number, numbe
   if (!bounds) return [0, 0];
   const [{ x: west, y: south }, { x: east, y: north }] = [shownMap.project(bounds[0]), shownMap.project(bounds[1])];
   const { clientWidth, clientHeight } = shownMap.getContainer();
-  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, props.freeArea ?? uncovered);
+  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, currentFreeArea.value);
   return [shiftIntoView([west, east], [left + freeAreaMarginPx, clientWidth - right - freeAreaMarginPx]), shiftIntoView([north, south], [top + freeAreaMarginPx, clientHeight - bottom - freeAreaMarginPx])];
 };
 
@@ -608,7 +610,7 @@ const followCursor = (placeId: string) => {
   const lngLat = labelPoints.get(placeId);
   if (!map || !lngLat) return;
   if (!props.isStatsMap) {
-    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, padding: freeAreaPaddingOf(map, props.freeArea ?? uncovered), ...cameraMotion(300) });
+    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, padding: freeAreaPaddingOf(map, currentFreeArea.value), ...cameraMotion(300) });
     return;
   }
   const { x, y } = map.project(lngLat);
@@ -753,7 +755,7 @@ watch(() => routeLookOf(props.route), () => {
   drawMapData();
 }, { flush: 'post' });
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
-watch([() => props.route?.framedPlaceIds.join(), () => props.freeArea && Object.values(props.freeArea).join()], fitRoute, { flush: 'post' });
+watch([() => props.route?.framedPlaceIds.join(), freeAreaKey], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
 watch([() => props.landShown, () => props.poolPlaceIds, () => props.gapPlaceIds, () => routePlaceIdsOf(props.route).join()], showChainOutlines);
 watch(() => settings.isChainOutlinesOn, () => {
