@@ -1,6 +1,6 @@
 import { deepestTierPlayed, isEligibleFor, variantChoicesByMode } from './game';
 import type { DeckSize, KeyValueStorage, Mode, Place, Region, RegionChoice, RoundSetup, Tier, Variant } from './game';
-import { bestKeyOf, createRecords } from './records';
+import { bestKeyOf, createRecords, modeVariantOf } from './records';
 import type { PersonalBests, PlaceRecords, RoundSummary } from './records';
 
 export type Rating = 'noData' | 'weak' | 'shaky' | 'solid';
@@ -147,8 +147,8 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
       .map(({ id }) => [id, ratingOf(pooledAnswers.get(id) ?? [])]));
   };
 
-  const sameKnowledgeAnswers = ({ mode, variant }: { mode: Mode, variant: Variant }): Record<string, AnswerTally> => {
-    const sameKnowledge = modeVariantsTestingSameKnowledge.find(modeVariants => modeVariants.includes(`${mode}:${variant}`)) ?? [];
+  const sameKnowledgeAnswers = (setup: RoundSetup): Record<string, AnswerTally> => {
+    const sameKnowledge = modeVariantsTestingSameKnowledge.find(modeVariants => modeVariants.includes(modeVariantOf(setup))) ?? [];
     const tallies: Record<string, AnswerTally> = {};
     for (const [modeVariant, byPlaceId] of Object.entries(readPlaceRecords(storage))) {
       if (!sameKnowledge.includes(modeVariant)) continue;

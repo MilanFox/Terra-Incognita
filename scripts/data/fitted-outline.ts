@@ -1,6 +1,6 @@
-import type { Ring } from '../model.ts';
+import type { Ring } from './model.ts';
 
-type Point = [number, number];
+export type Point = [number, number];
 type Grid = { columns: number, rows: number, west: number, south: number };
 
 const cellDegrees = 0.05;
@@ -13,25 +13,25 @@ const squaredDistances = (isSeed: Uint8Array, { columns, rows }: Grid) => {
   const longest = Math.max(columns, rows);
   const line = new Float64Array(longest);
   const parabolas = new Int32Array(longest);
-  const reach = new Float64Array(longest + 1);
+  const envelopeEnds = new Float64Array(longest + 1);
   const meetingOf = (cell: number, parabola: number) =>
     (line[cell]! + cell * cell - line[parabola]! - parabola * parabola) / (2 * cell - 2 * parabola);
   const transformLine = (start: number, stride: number, length: number) => {
     for (let cell = 0; cell < length; cell++) line[cell] = distances[start + cell * stride]!;
     let last = 0;
     parabolas[0] = 0;
-    reach[0] = -Infinity;
-    reach[1] = Infinity;
+    envelopeEnds[0] = -Infinity;
+    envelopeEnds[1] = Infinity;
     for (let cell = 1; cell < length; cell++) {
       let meeting = meetingOf(cell, parabolas[last]!);
-      while (meeting <= reach[last]!) meeting = meetingOf(cell, parabolas[--last]!);
+      while (meeting <= envelopeEnds[last]!) meeting = meetingOf(cell, parabolas[--last]!);
       parabolas[++last] = cell;
-      reach[last] = meeting;
-      reach[last + 1] = Infinity;
+      envelopeEnds[last] = meeting;
+      envelopeEnds[last + 1] = Infinity;
     }
     last = 0;
     for (let cell = 0; cell < length; cell++) {
-      while (reach[last + 1]! < cell) last++;
+      while (envelopeEnds[last + 1]! < cell) last++;
       const parabola = parabolas[last]!;
       distances[start + cell * stride] = (cell - parabola) ** 2 + line[parabola]!;
     }
@@ -175,9 +175,9 @@ export const fittedOutline = (islands: Ring[], rollingRadius: number, padding: n
     west,
     south,
   };
-  const reachCells = (rollingRadius + padding) / cellDegrees;
+  const clearanceCells = (rollingRadius + padding) / cellDegrees;
   const fromCoast = squaredDistances(coastCells([...islands, ...spineOf(islands)], grid), grid);
-  const fromBall = squaredDistances(Uint8Array.from(fromCoast, distance => (distance > reachCells ** 2 ? 1 : 0)), grid);
+  const fromBall = squaredDistances(Uint8Array.from(fromCoast, distance => (distance > clearanceCells ** 2 ? 1 : 0)), grid);
   const insideBy = fromBall.map(distance => Math.sqrt(distance) - rollingRadius / cellDegrees);
   const [outer = []] = contoursOf(insideBy, grid).sort((first, second) => signedArea(second) - signedArea(first));
   return simplified(outer);

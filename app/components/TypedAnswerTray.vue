@@ -16,8 +16,8 @@ const typedText = ref('');
 const isRejected = ref(false);
 
 const outcome = computed(() => (props.state.phase === 'verdict' ? props.state.answer.outcome : null));
-const isAwaitingNext = computed(() => outcome.value !== null || (props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open'));
 const isRouteRevealed = computed(() => props.state.phase === 'wayfinder' && props.state.route.outcome !== 'open');
+const isAwaitingNext = computed(() => outcome.value !== null || isRouteRevealed.value);
 const submitKey = computed(() => (isAwaitingNext.value && (outcome.value !== 'right' || settings.isWaitForNextOn) ? 'next' : 'submit'));
 const isPaused = computed(() => props.state.phase !== 'wayfinder' && props.state.isPaused);
 const unresolvedCount = computed(() => {
