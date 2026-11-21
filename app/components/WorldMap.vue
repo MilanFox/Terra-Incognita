@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
 import { seaAssistPlaceId } from '#shared/utils/seaAssist';
+import type { MapFreeArea } from '~/composables/useMapFreeArea';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useSettingsStore } from '~/stores/settings';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -43,6 +44,7 @@ interface RouteMarks {
   startId: string
   targetId: string
   namedPlaceIds: string[]
+  framedPlaceIds: string[]
   reveal?: { routePlaceIds: string[], shortestPlaceIds: string[] } | null
 }
 
@@ -67,8 +69,9 @@ const props = withDefaults(defineProps<{
   landShown?: number
   topInset?: number
   bottomCover?: number
+  freeArea?: MapFreeArea | null
   nameablePlaces?: Record<string, string> | null
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, nameablePlaces: null });
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string], next: [] }>();
 
 const { t, locale } = useI18n();
@@ -81,6 +84,7 @@ const flightMaxZoom = 4;
 const flightPadding = { top: 230, bottom: 60, left: 40, right: 40 };
 const minimumFlightFramePx = 120;
 const keyboardGapPx = 16;
+const freeAreaMarginPx = 16;
 const minZoom = -1;
 const maxZoom = 10;
 // MapLibre's ease-out starts the glide at linearity / 0.6 of the release speed, so 0.6 lets the map leave the finger at the finger's speed.
@@ -412,7 +416,12 @@ const boundsOf = (placeId: string) => {
     return [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]] as [[number, number], [number, number]];
   });
   const labelledPiece = pieces.find(holdsLabel);
-  return labelledPiece ?? pieces.sort(([[west1, south1], [east1, north1]], [[west2, south2], [east2, north2]]) => (east2 - west2) * (north2 - south2) - (east1 - west1) * (north1 - south1))[0];
+  const mainPiece = labelledPiece ?? pieces.sort(([[west1, south1], [east1, north1]], [[west2, south2], [east2, north2]]) => (east2 - west2) * (north2 - south2) - (east1 - west1) * (north1 - south1))[0];
+  if (!mainPiece) return undefined;
+  // Land cut at the antimeridian is framed with its part on the far side (Russia's Chukotka).
+  const [[west, south], [east, north]] = mainPiece;
+  const farSide = east === 180 ? pieces.find(([[farWest, farSouth], [, farNorth]]) => farWest === -180 && farSouth <= north && farNorth >= south) : undefined;
+  return farSide ? [[west, Math.min(south, farSide[0][1])], [farSide[1][0] + 360, Math.max(north, farSide[1][1])]] as [[number, number], [number, number]] : mainPiece;
 };
 
 const flyTo = (placeId: string) => {
@@ -524,12 +533,22 @@ const markRoute = (route: RouteMarks | null) => {
   markedRoute = route;
 };
 
+// The free area becomes the map's own padding: MapLibre then keeps the world over that area only, so a fit sits clear of what covers the map and may zoom out past the whole-screen limit.
+const padToFreeArea = (shownMap: MapLibreMap, { top, right, bottom, left }: MapFreeArea) => {
+  const { clientWidth, clientHeight } = shownMap.getContainer();
+  const roomyTop = Math.max(0, Math.min(top, clientHeight - bottom - minimumFlightFramePx));
+  shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (roomyTop + clientHeight - bottom) / 2]), padding: { top: roomyTop, right, bottom, left } });
+};
+
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom }: { maxZoom?: number } = {}) => {
+  if (!map || !props.freeArea) return;
+  padToFreeArea(map, props.freeArea);
+  map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
+};
+
 const fitRoute = () => {
-  const placeBounds = routePlaceIdsOf(props.route).map(boundsOf).filter(bounds => !!bounds);
-  if (!map || placeBounds.length === 0) return;
-  const bottom = Math.max(flightPadding.bottom, props.keyboardInset + keyboardGapPx);
-  const top = Math.max(0, Math.min(props.topInset + keyboardGapPx, map.getContainer().clientHeight - bottom - minimumFlightFramePx));
-  map.fitBounds(boundsAround(placeBounds), { ...cameraMotion(flightMs), maxZoom: routeMaxZoom, padding: { ...flightPadding, top, bottom, right: flightPadding.right + zoomTilesWidthPx } });
+  const placeBounds = (props.route?.framedPlaceIds ?? []).map(boundsOf).filter(bounds => !!bounds);
+  if (placeBounds.length > 0) fitInFreeArea(boundsAround(placeBounds), { maxZoom: routeMaxZoom });
 };
 
 const showLand = () => {
@@ -721,7 +740,7 @@ watch(() => routeLookOf(props.route), () => {
   drawMapData();
 }, { flush: 'post' });
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
-watch([() => routePlaceIdsOf(props.route).join(), () => props.keyboardInset, () => props.topInset], fitRoute, { flush: 'post' });
+watch([() => props.route?.framedPlaceIds.join(), () => props.freeArea && Object.values(props.freeArea).join()], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
 watch(() => settings.isChainOutlinesOn, () => {
   if (!hasLoaded) return;
@@ -798,6 +817,7 @@ defineExpose({
   flyTo,
   flyToRegion,
   flyToBounds,
+  fitInFreeArea,
   reveal: followCursor,
   zoomIn: () => zoomBy(1),
   zoomOut: () => zoomBy(-1),

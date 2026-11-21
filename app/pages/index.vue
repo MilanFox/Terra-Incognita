@@ -11,6 +11,7 @@ import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
 import { usePlayFeedback } from '~/composables/usePlayFeedback';
+import { useMapFreeArea } from '~/composables/useMapFreeArea';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
@@ -28,7 +29,7 @@ const setupTray = useTemplateRef('setupTray');
 const dailySetupTray = useTemplateRef('dailySetupTray');
 const resultsTray = useTemplateRef('resultsTray');
 const typedAnswerTray = useTemplateRef('typedAnswerTray');
-const wayfinderScreen = useTemplateRef<{ cardBottom: number }>('wayfinderScreen');
+const wayfinderScreen = useTemplateRef<{ card?: HTMLElement | null, zoomTiles?: HTMLElement }>('wayfinderScreen');
 const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
 const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
 const statsTray = useTemplateRef<InstanceType<typeof StatsTray>>('statsTray');
@@ -41,8 +42,8 @@ const { height: setupTrayHeight } = useElementSize(() => setupTray.value?.elemen
 const { height: dailySetupTrayHeight } = useElementSize(() => dailySetupTray.value?.element, undefined, { box: 'border-box' });
 const { height: resultsTrayHeight } = useElementSize(() => resultsTray.value?.element, undefined, { box: 'border-box' });
 const { height: typedAnswerTrayHeight } = useElementSize(() => typedAnswerTray.value?.element, undefined, { box: 'border-box' });
-const { height: wayfinderAnswerTrayHeight } = useElementSize(() => wayfinderAnswerTray.value?.element, undefined, { box: 'border-box' });
 const { height: wayfinderResultsTrayHeight } = useElementSize(() => wayfinderResultsTray.value?.element, undefined, { box: 'border-box' });
+const wayfinderFreeArea = useMapFreeArea({ map: () => worldMap.value?.$el, top: () => wayfinderScreen.value?.card, bottom: () => wayfinderAnswerTray.value?.element, right: () => wayfinderScreen.value?.zoomTiles });
 const isSettingsOpen = ref(false);
 const isStatsOpen = ref(false);
 const isCameraHeld = ref(false);
@@ -69,8 +70,8 @@ const isRoundPlay = computed(() => ((game.state.phase === 'prompt' || game.state
 const isWayfinderRound = computed(() => game.state.phase === 'wayfinder');
 const routeMarks = computed(() => {
   if (game.state.phase !== 'wayfinder') return null;
-  const { route, reveal } = game.state;
-  return { startId: route.start, targetId: route.target, namedPlaceIds: route.entries, reveal: reveal && { routePlaceIds: reveal.yourRoute ?? [], shortestPlaceIds: reveal.shortestRoute ?? [] } };
+  const { route, reveal, framedPlaceIds } = game.state;
+  return { startId: route.start, targetId: route.target, namedPlaceIds: route.entries, framedPlaceIds, reveal: reveal && { routePlaceIds: reveal.yourRoute ?? [], shortestPlaceIds: reveal.shortestRoute ?? [] } };
 });
 const nameablePlaces = computed(() => (routeMarks.value
   ? Object.fromEntries([routeMarks.value.startId, routeMarks.value.targetId, ...routeMarks.value.namedPlaceIds].map(placeId => [placeId, game.nameOf(placeId, locale.value)]))
@@ -475,13 +476,14 @@ onMounted(game.load);
         :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : markedPlaceId"
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
-        :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : isWayfinderRound ? wayfinderAnswerTrayHeight : 0"
+        :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : 0"
         :is-names-only="isAboutOpen || (isStatsOpen && statsTray?.isSpecialPage)"
         :place-ratings="isStatsOpen ? statsTray?.placeRatings ?? null : null"
         :route="routeMarks"
         :land-shown="landShown"
         :nameable-places="nameablePlaces"
-        :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : wayfinderScreen?.cardBottom ?? 0"
+        :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : 0"
+        :free-area="isWayfinderRound ? wayfinderFreeArea : null"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
         @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : statsTray?.placeLabel($event) ?? '')"
