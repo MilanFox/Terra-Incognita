@@ -719,3 +719,57 @@ describe('resuming an interrupted Wayfinder round', () => {
     }
   });
 });
+
+describe('the places the camera frames', () => {
+  it('are the start and the target when a route begins', () => {
+    const game = storedRoundFrom('LBY', 'SWZ');
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['LBY', 'SWZ']);
+  });
+
+  it('stay put for a pick that is not linked to the start or the target', () => {
+    const game = storedRoundFrom('RUS', 'GAB');
+    enter(game, ['PLW', 'TUV', 'DEU', 'LUX']);
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['RUS', 'GAB']);
+  });
+
+  it('take in a pick linked to the start or the target over mainland borders', () => {
+    const game = storedRoundFrom('RUS', 'GAB');
+    enter(game, ['KAZ', 'COG']);
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['RUS', 'GAB', 'KAZ', 'COG']);
+  });
+
+  it('take in an earlier unlinked pick once a later pick links it', () => {
+    const game = storedRoundFrom('RUS', 'GAB');
+    enter(game, ['UZB', 'TUV']);
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['RUS', 'GAB']);
+
+    enter(game, ['KAZ']);
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['RUS', 'GAB', 'UZB', 'KAZ']);
+  });
+
+  it('are the shortest route alone at the reveal when yours is the shortest, without the picks off it', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['TUV', 'ITA', 'ESP', 'FRA', 'DEU']);
+
+    expect(routeOf(game)).toMatchObject({ route: { outcome: 'complete' }, framedPlaceIds: ['PRT', 'POL', 'ESP', 'FRA', 'DEU'] });
+  });
+
+  it('are the shortest route and yours at the reveal when yours is longer', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['ISL', 'CHE', 'ESP', 'CZE', 'FRA', 'AUT']);
+
+    expect(routeOf(game).framedPlaceIds).toEqual(['PRT', 'POL', 'ESP', 'FRA', 'DEU', 'CHE', 'AUT', 'CZE']);
+  });
+
+  it('are the shortest route when the detours run out mid-route, without the picks made', () => {
+    const game = storedRoundFrom('PRT', 'POL');
+    enter(game, ['ESP', 'AND', ...placesWithoutMainland.slice(0, 6)]);
+
+    expect(routeOf(game)).toMatchObject({ route: { outcome: 'failed' }, framedPlaceIds: ['PRT', 'POL', 'ESP', 'FRA', 'DEU'] });
+  });
+});
