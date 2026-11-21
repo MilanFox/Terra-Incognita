@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useSound } from '~/composables/useSound';
+import { letterRowsFor } from '~~/shared/utils/tileKeyboardRows';
 
 type KeyKind = 'letter' | 'hyphen' | 'erase' | 'space' | 'submit';
 
@@ -16,17 +17,12 @@ const emit = defineEmits<{ type: [text: string], erase: [], submit: [] }>();
 const { locale, t } = useI18n();
 const sound = useSound();
 
-const letterRowsByLocale: Record<string, [string, string, string]> = {
-  en: ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'],
-  de: ['qwertzuiop', 'asdfghjkl', 'yxcvbnm'],
-};
-
 const pressedKeyId = ref<string | null>(null);
 
 const letterKeys = (letters: string): TileKey[] => [...letters].map(letter => ({ id: letter, kind: 'letter', face: letter.toUpperCase() }));
 
 const keyRows = computed<TileKey[][]>(() => {
-  const [top, middle, bottom] = letterRowsByLocale[locale.value] ?? letterRowsByLocale.en!;
+  const [top, middle, bottom] = letterRowsFor(locale.value);
   return [
     letterKeys(top),
     letterKeys(middle),
@@ -63,6 +59,7 @@ const activate = (event: MouseEvent, key: TileKey) => {
 <template>
   <div
     class="tile-keyboard"
+    :style="{ '--row-keys': keyRows[0]!.length }"
     role="group"
     :aria-label="$t('typed.keyboard')"
   >
@@ -130,7 +127,7 @@ const activate = (event: MouseEvent, key: TileKey) => {
 }
 
 .tile-keyboard__key {
-  flex: 0 0 calc((100% - 9 * var(--key-gap)) / 10);
+  flex: 0 0 calc((100% - (var(--row-keys) - 1) * var(--key-gap)) / var(--row-keys));
   display: grid;
   place-items: center;
   min-width: 0;
