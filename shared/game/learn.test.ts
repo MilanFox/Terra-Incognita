@@ -108,6 +108,8 @@ const placeRecordOf = (storage: KeyValueStorage, placeId: string, modeVariant = 
 
 const learningOf = (state: GameState) => ('learning' in state ? state.learning : undefined);
 
+const promptNumbersOf = (asked: string[], placeId: string) => asked.flatMap((id, index) => (id === placeId ? [index + 1] : []));
+
 describe('Learn in the setup', () => {
   it('counts the whole pool and is available from 5 places', () => {
     const game = boot(memoryStorage(), fiveOceaniaPlaces);
@@ -219,7 +221,31 @@ describe('the working set', () => {
   it('lets a new place join only when no miss is waiting and fewer than 4 misses are in play', () => {
     const asked = play(startLearning(learnEurope), '✗✗✗✓✓✓✗✓✓✓');
 
-    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'RUS', 'DEU', 'FRA', 'GBR', 'RUS', 'ITA', 'GBR']);
+    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'GBR', 'ITA', 'ESP', 'RUS', 'DEU', 'FRA', 'UKR']);
+  });
+
+  it('asks places already learned in between while 4 misses wait and none is due, counted like any other prompt', () => {
+    const game = startLearning(learnEurope);
+
+    const asked = play(game, '✓✓✗✗✗✗✓✓✓✓✓✓');
+
+    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'GBR', 'ITA', 'ESP', 'RUS', 'DEU', 'FRA', 'GBR', 'ITA', 'ESP']);
+    expect(promptOf(game)).toMatchObject({ promptNumber: 13, learning: { learnedCount: 2 } });
+  });
+
+  it('asks solid places in between, lowest recent score first, as a review counts them', () => {
+    const game = startLearning(learnEurope, storageWithRecords({ NLD: [1, 1, 1], BEL: [1, 1, 1, 1, 0] }));
+
+    const asked = play(game, '✗✗✗✗✓✓');
+
+    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'GBR', 'BEL', 'NLD']);
+    expect(promptOf(game)).toMatchObject({ promptNumber: 7, learning: { learnedCount: 2 } });
+  });
+
+  it('pulls a miss forward only when no place is known yet, never a place still to join', () => {
+    const asked = play(startLearning(learnEurope), '✗✗✗✗✓✓');
+
+    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'GBR', 'RUS', 'DEU']);
   });
 });
 
@@ -227,7 +253,7 @@ describe('a returning player', () => {
   it('meets the places missed last round first, then the new places, then the ones answered right', () => {
     const storage = memoryStorage();
     const firstRound = startLearningWith(seededRandom(1), learnOceania, storage);
-    const [missed, ...answeredRight] = new Set(play(firstRound, '✗✓✓✓✓'));
+    const [missed, ...answeredRight] = new Set(play(firstRound, '✗✓✓✓'));
     firstRound.send({ type: 'askEnd' });
     const easeOrder = playAllRight(startLearning(learnOceania), 14);
 
@@ -329,31 +355,35 @@ describe('the reach', () => {
 });
 
 describe('the miss queue', () => {
-  it('brings a miss back 3 prompts later, then 6 later, and clears it after 2 right answers in a row', () => {
-    const game = startLearning(learnEurope);
+  it.each([
+    { draw: 0, promptNumbers: [1, 7, 19] },
+    { draw: 0.5, promptNumbers: [1, 9, 25] },
+    { draw: 0.999, promptNumbers: [1, 11, 31] },
+  ])('brings a miss back 6 to 10 prompts later, then 12 to 20 later, and clears it after 2 right answers in a row (random $draw)', ({ draw, promptNumbers }) => {
+    const game = startLearningWith(() => draw, learnEurope);
 
-    const asked = play(game, '✗✓✓✓✓✓✓✓✓✓');
+    const asked = play(game, `✗${right.repeat(promptNumbers.at(-1)! - 1)}`);
     const learnedAfterClearing = learningOf(game.state)?.learnedCount;
-    const askedAfterClearing = playAllRight(game, 20);
+    const askedAfterClearing = playAllRight(game, 10);
 
-    expect(asked).toEqual(['RUS', 'DEU', 'FRA', 'RUS', 'GBR', 'ITA', 'ESP', 'UKR', 'POL', 'RUS']);
-    expect(learnedAfterClearing).toBe(8);
-    expect(askedAfterClearing).not.toContain('RUS');
+    expect(promptNumbersOf(asked, asked[0]!)).toEqual(promptNumbers);
+    expect(learnedAfterClearing).toBe(new Set(asked).size);
+    expect(askedAfterClearing).not.toContain(asked[0]);
   });
 
   it('starts over when a miss comes back wrong', () => {
-    const asked = play(startLearning(learnEurope), '✗✓✓✗✓✓✓✓✓✓✓✓✓');
+    const asked = play(startLearning(learnEurope), `✗${right.repeat(5)}✗${right.repeat(18)}`);
 
-    expect(asked.map((placeId, index) => (placeId === 'RUS' ? index + 1 : null)).filter(Boolean)).toEqual([1, 4, 7, 13]);
+    expect(promptNumbersOf(asked, 'RUS')).toEqual([1, 7, 13, 25]);
   });
 
   it('does not count a place as learned until it is cleared', () => {
     const game = startLearning(learnEurope);
 
-    play(game, '✗✓✓');
+    play(game, '✗✓✓✓✓✓');
     answer(game, right);
 
-    expect(verdictOf(game)).toMatchObject({ placeId: 'RUS', learning: { learnedCount: 2 } });
+    expect(verdictOf(game)).toMatchObject({ placeId: 'RUS', learning: { learnedCount: 5 } });
   });
 });
 
@@ -378,10 +408,10 @@ describe('the pool exhausted', () => {
     const game = startLearning(learnOceania, storageWithSolidPlaces(), fiveOceaniaPlaces);
     playAllRight(game, 3);
 
-    const asked = play(game, '✗✓✓✓✓');
+    const asked = play(game, '✗✓✓✓✓✓✓');
 
     expect(asked[0]).toBe('PNG');
-    expect(asked[3]).toBe('PNG');
+    expect(asked[6]).toBe('PNG');
     expect(asked.every(placeId => fiveOceaniaPlaceIds.includes(placeId))).toBe(true);
     expect(learningOf(game.state)).toMatchObject({ isEverythingLearned: false });
   });
@@ -412,7 +442,7 @@ describe('recording a learning round', () => {
 
     answer(game, '✗', 'POL');
     game.send({ type: 'next' });
-    play(game, '✓✓');
+    play(game, '✓✓✓✓✓');
     answer(game, '✗', 'UKR');
 
     expect(placeRecordOf(storage, 'RUS')).toMatchObject({ seen: 1, correct: 0, recent: [0], confusedWith: 'UKR' });
@@ -430,12 +460,12 @@ describe('recording a learning round', () => {
   it('ends on End round without a confirm, logged complete as a learning round, with no personal best', () => {
     const storage = memoryStorage();
     const game = startLearning(learnEurope, storage);
-    play(game, '✗✓✓✓');
+    play(game, '✗✓✓✓✓✓✓');
 
     game.send({ type: 'askEnd' });
 
     expect(resultsOf(game)).toMatchObject({ isComplete: true, isNewBest: false });
-    expect(JSON.parse(storage.getItem('ti:rounds')!)).toEqual([expect.objectContaining({ mode: 'find', learn: true, complete: true, timed: false, deckSize: 3, score: 2 })]);
+    expect(JSON.parse(storage.getItem('ti:rounds')!)).toEqual([expect.objectContaining({ mode: 'find', learn: true, complete: true, timed: false, deckSize: 6, score: 5 })]);
     expect(storage.getItem('ti:bests')).toBeNull();
     expect(storage.getItem('ti:round')).toBeNull();
   });
@@ -444,22 +474,24 @@ describe('recording a learning round', () => {
 describe('learning results', () => {
   it('show places learned, answers given and one cell per place asked, coloured by its first answer', () => {
     const game = startLearning(learnEurope);
-    play(game, '✗✓✓✓✓');
+    play(game, '✗✓✓✓✓✓✓');
     answer(game, '✗');
 
     game.send({ type: 'askEnd' });
 
     expect(resultsOf(game)).toMatchObject({
-      deckSize: 5,
-      score: 3,
+      deckSize: 7,
+      score: 5,
       missedPlaceIds: [],
-      learning: { learnedCount: 3, answerCount: 6 },
+      learning: { learnedCount: 5, answerCount: 8 },
       answers: [
         { placeId: 'RUS', outcome: 'wrong' },
         { placeId: 'DEU', outcome: 'right' },
         { placeId: 'FRA', outcome: 'right' },
         { placeId: 'GBR', outcome: 'right' },
-        { placeId: 'ITA', outcome: 'wrong' },
+        { placeId: 'ITA', outcome: 'right' },
+        { placeId: 'ESP', outcome: 'right' },
+        { placeId: 'UKR', outcome: 'wrong' },
       ],
     });
   });
@@ -479,11 +511,13 @@ describe('resuming a learning round', () => {
   const continuation = '✓✗✓✓✓✓✓✓✓✓✓✓';
 
   it('comes back with the working set and miss queue intact', () => {
-    const uninterrupted = startLearningWith(seededRandom(3), learnEurope);
+    let uninterruptedRandom = seededRandom(3);
+    const uninterrupted = startLearningWith(() => uninterruptedRandom(), learnEurope);
     const storage = memoryStorage();
     const interrupted = startLearningWith(seededRandom(3), learnEurope, storage);
     play(uninterrupted, script);
     play(interrupted, script);
+    uninterruptedRandom = seededRandom(4);
 
     const resumed = boot(storage, allPlaces, seededRandom(4));
 
@@ -505,6 +539,15 @@ describe('resuming a learning round', () => {
 
     expect(resumed.state).toEqual(uninterrupted.state);
     expect(play(resumed, continuation)).toEqual(play(uninterrupted, continuation));
+  });
+
+  it('keeps the comeback drawn for a miss before the reload', () => {
+    const storage = memoryStorage();
+    const [missed] = play(startLearningWith(() => 0.999, learnEurope, storage), '✗');
+
+    const asked = playAllRight(boot(storage, allPlaces, () => 0), 10);
+
+    expect(promptNumbersOf([missed!, ...asked], missed!)).toEqual([1, 11]);
   });
 
   it('is dropped when its stored loop is damaged', () => {
