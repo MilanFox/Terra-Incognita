@@ -1,7 +1,7 @@
 import { normaliseKeys } from '../../shared/utils/normalise.ts';
 import { languages } from './steps/names.ts';
 import type { CheckLine } from './check.ts';
-import type { Names } from './steps/names.ts';
+import type { AliasRulings, Names } from './steps/names.ts';
 
 export type NamesCheck = { lines: CheckLine[], warnings: string[] };
 
@@ -10,6 +10,16 @@ const everyPlaceHasNames = (names: Names, placeIds: string[]): CheckLine => ({
   failures: placeIds.flatMap(id => languages
     .filter(language => !names[id]?.[language].name)
     .map(language => `${id} has no ${language} name`)),
+});
+
+const nameOverridesAreKnown = (aliasRulings: AliasRulings, placeIds: string[]): CheckLine => ({
+  label: 'every display-name override is for a place, in EN or DE',
+  failures: Object.entries(aliasRulings).flatMap(([id, { name }]) => [
+    ...(name && !placeIds.includes(id) ? [`${id}: unknown id`] : []),
+    ...Object.keys(name ?? {})
+      .filter(language => !languages.some(known => known === language))
+      .map(language => `${id} ${language}: unknown language`),
+  ]),
 });
 
 const textsOf = (placeNames: Names[string]) => languages.flatMap((language) => {
@@ -33,8 +43,10 @@ const identicalKeys = (names: Names): string[] => {
     .sort();
 };
 
-export const checkNames = (names: Names, placeIds: string[], unusedDrops: string[]): NamesCheck => ({
-  lines: [everyPlaceHasNames(names, placeIds)],
+type NamesCheckInput = { names: Names, placeIds: string[], unusedDrops: string[], aliasRulings: AliasRulings };
+
+export const checkNames = ({ names, placeIds, unusedDrops, aliasRulings }: NamesCheckInput): NamesCheck => ({
+  lines: [everyPlaceHasNames(names, placeIds), nameOverridesAreKnown(aliasRulings, placeIds)],
   warnings: [
     ...identicalKeys(names).map(collision => `names normalise identically for two places: ${collision}`),
     ...unusedDrops.map(drop => `alias drop matches nothing: ${drop}`),

@@ -22,6 +22,7 @@ export type Names = Record<string, PlaceNames>;
 
 export type AliasRuling = {
   note?: string
+  name?: Partial<Record<Language, string>>
   add?: Partial<Record<Language, string[]>> & { capitals?: Record<string, Partial<Record<Language, string[]>>> }
   drop?: { lang: Language, capital?: string, alias: string, why: string }[]
 };
@@ -133,7 +134,10 @@ const localisedNameOf = (language: Language, context: NameContext, usedDrops: Se
   const { place: { id, iso2 }, neNames, sources } = context;
   const hand = sources.aliasRulings[id];
   const texts = collectTexts();
-  texts.setName((iso2 && sources.cldr[language][iso2]) || neNames[language]);
+  const sourceName = (iso2 && sources.cldr[language][iso2]) || neNames[language];
+  const handName = hand?.name?.[language];
+  texts.setName(handName ?? sourceName);
+  if (handName && sourceName) texts.addAlias(sourceName.normalize('NFC').trim());
   for (const [text, source] of sourceTexts(language, context)) {
     const alias = text?.normalize('NFC').trim();
     if (!alias || isFilteredOut(alias, source)) continue;
