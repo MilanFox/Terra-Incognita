@@ -83,10 +83,12 @@
     "add": { "en": ["Ivory Coast"], "de": ["Elfenbeinküste"] }
   },
   "COD": {
-    "add": { "en": ["DRC", "DR Congo", "Congo-Kinshasa", "Zaire"], "de": ["Kongo-Kinshasa", "Demokratische Republik Kongo"] },
+    "name": { "en": "DR Congo", "de": "DR Kongo" },
+    "add": { "en": ["DRC", "Congo-Kinshasa", "Zaire"], "de": ["Kongo-Kinshasa", "Demokratische Republik Kongo"] },
     "drop": [
       { "lang": "de", "alias": "Kongo", "why": "bare name is deliberately ambiguous between the two Congos" }
-    ]
+    ],
+    "note": "name: the country's own short name (owner ruling in #127)"
   },
   "COG": {
     "add": { "en": ["Congo-Brazzaville", "Republic of Congo"], "de": ["Kongo-Brazzaville"] },

@@ -93,7 +93,7 @@ lines.push(neighboursAreSymmetric(placeTierFacts));
 const droppedBordersCheck = droppedBordersMatch(droppedBorders);
 lines.push(droppedBordersCheck.line);
 lines.push(...chainChecks(chains));
-const namesCheck = checkNames(names, places.map(({ id }) => id), unusedDrops);
+const namesCheck = checkNames({ names, placeIds: places.map(({ id }) => id), unusedDrops, aliasRulings: nameSources.aliasRulings });
 const capitalsCheck = checkCapitals({ candidates, capitals, coastal, ...capitalJoin });
 const flagsCheck = checkFlags(flagJoin, flagSources);
 lines.push(...namesCheck.lines, ...capitalsCheck.lines, ...flagsCheck.lines);
