@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, Popup, setWorkerUrl } from 'maplibre-gl';
+import { Map as MapLibreMap, MercatorCoordinate, Popup, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
-import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLat, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, JumpToOptions, LngLat, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
@@ -86,6 +86,7 @@ const flightMs = 800;
 const flightMaxZoom = 4;
 const minimumFlightFramePx = 120;
 const freeAreaMarginPx = 16;
+const worldPxAtZoomZero = 512;
 const uncovered: MapFreeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 const minZoom = -1;
 const maxZoom = 10;
@@ -508,7 +509,7 @@ const flyToRegion = (region = props.frameRegion, { freeArea = props.frameInset >
     fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });
     return;
   }
-  fitInFreeArea(regionFrames[region], { freeArea });
+  fitInFreeArea(regionFrames[region], { freeArea, mayZoomOutFurther: false });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
@@ -547,8 +548,26 @@ const padToFreeArea = (shownMap: MapLibreMap, freeArea: MapFreeArea) => {
   shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (top + clientHeight - bottom) / 2]), padding: { top, right, bottom, left } });
 };
 
-const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value }: { maxZoom?: number, freeArea?: MapFreeArea } = {}) => {
+const isWithinWorld = (shownMap: MapLibreMap, { center, zoom }: JumpToOptions) => {
+  const worldPx = worldPxAtZoomZero * 2 ** zoom!;
+  const centreY = MercatorCoordinate.fromLngLat(center!).y * worldPx;
+  const halfHeight = shownMap.getContainer().clientHeight / 2;
+  return centreY >= halfHeight && centreY <= worldPx - halfHeight;
+};
+
+// Without a tray the map keeps no padding of its own, so MapLibre keeps the world filling it top to bottom (D7). A tray stays the map's padding as it always has, and so does the free area for places that only fit past a pole or below the whole-map zoom limit (D13).
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value, mayZoomOutFurther = true }: { maxZoom?: number, freeArea?: MapFreeArea, mayZoomOutFurther?: boolean } = {}) => {
   if (!map) return;
+  if (props.frameInset === 0) {
+    padToFreeArea(map, uncovered);
+    const { top, right, bottom, left } = freeAreaPaddingOf(map, freeArea);
+    const camera = map.cameraForBounds(bounds, { maxZoom: fitMaxZoom, padding: { top: top + freeAreaMarginPx, right: right + freeAreaMarginPx, bottom: bottom + freeAreaMarginPx, left: left + freeAreaMarginPx } });
+    if (!camera) return;
+    if (!mayZoomOutFurther || isWithinWorld(map, camera)) {
+      map.flyTo({ ...camera, ...cameraMotion(flightMs) });
+      return;
+    }
+  }
   padToFreeArea(map, freeArea);
   map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
 };
@@ -611,7 +630,8 @@ const followCursor = (placeId: string) => {
   const lngLat = labelPoints.get(placeId);
   if (!map || !lngLat) return;
   if (!props.isStatsMap) {
-    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, padding: freeAreaPaddingOf(map, currentFreeArea.value), ...cameraMotion(300) });
+    const { top, right, bottom, left } = freeAreaPaddingOf(map, currentFreeArea.value);
+    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, offset: [(left - right) / 2, (top - bottom) / 2], padding: uncovered, ...cameraMotion(300) });
     return;
   }
   const { x, y } = map.project(lngLat);
