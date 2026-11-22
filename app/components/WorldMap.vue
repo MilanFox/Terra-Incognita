@@ -420,7 +420,7 @@ const handlePointerMove = (event: MapMouseEvent) => {
 
 const setPlaceStatus = (placeId: string, placeStatus: PlaceStatus | null) => {
   if (!hasLoaded) return;
-  for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { status: placeStatus });
+  for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { status: placeStatus, fade: 0 });
 };
 
 const boundsOf = (placeId: string) => {
