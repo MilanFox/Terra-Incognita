@@ -570,7 +570,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     phase = 'verdict';
     if (learningLoop && !isFirstAnswerTo(learningLoop, answered.placeId)) records.recordConfusion(setup, answered.placeId, confusedWith);
     else records.recordAnswer(setup, answered, confusedWith);
-    if (learningLoop) learningLoop = afterAnswer(learningLoop, answered);
+    if (learningLoop) learningLoop = afterAnswer(learningLoop, answered, random);
   };
 
   const answer = (tappedPlaceId: string) => {

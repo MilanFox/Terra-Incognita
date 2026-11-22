@@ -2,8 +2,8 @@ import type { Answer, Outcome } from './game';
 import type { AnswerTally } from './stats';
 
 export const workingSetSize = 4;
-const firstComebackAfter = 3;
-const secondComebackAfter = 6;
+const firstComebackAfter = [6, 10] as const;
+const secondComebackAfter = [12, 20] as const;
 const rightsToClear = 2;
 const joinWindowSize = 15;
 const reliablyRightShare = 0.8;
@@ -73,23 +73,24 @@ export const nextPrompt = (loop: LearningLoop, lastPlaceId: string | undefined, 
   if (due) return { loop, placeId: due.placeId };
   const [joining, ...toJoin] = loop.toJoin;
   if (joining !== undefined && loop.misses.length < workingSetSize) return { loop: { ...loop, toJoin }, placeId: joining };
-  if (joining === undefined) {
-    const [reviewed, ...toReview] = loop.toReview.length > 0 ? loop.toReview : reviewOrder([...loop.misses.map(({ placeId }) => placeId), ...(lastPlaceId ? [lastPlaceId] : [])]);
-    if (reviewed !== undefined) return { loop: { ...loop, toReview }, placeId: reviewed };
-  }
+  // A full working set with no miss due asks a known place in between, so places still to join are left out of the review.
+  const [reviewed, ...toReview] = loop.toReview.length > 0 ? loop.toReview : reviewOrder([...loop.toJoin, ...loop.misses.map(({ placeId }) => placeId), ...(lastPlaceId ? [lastPlaceId] : [])]);
+  if (reviewed !== undefined) return { loop: { ...loop, toReview }, placeId: reviewed };
   const pulledForward = missesByDue.find(({ placeId }) => placeId !== lastPlaceId) ?? missesByDue[0]!;
   return { loop, placeId: pulledForward.placeId };
 };
 
-export const afterAnswer = (loop: LearningLoop, answer: Answer): LearningLoop => {
+const promptsUntilComeback = ([fewest, most]: readonly [number, number], random: () => number) => fewest + Math.floor(random() * (most - fewest + 1));
+
+export const afterAnswer = (loop: LearningLoop, answer: Answer, random: () => number): LearningLoop => {
   const answerCount = loop.answerCount + 1;
   const { placeId, outcome } = answer;
   const miss = loop.misses.find(waiting => waiting.placeId === placeId);
   const otherMisses = loop.misses.filter(waiting => waiting !== miss);
   const isCleared = outcome === 'right' && (!miss || miss.rightsInARow + 1 >= rightsToClear);
   let misses = otherMisses;
-  if (outcome !== 'right') misses = [...otherMisses, { placeId, dueAt: answerCount + firstComebackAfter, rightsInARow: 0 }];
-  else if (miss && !isCleared) misses = loop.misses.map(waiting => (waiting === miss ? { placeId, dueAt: answerCount + secondComebackAfter, rightsInARow: miss.rightsInARow + 1 } : waiting));
+  if (outcome !== 'right') misses = [...otherMisses, { placeId, dueAt: answerCount + promptsUntilComeback(firstComebackAfter, random), rightsInARow: 0 }];
+  else if (miss && !isCleared) misses = loop.misses.map(waiting => (waiting === miss ? { placeId, dueAt: answerCount + promptsUntilComeback(secondComebackAfter, random), rightsInARow: miss.rightsInARow + 1 } : waiting));
   return {
     ...loop,
     misses,
