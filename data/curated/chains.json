@@ -1,11 +1,14 @@
 {
-  "keep": {
-    "BHS": "Bahamas; kept as an extra (#26)",
-    "ATG": "Antigua and Barbuda; kept as an extra (#26)",
-    "MUS": "Mauritius with Rodrigues and Agaléga; kept as an extra (#26)",
-    "STP": "São Tomé and Príncipe; kept as an extra (#26)"
-  },
+  "keep": {},
   "drop": {
-    "UMI": "Spans the Caribbean and the Pacific, and its outline would overlap Kiribati and the Cayman Islands (#26)"
+    "UMI": "Spans the Caribbean and the Pacific, and its outline would overlap Kiribati and the Cayman Islands (#26)",
+    "BHS": "Bahamas; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "STP": "São Tomé and Príncipe; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "CPV": "Cabo Verde; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "ATG": "Antigua and Barbuda; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "MUS": "Mauritius with Rodrigues and Agaléga; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "COM": "Comoros; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "SYC": "Seychelles; easy to recognise without an outline, owner ruling 2026-11-22 (#126)",
+    "TCA": "Turks and Caicos Islands; easy to recognise without an outline, owner ruling 2026-11-22 (#126)"
   }
 }

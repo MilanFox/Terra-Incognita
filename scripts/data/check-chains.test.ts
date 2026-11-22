@@ -56,7 +56,7 @@ describe('chainChecks', () => {
     expect(failuresOf(chains)).toEqual([`${cleared} no longer overlap; remove the exception`]);
   });
 
-  it('fails when one of the prototype sovereign chains is missing', () => {
+  it('fails when one of the sovereign chains from the prototype is missing', () => {
     const chains = builtChains();
     chains.idsByTier.sovereign = chains.idsByTier.sovereign.filter(id => id !== 'TUV');
     chains.outlines = chains.outlines.filter(({ id }) => id !== 'TUV');
