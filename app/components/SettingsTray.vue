@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useGameStore } from '~/stores/game';
+import { useBackStep } from '~/composables/useBackSteps';
 import { useSound } from '~/composables/useSound';
 import { motionChoices, tapDelayChoices, useSettingsStore } from '~/stores/settings';
 import type { Language } from '~/stores/settings';
@@ -88,6 +89,8 @@ const dismissConfirm = async () => {
   await nextTick();
   tray.value?.querySelector<HTMLButtonElement>(`[data-opens="${dismissed}"]`)?.focus();
 };
+
+useBackStep(dismissConfirm, () => !!pendingConfirm.value);
 
 const shareFileOnPhone = (file: File) => {
   const isPhone = matchMedia('(pointer: coarse)').matches;
