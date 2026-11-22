@@ -3,15 +3,15 @@ import type { CheckLine } from './check.ts';
 import type { Tier } from './model.ts';
 import type { ChainOutline, Chains } from './steps/chains.ts';
 
-const prototypeSovereignChains = ['MDV', 'SYC', 'TUV', 'MHL', 'KIR', 'FSM', 'PLW', 'TON', 'CPV', 'COM', 'SLB', 'VUT'];
+const sovereignChainsFromPrototype = ['MDV', 'TUV', 'MHL', 'KIR', 'FSM', 'PLW', 'TON', 'SLB', 'VUT'];
 
 export const expectedChains: Record<Tier, string[]> = {
-  sovereign: [...prototypeSovereignChains, 'BHS', 'ATG', 'MUS', 'STP'],
+  sovereign: [...sovereignChainsFromPrototype],
   defacto: [],
-  dependencies: ['TCA', 'PCN', 'PYF', 'VIR', 'AIA', 'VGB', 'CYM', 'SHN', 'GGY', 'IOT', 'COK', 'WLF', 'SGS', 'ASM', 'MNP'],
+  dependencies: ['PCN', 'PYF', 'VIR', 'AIA', 'VGB', 'CYM', 'SHN', 'GGY', 'IOT', 'COK', 'WLF', 'SGS', 'ASM', 'MNP'],
 };
 
-export const acceptedOverlaps = ['BHS-TCA', 'VGB-VIR'];
+export const acceptedOverlaps = ['VGB-VIR'];
 const maxOutlineWidthDegrees = 180;
 
 const widthOf = ({ ring }: ChainOutline) => {
@@ -21,8 +21,8 @@ const widthOf = ({ ring }: ChainOutline) => {
 
 export const chainChecks = ({ outlines, idsByTier, staleRulings, overlaps }: Chains): CheckLine[] => [
   {
-    label: `the ${prototypeSovereignChains.length} prototype sovereign island chains are chains`,
-    failures: prototypeSovereignChains.filter(id => !idsByTier.sovereign.includes(id)).map(id => `${id} is missing`),
+    label: `the ${sovereignChainsFromPrototype.length} sovereign island chains from the prototype are chains`,
+    failures: sovereignChainsFromPrototype.filter(id => !idsByTier.sovereign.includes(id)).map(id => `${id} is missing`),
   },
   {
     label: `island chains per tier are ${tiers.map(tier => expectedChains[tier].length).join(' / ')}`,

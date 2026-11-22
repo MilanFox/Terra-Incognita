@@ -128,7 +128,7 @@ The build fails, and writes nothing, on:
 - a holder chain that does not end in a place of the tier, checked for every place outside each tier: no holder, a holder that is not a place, or a loop
 - asymmetric neighbours: in some tier a place lists another that doesn't list it back (this also catches a neighbour outside the tier, whose list there is empty)
 - the sovereign dropped borders differing from `data/curated/dropped-borders.sovereign.json`, whether or not that list is reviewed yet; a missing file counts as empty. `+` marks a pair the build drops that the list lacks, `-` a listed pair the build no longer drops
-- an island chain check (see [Island chains](#island-chains)): any of the 12 prototype sovereign chains missing, a tier's chains differing from the expected 16 / 0 / 15, a chain without exactly one outline, an outline wider than 180° of longitude, outlines overlapping outside the two accepted pairs, an accepted pair that no longer overlaps, or a `keep` / `drop` that no longer applies
+- an island chain check (see [Island chains](#island-chains)): any of the 9 sovereign chains from the prototype missing, a tier's chains differing from the expected 9 / 0 / 14, a chain without exactly one outline, an outline wider than 180° of longitude, outlines overlapping outside the accepted pair, an accepted pair that no longer overlaps, or a `keep` / `drop` that no longer applies
 - a place without an EN or a DE name
 - a place with capitals none of which lies inside its geometry
 - a capital without an EN or a DE name
@@ -172,8 +172,8 @@ A place is an island chain when, on its own tier's map (sovereign places on the 
 
 `data/curated/chains.json` overrides the rule:
 
-- `keep`: a place that is a chain whatever the rule says. Bahamas, Antigua and Barbuda, Mauritius and São Tomé and Príncipe are the four extras kept beyond the prototype's 12.
-- `drop`: a place that is not a chain. `UMI` spans the Caribbean and the Pacific.
+- `keep`: a place that is a chain whatever the rule says. None at present.
+- `drop`: a place that is not a chain. `UMI` spans the Caribbean and the Pacific. Island places that are easy to recognise on the map get no outline (owner ruling, #126): Bahamas, São Tomé and Príncipe, Cabo Verde, Antigua and Barbuda, Mauritius, Comoros, Seychelles and Turks and Caicos.
 
 Every chain gets exactly one outline around all its pieces. The map repeats sideways, so a chain that crosses the 180° line is taken as one run of longitudes (the land east of the line moves a turn further east) and its outline crosses the line with it: Kiribati's runs from 169° to 209°. St Helena's covers Ascension, St Helena and Tristan da Cunha.
 
@@ -181,12 +181,12 @@ Each outline starts as the convex hull of the chain's land, padded with a rounde
 
 A chain whose convex hull overlaps another outline even with the least padding gets a closer-fitting outline instead (`fitted-outline.ts`), the longest chain first. It is the line a ball leaves when it rolls around the chain's islands and the shortest links between them, pushed out by the 0.4° padding. The ball starts as wide as the chain is long, which leaves nearly the convex hull, and shrinks by 0.7 per step until the outline is clear of every other one or the ball is as small as the padding. Kiribati is fitted this way, because its hull covers Penrhyn in the Cook Islands. Overlaps are tested on every world copy, across all tiers.
 
-Two overlaps remain with the closest fit and are accepted: Bahamas / Turks and Caicos and the US / British Virgin Islands; all four are drawn with their closest-fitting outline. Any other overlap fails the check, and so does an accepted pair that no longer overlaps, so the exception is removed with it. An outline wider than 180° of longitude fails the check too.
+One overlap remains with the closest fit and is accepted: the US / British Virgin Islands; both are drawn with their closest-fitting outline. Any other overlap fails the check, and so does an accepted pair that no longer overlaps, so the exception is removed with it. An outline wider than 180° of longitude fails the check too.
 
-Current chains per tier (sovereign / de facto / dependencies): 16 / 0 / 15, and 31 outlines in the file, one per chain.
+Current chains per tier (sovereign / de facto / dependencies): 9 / 0 / 14, and 23 outlines in the file, one per chain.
 
-- Sovereign: the prototype's 12 (MDV SYC TUV MHL KIR FSM PLW TON CPV COM SLB VUT) plus BHS ATG MUS STP. The margin is thin (Comoros 10.6 against St Vincent 9.6), which is why the check names all 12.
-- Dependencies: TCA PCN PYF VIR AIA VGB CYM SHN GGY IOT COK WLF SGS ASM MNP.
+- Sovereign: MDV TUV MHL KIR FSM PLW TON SLB VUT, the prototype's 12 without the dropped SYC CPV COM. The margins are thin (by the rule, Comoros 10.6 against St Vincent 9.6; the Solomon Islands' largest piece 5,387 km² against the 6,000 km² limit), which is why the check names all 9.
+- Dependencies: PCN PYF VIR AIA VGB CYM SHN GGY IOT COK WLF SGS ASM MNP.
 
 The `tier` of an outline is its place's tier. A tier's play uses the outlines of every place in it, as with `points.geojson`.
 
