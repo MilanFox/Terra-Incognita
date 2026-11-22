@@ -13,8 +13,9 @@
     ]
   },
   "ALD": {
+    "name": { "en": "Åland", "de": "Åland" },
     "add": { "de": ["Ahvenanmaa"] },
-    "note": "moved to mul in Wikidata (reviewed in #10)"
+    "note": "moved to mul in Wikidata (reviewed in #10); display name: owner ruling 2026-11-22 (#127)"
   },
   "ARE": {
     "add": { "en": ["UAE"], "de": ["VAE"] }
@@ -47,11 +48,17 @@
       { "lang": "en", "alias": "Republic of Upper Volta (-1984)", "why": "historical state, not the current country" }
     ]
   },
+  "BHS": {
+    "name": { "en": "The Bahamas" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
+  },
   "BLM": {
+    "name": { "en": "Saint Barthélemy" },
     "drop": [
       { "lang": "de", "alias": "Schwedisch-Westindien", "why": "historical state, not the current country" },
       { "lang": "de", "alias": "Carénage", "why": "harbour/settlement name, not the island" }
-    ]
+    ],
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "BLR": {
     "add": { "de": ["Weißrussland"] }
@@ -64,6 +71,10 @@
   "BRA": {
     "add": { "capitals": { "Q2844": { "en": ["Brasilia"], "de": ["Brasilia"] } } },
     "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "BRN": {
+    "name": { "en": "Brunei Darussalam" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "CAF": {
     "drop": [
@@ -91,19 +102,23 @@
     "note": "name: the country's own short name (owner ruling in #127)"
   },
   "COG": {
+    "name": { "en": "Republic of the Congo", "de": "Republik Kongo" },
     "add": { "en": ["Congo-Brazzaville", "Republic of Congo"], "de": ["Kongo-Brazzaville"] },
     "drop": [
       { "lang": "en", "alias": "Congo", "why": "bare name is deliberately ambiguous between the two Congos" },
       { "lang": "de", "alias": "Kongo", "why": "bare name is deliberately ambiguous between the two Congos" },
       { "lang": "de", "alias": "Französisch-Kongo", "why": "historical state, not the current country" },
       { "lang": "de", "alias": "Departements der Republik Kongo", "why": "subdivisions, not the country" }
-    ]
+    ],
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "CPV": {
+    "name": { "en": "Cabo Verde" },
     "add": { "en": ["Cape Verde"], "de": ["Kapverden"] },
     "drop": [
       { "lang": "de", "alias": "Kapverdisch", "why": "adjective" }
-    ]
+    ],
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "CRI": {
     "drop": [
@@ -154,9 +169,11 @@
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "GMB": {
+    "name": { "en": "The Gambia" },
     "drop": [
       { "lang": "de", "capital": "Q3726", "alias": "Bathurst (alter Name bis 1973)", "why": "annotated duplicate" }
-    ]
+    ],
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "GNB": {
     "drop": [
@@ -176,8 +193,9 @@
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
   "HKG": {
+    "name": { "en": "Hong Kong", "de": "Hongkong" },
     "add": { "de": ["Hong Kong"] },
-    "note": "moved to mul in Wikidata (reviewed in #10)"
+    "note": "moved to mul in Wikidata (reviewed in #10); display name: owner ruling 2026-11-22 (#127)"
   },
   "IMN": {
     "drop": [
@@ -233,7 +251,9 @@
     ]
   },
   "KNA": {
-    "add": { "en": ["St Kitts"], "de": ["St. Kitts"] }
+    "name": { "en": "Saint Kitts & Nevis" },
+    "add": { "en": ["St Kitts"], "de": ["St. Kitts"] },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "KOR": {
     "add": { "de": ["Südkorea"] },
@@ -253,12 +273,21 @@
     ]
   },
   "LCA": {
+    "name": { "en": "Saint Lucia" },
     "add": { "de": ["Saint Lucia"] },
-    "note": "moved to mul in Wikidata (reviewed in #10)"
+    "note": "moved to mul in Wikidata (reviewed in #10); display name: owner ruling 2026-11-22 (#127)"
   },
   "LVA": {
     "add": { "capitals": { "Q1773": { "en": ["Rīga"], "de": ["Rīga"] } } },
     "note": "moved to mul in Wikidata (reviewed in #10)"
+  },
+  "MAC": {
+    "name": { "en": "Macao", "de": "Macau" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
+  },
+  "MAF": {
+    "name": { "en": "Saint Martin" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "MDA": {
     "add": { "de": ["Moldawien"] }
@@ -277,7 +306,9 @@
     ]
   },
   "MMR": {
-    "add": { "en": ["Burma"], "de": ["Birma", "Burma"] }
+    "name": { "en": "Myanmar" },
+    "add": { "en": ["Burma"], "de": ["Birma", "Burma"] },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "MNE": {
     "drop": [
@@ -313,6 +344,10 @@
     "drop": [
       { "lang": "en", "capital": "Q585", "alias": "NOOSL", "why": "UN/LOCODE" }
     ]
+  },
+  "NRU": {
+    "name": { "en": "Naoero", "de": "Naoero" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "PAK": {
     "add": { "capitals": { "Q1362": { "en": ["Islāmābād"], "de": ["Islāmābād"] } } },
@@ -354,6 +389,10 @@
     "add": { "capitals": { "Q2449": { "de": ["Mogadishu"] } } },
     "note": "moved to mul in Wikidata (reviewed in #10)"
   },
+  "SPM": {
+    "name": { "en": "Saint Pierre & Miquelon" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
+  },
   "SWZ": {
     "add": { "en": ["Swaziland"], "de": ["Swasiland"] },
     "drop": [
@@ -393,7 +432,9 @@
     "add": { "en": ["East Timor"] }
   },
   "TUR": {
-    "add": { "en": ["Turkey"], "de": ["Türkei"] }
+    "name": { "de": "Türkiye" },
+    "add": { "en": ["Turkey"], "de": ["Türkei"] },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
   },
   "UGA": {
     "drop": [
@@ -406,6 +447,10 @@
   "VAT": {
     "add": { "en": ["Vatican"] }
   },
+  "VCT": {
+    "name": { "en": "Saint Vincent & Grenadines" },
+    "note": "display name: owner ruling 2026-11-22 (#127)"
+  },
   "VGB": {
     "drop": [
       { "lang": "en", "alias": "Virgin Islands", "why": "ambiguous with U.S. Virgin Islands" },
@@ -413,8 +458,9 @@
     ]
   },
   "VNM": {
+    "name": { "en": "Viet Nam" },
     "add": { "en": ["Việt Nam"] },
-    "note": "moved to mul in Wikidata (reviewed in #10)"
+    "note": "moved to mul in Wikidata (reviewed in #10); display name: owner ruling 2026-11-22 (#127)"
   },
   "WSM": {
     "drop": [
