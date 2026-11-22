@@ -17,6 +17,7 @@ import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegio
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
 import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
+import { useBackGuard, useBackStep } from '~/composables/useBackSteps';
 
 type AboutOpener = { tray: 'home' } | { tray: 'setup', setup: RoundSetup, scrollTop: number } | { tray: 'stats', view: StatsView, camera: JumpToOptions };
 
@@ -295,6 +296,14 @@ const leave = async () => {
   if (wasDaily) homeTray.value?.focusDailyTile();
   else homeTray.value?.focus();
 };
+
+useBackGuard(() => isShellReady.value);
+useBackStep(closeSetup, () => !!setupDraft.value);
+useBackStep(closeDaily, () => !!dailyDraft.value);
+useBackStep(closeSettings, () => isSettingsOpen.value);
+useBackStep(closeStats, () => isStatsOpen.value);
+useBackStep(closeAbout, () => isAboutOpen.value);
+useBackStep(leave, () => game.state.phase === 'results' || game.state.phase === 'wayfinderResults');
 
 onMounted(game.load);
 </script>

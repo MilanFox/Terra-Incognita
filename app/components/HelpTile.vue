@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Mode } from '#shared/game/game';
+import { useBackStep } from '~/composables/useBackSteps';
 
 const props = defineProps<{ mode: Mode, isTimed?: boolean }>();
 
@@ -22,6 +23,8 @@ const close = async () => {
   await nextTick();
   opener.value?.focus();
 };
+
+useBackStep(close, () => isOpen.value);
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {

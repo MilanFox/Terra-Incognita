@@ -3,6 +3,7 @@ import type { Streak } from '#shared/game/daily';
 import { isLearnSetup } from '#shared/game/game';
 import type { Mode, RoundSetup } from '#shared/game/game';
 import type { DailyRecord } from '#shared/game/records';
+import { useBackStep } from '~/composables/useBackSteps';
 import { useNextDailyCountdown } from '~/composables/useNextDailyCountdown';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useTraySwipe } from '~/composables/useTraySwipe';
@@ -69,6 +70,11 @@ const { dragShift, onPointerDown, onTouchStart, onTouchMove, onTouchEnd, onClick
 });
 
 const trayShift = computed(() => dragShift.value ?? (isOpen.value ? 0 : collapsedShift.value));
+
+useBackStep(() => {
+  isOpen.value = false;
+  handle.value?.focus({ preventScroll: true });
+}, () => isOpen.value);
 
 watch(isOpen, (nowOpen) => {
   if (!nowOpen && tray.value) tray.value.scrollTop = 0;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { pausesPerRound } from '#shared/game/game';
 import type { RoundSetup } from '#shared/game/game';
+import { useBackStep } from '~/composables/useBackSteps';
 import { useDurationText } from '~/composables/useDurationText';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useGameStore } from '~/stores/game';
@@ -74,6 +75,10 @@ const resume = async () => {
   await nextTick();
   (focusBeforePause?.isConnected ? focusBeforePause : pauseTile.value)?.focus();
 };
+
+useBackStep(askEnd);
+useBackStep(keepPlaying, () => isConfirming.value);
+useBackStep(resume, () => !!props.state.isPaused);
 
 useEventListener(document, 'keydown', (event) => {
   if (event.defaultPrevented || !isConfirming.value) return;

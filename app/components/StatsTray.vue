@@ -4,6 +4,7 @@ import { regularModes, specialModes } from '#shared/game/stats';
 import type { StatsScope } from '#shared/game/stats';
 import type { AboutSectionId } from '~/components/AboutTray.vue';
 import type { ShownVariant } from '~/components/StatsModePage.vue';
+import { useBackStep } from '~/composables/useBackSteps';
 import { useTraySwipe } from '~/composables/useTraySwipe';
 import { useGameStore } from '~/stores/game';
 
@@ -123,6 +124,8 @@ const closeBubble = () => {
   if (overlay.value?.querySelector('.place-bubble')?.contains(document.activeElement)) props.mapCanvas?.focus();
   bubblePlaceId.value = null;
 };
+
+useBackStep(closeBubble, () => !!bubblePlaceId.value);
 
 watch(activePageId, (pageId, previousPageId) => {
   slideFrom.value = pageIndexOf(pageId) > pageIndexOf(previousPageId) ? 'right' : 'left';
