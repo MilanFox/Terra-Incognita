@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { Map as MapLibreMap, Popup, setWorkerUrl } from 'maplibre-gl';
+import { Map as MapLibreMap, MercatorCoordinate, Popup, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
-import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, LngLat, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification, GeoJSONSource, JumpToOptions, LngLat, MapMouseEvent, PointLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
 import { aidedPlaceId, chainOutlineShown } from '#shared/utils/chainOutlines';
 import type { MapDrawing } from '#shared/utils/chainOutlines';
+import { freeAreaKeyOf } from '~/composables/useMapFreeArea';
 import type { MapFreeArea } from '~/composables/useMapFreeArea';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useSettingsStore } from '~/stores/settings';
@@ -85,6 +86,7 @@ const flightMs = 800;
 const flightMaxZoom = 4;
 const minimumFlightFramePx = 120;
 const freeAreaMarginPx = 16;
+const worldPxAtZoomZero = 512;
 const uncovered: MapFreeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 const minZoom = -1;
 const maxZoom = 10;
@@ -460,7 +462,8 @@ const applyHighlight = (placeId: string | null | undefined, previousPlaceId?: st
 
 watch(() => props.highlightedPlaceId, applyHighlight, { flush: 'post' });
 
-const freeAreaKey = () => props.freeArea && Object.values(props.freeArea).join();
+const freeAreaKey = () => freeAreaKeyOf(props.freeArea);
+const currentFreeArea = computed(() => props.freeArea ?? uncovered);
 const framedPlaceId = computed(() => (props.verdict && props.verdict.outcome !== 'right' ? props.verdict.placeId : props.highlightedPlaceId));
 
 watch([framedPlaceId, freeAreaKey], ([placeId]) => {
@@ -497,17 +500,16 @@ watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 }, { flush: 'post' });
 
-const flyToRegion = (region = props.frameRegion) => {
+// Without a tray the region fills the whole map, as on home and until a round's card is drawn.
+const flyToRegion = (region = props.frameRegion, { freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered }: { freeArea?: MapFreeArea } = {}) => {
   if (!map || !region) return;
   framedRegion = region;
-  // Without a tray the region fills the whole map, as on home and at the start of a round.
-  const freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
-  if (resultBounds?.length) {
+  if (props.frameInset > 0 && resultBounds?.length) {
     fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });
     return;
   }
-  fitInFreeArea(regionFrames[region], { freeArea });
+  fitInFreeArea(regionFrames[region], { freeArea, mayZoomOutFurther: false });
 };
 
 const routePlaceIdsOf = (route: RouteMarks | null) => (route ? [route.startId, route.targetId, ...route.namedPlaceIds, ...route.reveal?.shortestPlaceIds ?? []] : []);
@@ -546,8 +548,26 @@ const padToFreeArea = (shownMap: MapLibreMap, freeArea: MapFreeArea) => {
   shownMap.jumpTo({ center: shownMap.unproject([(left + clientWidth - right) / 2, (top + clientHeight - bottom) / 2]), padding: { top, right, bottom, left } });
 };
 
-const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = props.freeArea ?? uncovered }: { maxZoom?: number, freeArea?: MapFreeArea } = {}) => {
+const isWithinWorld = (shownMap: MapLibreMap, { center, zoom }: JumpToOptions) => {
+  const worldPx = worldPxAtZoomZero * 2 ** zoom!;
+  const centreY = MercatorCoordinate.fromLngLat(center!).y * worldPx;
+  const halfHeight = shownMap.getContainer().clientHeight / 2;
+  return centreY >= halfHeight && centreY <= worldPx - halfHeight;
+};
+
+// Without a tray the map keeps no padding of its own, so MapLibre keeps the world filling it top to bottom (D7). A tray stays the map's padding as it always has, and so does the free area for places that only fit past a pole or below the whole-map zoom limit (D13).
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value, mayZoomOutFurther = true }: { maxZoom?: number, freeArea?: MapFreeArea, mayZoomOutFurther?: boolean } = {}) => {
   if (!map) return;
+  if (props.frameInset === 0) {
+    padToFreeArea(map, uncovered);
+    const { top, right, bottom, left } = freeAreaPaddingOf(map, freeArea);
+    const camera = map.cameraForBounds(bounds, { maxZoom: fitMaxZoom, padding: { top: top + freeAreaMarginPx, right: right + freeAreaMarginPx, bottom: bottom + freeAreaMarginPx, left: left + freeAreaMarginPx } });
+    if (!camera) return;
+    if (!mayZoomOutFurther || isWithinWorld(map, camera)) {
+      map.flyTo({ ...camera, ...cameraMotion(flightMs) });
+      return;
+    }
+  }
   padToFreeArea(map, freeArea);
   map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
 };
@@ -584,6 +604,7 @@ const dimOutsidePool = () => {
 const cameraMotion = (durationMs: number) => ({ duration: isMotionReduced.value ? 0 : durationMs, essential: true });
 
 const setCursorState = (placeId: string, isOn: boolean) => {
+  if (!hasLoaded) return;
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { cursor: isOn });
 };
 
@@ -601,7 +622,7 @@ const freeAreaShiftOf = (shownMap: MapLibreMap, placeId: string): [number, numbe
   if (!bounds) return [0, 0];
   const [{ x: west, y: south }, { x: east, y: north }] = [shownMap.project(bounds[0]), shownMap.project(bounds[1])];
   const { clientWidth, clientHeight } = shownMap.getContainer();
-  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, props.freeArea ?? uncovered);
+  const { top, right, bottom, left } = freeAreaPaddingOf(shownMap, currentFreeArea.value);
   return [shiftIntoView([west, east], [left + freeAreaMarginPx, clientWidth - right - freeAreaMarginPx]), shiftIntoView([north, south], [top + freeAreaMarginPx, clientHeight - bottom - freeAreaMarginPx])];
 };
 
@@ -609,7 +630,8 @@ const followCursor = (placeId: string) => {
   const lngLat = labelPoints.get(placeId);
   if (!map || !lngLat) return;
   if (!props.isStatsMap) {
-    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, padding: freeAreaPaddingOf(map, props.freeArea ?? uncovered), ...cameraMotion(300) });
+    const { top, right, bottom, left } = freeAreaPaddingOf(map, currentFreeArea.value);
+    if (freeAreaShiftOf(map, placeId).some(shift => shift !== 0)) map.easeTo({ center: lngLat, offset: [(left - right) / 2, (top - bottom) / 2], padding: uncovered, ...cameraMotion(300) });
     return;
   }
   const { x, y } = map.project(lngLat);
@@ -754,7 +776,7 @@ watch(() => routeLookOf(props.route), () => {
   drawMapData();
 }, { flush: 'post' });
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
-watch([() => props.route?.framedPlaceIds.join(), () => props.freeArea && Object.values(props.freeArea).join()], fitRoute, { flush: 'post' });
+watch([() => props.route?.framedPlaceIds.join(), freeAreaKey], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
 watch([() => props.landShown, () => props.poolPlaceIds, () => props.gapPlaceIds, () => routePlaceIdsOf(props.route).join()], showChainOutlines);
 watch(() => settings.isChainOutlinesOn, () => {
@@ -817,6 +839,7 @@ onMounted(async () => {
     dimOutsidePool();
     showChainOutlines();
     applyHighlight(props.highlightedPlaceId);
+    if (cursorPlaceId) setCursorState(cursorPlaceId, true);
     if (framedPlaceId.value) flyTo(framedPlaceId.value);
     markRoute(props.route);
     fitRoute();
@@ -827,6 +850,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(placeNameTimer);
+  // Removing the map takes its style first and then blurs a focused canvas, which would clear the cursor on a map without a style.
+  map?.getCanvas().removeEventListener('blur', clearCursor);
   map?.remove();
 });
 

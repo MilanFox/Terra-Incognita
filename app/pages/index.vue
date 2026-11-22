@@ -12,7 +12,7 @@ import { useStartupRevealed } from '~/composables/useStartupRevealed';
 import { useGameStore } from '~/stores/game';
 import { useHomeDrift } from '~/composables/useHomeDrift';
 import { usePlayFeedback } from '~/composables/usePlayFeedback';
-import { useMapFreeArea } from '~/composables/useMapFreeArea';
+import { freeAreaKeyOf, useMapFreeArea } from '~/composables/useMapFreeArea';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
 import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
@@ -57,7 +57,7 @@ const statsRegion = ref<Region | null>(null);
 const rulingFrame = shallowRef<[[number, number], [number, number]] | null>(null);
 // The stats tray is shifted down to its peek, which its layout box doesn't show; a region tap always drops it there.
 const mapFreeArea = computed(() => (isStatsOpen.value && coveredFreeArea.value ? { ...coveredFreeArea.value, bottom: statsTray.value?.peekHeight ?? 0 } : coveredFreeArea.value));
-const freeAreaKey = () => mapFreeArea.value && Object.values(mapFreeArea.value).join();
+const freeAreaKey = () => freeAreaKeyOf(mapFreeArea.value);
 const aboutOpeningSection = ref<AboutSectionId | null>(null);
 const aboutOpener = shallowRef<AboutOpener>({ tray: 'home' });
 const isAboutOpen = computed(() => aboutOpeningSection.value !== null);
@@ -110,6 +110,11 @@ const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answe
 
 watch([verdict, freeAreaKey], ([answer]) => {
   if (answer?.outcome === 'right' && game.state.phase === 'verdict' && isNoMapMode(game.state.setup.mode)) worldMap.value?.flyTo(answer.placeId);
+}, { flush: 'post' });
+
+// The round's region is framed once, when its card is first drawn, so the card changing size later leaves the camera where it is.
+watch(() => roundScreen.value?.card, (card) => {
+  if (card && mapFreeArea.value && !isWayfinderRound.value && !highlightedPlaceId.value) worldMap.value?.flyToRegion(frameRegion.value, { freeArea: mapFreeArea.value });
 }, { flush: 'post' });
 
 const resultPlaces = computed(() => {
