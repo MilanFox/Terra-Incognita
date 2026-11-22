@@ -4,9 +4,12 @@ export type Language = 'en' | 'de';
 
 export type MotionChoice = 'system' | 'on' | 'off';
 
+export type TapDelayChoice = 150 | 300 | 500;
+
 const storageKey = 'ti:settings';
 const languages: Language[] = ['en', 'de'];
 export const motionChoices: MotionChoice[] = ['system', 'on', 'off'];
+export const tapDelayChoices: TapDelayChoice[] = [150, 300, 500];
 
 const readStored = (): Record<string, unknown> | null => {
   try {
@@ -34,6 +37,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const systemMotion = usePreferredReducedMotion();
   const isMotionReduced = computed(() => reduceMotion.value === 'on' || (reduceMotion.value === 'system' && systemMotion.value === 'reduce'));
   const isChainOutlinesOn = ref(false);
+  const tapDelayMs = ref<TapDelayChoice>(150);
 
   const save = () => {
     localStorage.setItem(storageKey, JSON.stringify({
@@ -46,6 +50,7 @@ export const useSettingsStore = defineStore('settings', () => {
       systemKeyboard: isSystemKeyboardOn.value,
       twoStepSelect: isTwoStepSelectOn.value,
       chainOutlines: isChainOutlinesOn.value,
+      tapDelay: tapDelayMs.value,
     }));
   };
 
@@ -65,6 +70,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (typeof stored.systemKeyboard === 'boolean') isSystemKeyboardOn.value = stored.systemKeyboard;
     if (typeof stored.twoStepSelect === 'boolean') isTwoStepSelectOn.value = stored.twoStepSelect;
     if (typeof stored.chainOutlines === 'boolean') isChainOutlinesOn.value = stored.chainOutlines;
+    if (tapDelayChoices.includes(stored.tapDelay as TapDelayChoice)) tapDelayMs.value = stored.tapDelay as TapDelayChoice;
   };
 
   const setSound = (isOn: boolean) => {
@@ -107,5 +113,10 @@ export const useSettingsStore = defineStore('settings', () => {
     save();
   };
 
-  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, isTwoStepSelectOn, isChainOutlinesOn, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard, setTwoStepSelect, setChainOutlines };
+  const setTapDelay = (chosen: TapDelayChoice) => {
+    tapDelayMs.value = chosen;
+    save();
+  };
+
+  return { isSoundOn, language, reduceMotion, isMotionReduced, isHighContrast, isWaitForNextOn, isSystemKeyboardOn, isTwoStepSelectOn, isChainOutlinesOn, tapDelayMs, load, setSound, setLanguage, setReduceMotion, setHighContrast, setWaitForNext, setSystemKeyboard, setTwoStepSelect, setChainOutlines, setTapDelay };
 });

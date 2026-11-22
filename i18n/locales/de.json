@@ -340,6 +340,17 @@
         "label": "Auswahl in zwei Schritten",
         "hint": "Der erste Tipp markiert den Ort; tippe noch einmal oder drücke Bestätigen, um zu antworten."
       },
+      "tapDelay": {
+        "label": "Wartezeit beim Tippen",
+        "hint": "Wie lange ein Tipp auf die Karte wartet, falls du zum Zoomen doppelt tippen und ziehen willst. Nur auf Touchscreens.",
+        "choices": {
+          "150": "Kurz",
+          "300": "Mittel",
+          "500": "Lang"
+        },
+        "detail": "{ms} ms",
+        "optionName": "{name}, {ms} Millisekunden"
+      },
       "waitForNext": {
         "label": "Nach richtigen Antworten auf Weiter warten",
         "hint": "Richtige Antworten bleiben, bis du auf Weiter tippst."

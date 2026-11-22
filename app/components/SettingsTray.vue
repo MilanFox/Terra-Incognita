@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGameStore } from '~/stores/game';
 import { useSound } from '~/composables/useSound';
-import { motionChoices, useSettingsStore } from '~/stores/settings';
+import { motionChoices, tapDelayChoices, useSettingsStore } from '~/stores/settings';
 import type { Language } from '~/stores/settings';
 
 const emit = defineEmits<{ close: [] }>();
@@ -40,6 +40,11 @@ const toggleSound = () => {
 const motionOptions = computed(() => motionChoices.map((choice) => {
   const label = t(`settings.accessibility.reduceMotion.choices.${choice}`);
   return { value: choice, label, accessibleName: label, isAvailable: true };
+}));
+
+const tapDelayOptions = computed(() => tapDelayChoices.map((choice) => {
+  const label = t(`settings.accessibility.tapDelay.choices.${choice}`);
+  return { value: choice, label, detail: t('settings.accessibility.tapDelay.detail', { ms: choice }), accessibleName: t('settings.accessibility.tapDelay.optionName', { name: label, ms: choice }), isAvailable: true };
 }));
 
 const chooseLanguage = (language: Language) => {
@@ -259,6 +264,14 @@ onMounted(() => title.value?.focus());
           :hint="$t('settings.accessibility.twoStepSelect.hint')"
           :is-on="settings.isTwoStepSelectOn"
           @toggle="settings.setTwoStepSelect(!settings.isTwoStepSelectOn)"
+        />
+
+        <RadioTiles
+          :label="$t('settings.accessibility.tapDelay.label')"
+          :hint="$t('settings.accessibility.tapDelay.hint')"
+          :options="tapDelayOptions"
+          :model-value="settings.tapDelayMs"
+          @update:model-value="settings.setTapDelay($event)"
         />
 
         <SettingsSwitch

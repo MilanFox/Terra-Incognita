@@ -82,7 +82,6 @@ const settings = useSettingsStore();
 
 const placeSources = ['places', 'specks', 'chains'] as const;
 const tapBoxPx = 8;
-const doubleTapMs = 300;
 const flightMs = 800;
 const flightMaxZoom = 4;
 const minimumFlightFramePx = 120;
@@ -407,7 +406,7 @@ const handleClick = (event: MapMouseEvent) => {
     return;
   }
   // A touch tap waits out the double-tap window, so the first tap of a double-tap-and-drag zoom is not taken as a tap.
-  pendingTouchTap = setTimeout(() => emit('tap', placeId), doubleTapMs);
+  pendingTouchTap = setTimeout(() => emit('tap', placeId), settings.tapDelayMs);
 };
 
 const handlePointerDown = (event: PointerEvent) => {
