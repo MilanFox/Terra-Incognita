@@ -340,6 +340,17 @@
         "label": "Two-step select",
         "hint": "A first tap marks the place; tap again or press Confirm to answer."
       },
+      "tapDelay": {
+        "label": "Tap delay",
+        "hint": "On touch screens, how long a tap on the map waits in case it starts a double-tap-and-drag zoom.",
+        "choices": {
+          "150": "Short",
+          "300": "Medium",
+          "500": "Long"
+        },
+        "detail": "{ms} ms",
+        "optionName": "{name}, {ms} milliseconds"
+      },
       "waitForNext": {
         "label": "Wait for Next after right answers",
         "hint": "Right answers stay until you press Next."
