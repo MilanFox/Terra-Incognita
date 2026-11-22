@@ -82,6 +82,7 @@ const settings = useSettingsStore();
 
 const placeSources = ['places', 'specks', 'chains'] as const;
 const tapBoxPx = 8;
+const doubleTapMs = 300;
 const flightMs = 800;
 const flightMaxZoom = 4;
 const minimumFlightFramePx = 120;
@@ -373,6 +374,8 @@ const swapTierMap = async (nextTier: Tier) => {
 
 let placeNamePopup: Popup | undefined;
 let placeNameTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingTouchTap: ReturnType<typeof setTimeout> | undefined;
+let lastPointerType = '';
 const canHover = useMediaQuery('(hover: hover)');
 const isMotionReduced = useReducedMotion();
 
@@ -399,7 +402,17 @@ const handleClick = (event: MapMouseEvent) => {
   const placeId = pickPlaceId(event.point);
   if (props.isStatsMap && placeId) lastSelectedPlaceId = placeId;
   if (props.nameablePlaces) showPlaceName(placeId, event.lngLat, placeNameShownMs);
-  emit('tap', placeId);
+  if (lastPointerType !== 'touch') {
+    emit('tap', placeId);
+    return;
+  }
+  // A touch tap waits out the double-tap window, so the first tap of a double-tap-and-drag zoom is not taken as a tap.
+  pendingTouchTap = setTimeout(() => emit('tap', placeId), doubleTapMs);
+};
+
+const handlePointerDown = (event: PointerEvent) => {
+  lastPointerType = event.pointerType;
+  clearTimeout(pendingTouchTap);
 };
 
 const handlePointerMove = (event: MapMouseEvent) => {
@@ -819,6 +832,7 @@ onMounted(async () => {
   map.on('mouseout', hidePlaceName);
   map.on('move', updateZoomLimits);
   const canvas = map.getCanvas();
+  canvas.addEventListener('pointerdown', handlePointerDown);
   canvas.addEventListener('keydown', handleKeydown);
   canvas.addEventListener('focus', handleFocus);
   canvas.addEventListener('blur', clearCursor);
@@ -850,6 +864,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(placeNameTimer);
+  clearTimeout(pendingTouchTap);
   // Removing the map takes its style first and then blurs a focused canvas, which would clear the cursor on a map without a style.
   map?.getCanvas().removeEventListener('blur', clearCursor);
   map?.remove();
