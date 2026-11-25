@@ -4,6 +4,7 @@ import shippedPlaces from '../../public/data/places.json';
 import shippedVersion from '../../public/data/version.json';
 import { createGame, isTypedMode } from './game';
 import type { Game, GameState, KeyValueStorage, Place, RoundSetup } from './game';
+import { dealtAmong } from './learn';
 import type { NamesFile, PlaceNames } from './matcher';
 import type { PlaceRecord } from './records';
 
@@ -202,12 +203,12 @@ describe('the shuffled window', () => {
 });
 
 describe('the working set', () => {
-  it('fills with weak places and shaky ones with a miss first, then unplayed ones, in ease order, and skips solid places', () => {
+  it('fills with unplayed places, weak places and shaky ones with a miss dealt in among them, and skips solid places', () => {
     const storage = storageWithRecords({ NZL: [0, 0, 0], FJI: [1, 1, 0], AUS: [1, 1, 1] });
 
     const asked = playAllRight(startLearning(learnOceania, storage, fiveOceaniaPlaces), 4);
 
-    expect(asked).toEqual(['NZL', 'FJI', 'PNG', 'WSM']);
+    expect(asked).toEqual(['PNG', 'NZL', 'WSM', 'FJI']);
   });
 
   it('lines up places only ever answered right, but too few times to be solid, behind new places', () => {
@@ -215,7 +216,7 @@ describe('the working set', () => {
 
     const asked = playAllRight(startLearning(learnOceania, storage, fiveOceaniaPlaces), 5);
 
-    expect(asked).toEqual(['PNG', 'FJI', 'WSM', 'AUS', 'NZL']);
+    expect(asked).toEqual(['WSM', 'PNG', 'FJI', 'AUS', 'NZL']);
   });
 
   it('lets a new place join only when no miss is waiting and fewer than 4 misses are in play', () => {
@@ -250,7 +251,11 @@ describe('the working set', () => {
 });
 
 describe('a returning player', () => {
-  it('meets the places missed last round first, then the new places, then the ones answered right', () => {
+  const pastMisses = ['DEU', 'FRA', 'ITA', 'ESP', 'POL', 'ROU'];
+  const storageWithPastMisses = () => storageWithRecords(Object.fromEntries(pastMisses.map(placeId => [placeId, [0]])));
+  const isPastMiss = (placeId: string) => pastMisses.includes(placeId);
+
+  it('meets the places missed last round among the new places, then the ones answered right', () => {
     const storage = memoryStorage();
     const firstRound = startLearningWith(seededRandom(1), learnOceania, storage);
     const [missed, ...answeredRight] = new Set(play(firstRound, '✗✓✓✓'));
@@ -259,9 +264,62 @@ describe('a returning player', () => {
 
     const asked = playAllRight(startLearningWith(seededRandom(2), learnOceania, storage), 14);
 
-    expect(asked[0]).toBe(missed);
-    expect(asked.slice(1, 11).sort()).toEqual(easeOrder.filter(id => id !== missed && !answeredRight.includes(id)).sort());
+    expect(asked.indexOf(missed!)).toBeGreaterThanOrEqual(1);
+    expect(asked.indexOf(missed!)).toBeLessThanOrEqual(4);
+    expect(asked.slice(0, 11).sort()).toEqual(easeOrder.filter(id => !answeredRight.includes(id)).sort());
     expect(asked.slice(11)).toEqual(easeOrder.filter(id => answeredRight.includes(id)));
+  });
+
+  it.each([1, 2, 3])('meets the places missed before one at a time, after 1 to 4 new places and then every 2 to 4 (seed %i)', (seed) => {
+    const asked = playAllRight(startLearningWith(seededRandom(seed), learnEurope, storageWithPastMisses()), 46);
+
+    expect(asked.map(placeId => (isPastMiss(placeId) ? 'M' : 'N')).join('')).toMatch(/^N{1,4}M(N{2,4}M){5}N+$/);
+  });
+
+  it('meets the places missed before in a different order for different random sources', () => {
+    const pastMissesAskedWith = (seed: number) => playAllRight(startLearningWith(seededRandom(seed), learnEurope, storageWithPastMisses()), 46).filter(isPastMiss);
+
+    expect(pastMissesAskedWith(1)).not.toEqual(pastMissesAskedWith(2));
+    expect(pastMissesAskedWith(1).sort()).toEqual([...pastMisses].sort());
+  });
+});
+
+describe('dealing the places missed before among the new places', () => {
+  const newPlaceIds = Array.from({ length: 14 }, (_, index) => `N${index + 1}`);
+  const pastMisses = ['M1', 'M2', 'M3'];
+
+  it.each([
+    { draw: 0, dealt: ['N1', 'M1', 'N2', 'N3', 'M2', 'N4', 'N5', 'M3', ...newPlaceIds.slice(5)] },
+    { draw: 0.999, dealt: ['N1', 'N2', 'N3', 'N4', 'M1', 'N5', 'N6', 'N7', 'N8', 'M2', 'N9', 'N10', 'N11', 'N12', 'M3', 'N13', 'N14'] },
+  ])('deals the first after 1 to 4 new places and each later one after 2 to 4 (random $draw)', ({ draw, dealt }) => {
+    expect(dealtAmong(pastMisses, newPlaceIds, () => draw)).toEqual(dealt);
+  });
+
+  it('deals every place once, each group in its own order, and never two missed places in a row while new places remain', () => {
+    const allPastMisses = ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
+    for (let seed = 0; seed < 100; seed += 1) {
+      const someNew = newPlaceIds.slice(0, seed % 15);
+      const someMisses = allPastMisses.slice(0, seed % 7);
+
+      const dealt = dealtAmong(someMisses, someNew, seededRandom(seed));
+
+      expect(dealt).toHaveLength(someNew.length + someMisses.length);
+      expect(dealt.filter(placeId => someNew.includes(placeId))).toEqual(someNew);
+      expect(dealt.filter(placeId => someMisses.includes(placeId))).toEqual(someMisses);
+      expect(dealt.map(placeId => (someMisses.includes(placeId) ? 'M' : 'N')).join('')).not.toMatch(/MM.*N/);
+    }
+  });
+
+  it('deals the missed places left over in their order once the new places run out', () => {
+    expect(dealtAmong(pastMisses, ['N1', 'N2', 'N3'], () => 0)).toEqual(['N1', 'M1', 'N2', 'N3', 'M2', 'M3']);
+  });
+
+  it('keeps the missed places in their order when there are no new places', () => {
+    expect(dealtAmong(pastMisses, [], () => 0)).toEqual(pastMisses);
+  });
+
+  it('keeps the new places in their order when there are no missed places', () => {
+    expect(dealtAmong([], newPlaceIds, () => 0)).toEqual(newPlaceIds);
   });
 });
 
@@ -270,7 +328,7 @@ describe('the reach', () => {
   const easeOrder = playAllRight(startLearning(learnWorld), 80);
   const allRight = (placeIds: string[]) => Object.fromEntries(placeIds.map(placeId => [placeId, [1 as const]]));
 
-  it('starts the new places just past it, at least 80% right on the first 60 places across modes testing the same knowledge, missed places first', () => {
+  it('starts the new places just past it, at least 80% right on the first 60 places across modes testing the same knowledge, missed places dealt in among them', () => {
     const answers: Record<string, Record<string, (0 | 1)[]>> = { 'find:name': {}, 'name:map': {}, 'find:both': {} };
     easeOrder.slice(0, 60).forEach((placeId, index) => {
       if (index % 10 === 4) answers['find:name']![placeId] = [0];
@@ -280,7 +338,7 @@ describe('the reach', () => {
 
     const asked = playAllRight(startLearning(learnWorld, storageWithAnswers(answers)), 8);
 
-    expect(asked).toEqual([...missed, easeOrder[60], easeOrder[61]]);
+    expect(asked).toEqual([easeOrder[60], missed[0], easeOrder[61], easeOrder[62], missed[1], easeOrder[63], easeOrder[64], missed[2]]);
   });
 
   it('pools flag knowledge apart from name knowledge: by flag in Find on the map and Name that country, by name in Find on the map and Name on the map', () => {
@@ -398,7 +456,7 @@ describe('the pool exhausted', () => {
     const reviewed = playAllRight(game, 1);
     const secondReview = promptOf(game);
 
-    expect(learned).toEqual(['NZL', 'FJI', 'WSM']);
+    expect(learned).toEqual(['WSM', 'NZL', 'FJI']);
     expect(firstReview).toMatchObject({ placeId: 'PNG', learning: { isEverythingLearned: true, learnedCount: 3 } });
     expect(reviewed).toEqual(['PNG']);
     expect(secondReview).toMatchObject({ placeId: 'AUS', learning: { isEverythingLearned: false } });

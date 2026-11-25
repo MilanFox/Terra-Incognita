@@ -5,7 +5,7 @@ import { drawGaps, gapCount, isStoredProgress, judgeTap, missingTimeLimitMs, tap
 import type { MissingTap } from './missing';
 import { fillBudgetPerPlaceMs, isStoredFill, judgeFill } from './fill';
 import type { FillInput } from './fill';
-import { afterAnswer, isFirstAnswerTo, isStoredLoop, skippedBeforeReach, nextPrompt, shuffledWithinWindow, startLoop } from './learn';
+import { afterAnswer, dealtAmong, isFirstAnswerTo, isStoredLoop, skippedBeforeReach, nextPrompt, shuffledWithinWindow, startLoop } from './learn';
 import type { LearningLoop } from './learn';
 import { migrateStorage } from './migrations';
 import type { SchemaMigration } from './migrations';
@@ -324,7 +324,8 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     const isShakyOnlyByCount = (placeId: string) => ratings[placeId] === 'shaky' && !placeRecords[placeId]?.recent.includes(0);
     const isSkipped = (placeId: string) => skipped.includes(placeId);
     const newPlaces = ratedAs('noData');
-    const toJoin = [...ratedAs('weak', 'shaky').filter(id => !isShakyOnlyByCount(id)), ...shuffledWithinWindow(newPlaces.filter(id => !isSkipped(id)), random), ...byEase.filter(isShakyOnlyByCount)];
+    const pastMisses = shuffledWithinWindow(ratedAs('weak', 'shaky').filter(id => !isShakyOnlyByCount(id)), random);
+    const toJoin = [...dealtAmong(pastMisses, shuffledWithinWindow(newPlaces.filter(id => !isSkipped(id)), random), random), ...byEase.filter(isShakyOnlyByCount)];
     return startLoop(toJoin, newPlaces.filter(isSkipped));
   };
 
