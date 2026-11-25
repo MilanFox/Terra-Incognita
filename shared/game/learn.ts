@@ -4,6 +4,8 @@ import type { AnswerTally } from './stats';
 export const workingSetSize = 4;
 const firstComebackAfter = [6, 10] as const;
 const secondComebackAfter = [12, 20] as const;
+const firstPastMissAfter = [1, 4] as const;
+const laterPastMissAfter = [2, 4] as const;
 const rightsToClear = 2;
 const joinWindowSize = 15;
 const reliablyRightShare = 0.8;
@@ -33,6 +35,14 @@ export const shuffledWithinWindow = (placeIdsByEase: readonly string[], random: 
   const drawn: string[] = [];
   while (waiting.length > 0) drawn.push(...waiting.splice(Math.floor(random() * Math.min(joinWindowSize, waiting.length)), 1));
   return drawn;
+};
+
+const countWithin = ([fewest, most]: readonly [number, number], random: () => number) => fewest + Math.floor(random() * (most - fewest + 1));
+
+export const dealtAmong = (pastMisses: readonly string[], newPlaceIds: readonly string[], random: () => number) => {
+  const waitingNew = [...newPlaceIds];
+  const dealt = pastMisses.flatMap((placeId, index) => [...waitingNew.splice(0, countWithin(index === 0 ? firstPastMissAfter : laterPastMissAfter, random)), placeId]);
+  return [...dealt, ...waitingNew];
 };
 
 const reachOf = (placeIdsByEase: readonly string[], answersByPlaceId: Record<string, AnswerTally>) => {
@@ -80,8 +90,6 @@ export const nextPrompt = (loop: LearningLoop, lastPlaceId: string | undefined, 
   return { loop, placeId: pulledForward.placeId };
 };
 
-const promptsUntilComeback = ([fewest, most]: readonly [number, number], random: () => number) => fewest + Math.floor(random() * (most - fewest + 1));
-
 export const afterAnswer = (loop: LearningLoop, answer: Answer, random: () => number): LearningLoop => {
   const answerCount = loop.answerCount + 1;
   const { placeId, outcome } = answer;
@@ -89,8 +97,8 @@ export const afterAnswer = (loop: LearningLoop, answer: Answer, random: () => nu
   const otherMisses = loop.misses.filter(waiting => waiting !== miss);
   const isCleared = outcome === 'right' && (!miss || miss.rightsInARow + 1 >= rightsToClear);
   let misses = otherMisses;
-  if (outcome !== 'right') misses = [...otherMisses, { placeId, dueAt: answerCount + promptsUntilComeback(firstComebackAfter, random), rightsInARow: 0 }];
-  else if (miss && !isCleared) misses = loop.misses.map(waiting => (waiting === miss ? { placeId, dueAt: answerCount + promptsUntilComeback(secondComebackAfter, random), rightsInARow: miss.rightsInARow + 1 } : waiting));
+  if (outcome !== 'right') misses = [...otherMisses, { placeId, dueAt: answerCount + countWithin(firstComebackAfter, random), rightsInARow: 0 }];
+  else if (miss && !isCleared) misses = loop.misses.map(waiting => (waiting === miss ? { placeId, dueAt: answerCount + countWithin(secondComebackAfter, random), rightsInARow: miss.rightsInARow + 1 } : waiting));
   return {
     ...loop,
     misses,
