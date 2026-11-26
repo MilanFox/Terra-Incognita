@@ -256,6 +256,7 @@
   "round": {
     "findPrompt": "Finde auf der Karte",
     "progress": "Frage {current} von {total}",
+    "progressCounts": "Frage {current} von {total}, {right} richtig, {wrong} falsch, {missed} verpasst",
     "score": "{score} richtig",
     "right": "Richtig",
     "wrong": "Falsch",
