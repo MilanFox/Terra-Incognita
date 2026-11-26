@@ -140,7 +140,12 @@ defineExpose({ bottom, lines, focusWhy: () => whyButton.value?.focus() });
     width: 44px;
     height: 44px;
     margin: -8px -8px 0 0;
+    padding: 0;
+    border: 0;
     border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    touch-action: manipulation;
   }
 
   &__rating {
