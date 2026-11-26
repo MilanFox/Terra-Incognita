@@ -300,7 +300,9 @@ let hasLoaded = false;
 let lastSelectedPlaceId: string | null = null;
 let framedRegion: RegionChoice | null = null;
 
-const mapDrawing = (): MapDrawing => ({ landShown: props.landShown, drawnPlaceIds: routePlaceIdsOf(props.route), poolPlaceIds: props.poolPlaceIds, gapPlaceIds: props.gapPlaceIds });
+const drawnPlaceIdsOf = () => [...routePlaceIdsOf(props.route), ...(props.resultPlaces ?? []).map(({ placeId }) => placeId)];
+
+const mapDrawing = (): MapDrawing => ({ landShown: props.landShown, drawnPlaceIds: drawnPlaceIdsOf(), poolPlaceIds: props.poolPlaceIds, gapPlaceIds: props.gapPlaceIds });
 
 const showChainOutlines = () => {
   if (!map || !hasLoaded) return;
@@ -790,7 +792,7 @@ watch(() => routeLookOf(props.route), () => {
 watch(() => Object.keys(props.nameablePlaces ?? {}).join(), hidePlaceName);
 watch([() => props.route?.framedPlaceIds.join(), freeAreaKey], fitRoute, { flush: 'post' });
 watch([() => props.landShown, () => settings.isHighContrast], showLand);
-watch([() => props.landShown, () => props.poolPlaceIds, () => props.gapPlaceIds, () => routePlaceIdsOf(props.route).join()], showChainOutlines);
+watch([() => props.landShown, () => props.poolPlaceIds, () => props.gapPlaceIds, () => drawnPlaceIdsOf().join()], showChainOutlines);
 watch(() => settings.isChainOutlinesOn, () => {
   if (!hasLoaded) return;
   for (const layer of chainLayers) map?.setLayoutProperty(layer, 'visibility', chainVisibility());

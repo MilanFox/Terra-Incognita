@@ -15,7 +15,7 @@ import { usePlayFeedback } from '~/composables/usePlayFeedback';
 import { freeAreaKeyOf, useMapFreeArea } from '~/composables/useMapFreeArea';
 import { useLiveRegion, useRoundAnnouncements } from '~/composables/useLiveRegion';
 import { useWayfinderAnnouncements } from '~/composables/useWayfinderAnnouncements';
-import { useWayfinderLandFade } from '~/composables/useWayfinderLandFade';
+import { useLandFade } from '~/composables/useLandFade';
 import { useTwoStepSelect } from '~/composables/useTwoStepSelect';
 import { useBackGuard, useBackStep } from '~/composables/useBackSteps';
 
@@ -88,7 +88,7 @@ const routeMarks = computed(() => {
 const nameablePlaces = computed(() => (routeMarks.value
   ? Object.fromEntries([routeMarks.value.startId, routeMarks.value.targetId, ...routeMarks.value.namedPlaceIds].map(placeId => [placeId, game.nameOf(placeId, locale.value)]))
   : null));
-const landShown = useWayfinderLandFade(() => game.state);
+const landShown = useLandFade(() => game.state);
 const highlightedPlaceId = computed(() => (game.state.phase === 'prompt' && isTypedRound.value && !isNoMapMode(game.state.setup.mode) ? game.state.placeId : null));
 
 const isShellReady = computed(() => isStartupRevealed.value && game.isReady);

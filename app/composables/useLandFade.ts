@@ -4,7 +4,7 @@ const landFadeMs = 900;
 
 const smoothstep = (progress: number) => progress * progress * (3 - 2 * progress);
 
-export const useWayfinderLandFade = (state: () => GameState) => {
+export const useLandFade = (state: () => GameState) => {
   const landShown = ref(1);
   let frame = 0;
 
@@ -26,6 +26,7 @@ export const useWayfinderLandFade = (state: () => GameState) => {
 
   watch(() => {
     const current = state();
+    if (current.phase === 'fill') return 'blank';
     if (current.phase !== 'wayfinder' || current.setup.easy) return 'land';
     return current.route.outcome === 'open' ? 'blank' : `reveal-${current.routeNumber}`;
   }, (look) => {
