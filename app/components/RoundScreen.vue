@@ -62,7 +62,14 @@ defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed
       </p>
 
       <template v-else>
+        <ProgressCounts
+          v-if="state.deckSize > 10"
+          :progress="state.progress"
+          :prompt-number="state.promptNumber"
+        />
+
         <ProgressCells
+          v-else
           :cells="state.progress"
           :label="$t('round.progress', { current: state.promptNumber, total: state.deckSize })"
         />
