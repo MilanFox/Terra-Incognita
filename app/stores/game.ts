@@ -114,6 +114,7 @@ export const useGameStore = defineStore('game', () => {
   const placeDetails = (placeId: string, scope?: StatsScope) => stats!.placeDetails(placeId, scope);
   const mixUpCount = (askedPlaceId: string, answeredPlaceId: string) => stats!.mixUpCount(askedPlaceId, answeredPlaceId);
   const regionOf = (placeId: string) => shippedPlacesById.get(placeId)?.region;
+  const microstateIdsOf = (tier: Tier) => [...shippedPlacesById.values()].filter(({ microstate }) => microstate?.[tier]).map(({ id }) => id);
 
   const exportData = () => yourData!.exportData();
 
@@ -133,5 +134,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, modeStats, placeRatings, exportData, importData, resetStats, regionCounts, placeDetails, mixUpCount, regionOf };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, modeStats, placeRatings, exportData, importData, resetStats, regionCounts, placeDetails, mixUpCount, regionOf, microstateIdsOf };
 });

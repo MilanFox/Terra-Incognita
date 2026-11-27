@@ -7,6 +7,7 @@ import type { PlaceRatings, Rating } from '#shared/game/stats';
 import { boundsAround } from '#shared/utils/boundsAround';
 import { aidedPlaceId, chainOutlineShown } from '#shared/utils/chainOutlines';
 import type { MapDrawing } from '#shared/utils/chainOutlines';
+import { landAidedPlaceId } from '#shared/utils/landAssist';
 import { freeAreaKeyOf } from '~/composables/useMapFreeArea';
 import type { MapFreeArea } from '~/composables/useMapFreeArea';
 import { useReducedMotion } from '~/composables/useReducedMotion';
@@ -75,7 +76,8 @@ const props = withDefaults(defineProps<{
   freeArea?: MapFreeArea | null
   nameablePlaces?: Record<string, string> | null
   gapPlaceIds?: string[]
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, hintedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null, gapPlaceIds: () => [] });
+  microstatePlaceIds?: string[]
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, hintedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null, gapPlaceIds: () => [], microstatePlaceIds: () => [] });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string], next: [] }>();
 
 const { t, locale } = useI18n();
@@ -91,7 +93,7 @@ const worldPxAtZoomZero = 512;
 const wideRoundSpanDegrees = 300;
 const uncovered: MapFreeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 const minZoom = -1;
-const maxZoom = 10;
+const maxZoom = 13;
 // MapLibre's ease-out starts the glide at linearity / 0.6 of the release speed, so 0.6 lets the map leave the finger at the finger's speed.
 const panInertia = { linearity: 0.6, deceleration: 1200, maxSpeed: 1500 };
 const cursorFollowMarginPx = 40;
@@ -315,16 +317,24 @@ const showChainOutlines = () => {
   for (const { properties: { id } } of shownTierMap?.chains.features ?? []) map.setFeatureState({ source: 'chains', id }, { outlineShown: chainOutlineShown(id, drawing) });
 };
 
-const pickAidedPlaceId = (shownMap: MapLibreMap, point: MapMouseEvent['point']) => {
-  const outlinedPlaceIds = shownMap.queryRenderedFeatures(point, { layers: ['chain-tint'] }).map(({ properties }) => properties.id as string);
+const screenSpecksOf = (shownMap: MapLibreMap, point: MapMouseEvent['point']) => {
   const tapLongitude = shownMap.unproject(point).lng;
   // Each point is taken on the world copy nearest the tap, so islands by the antimeridian are caught on either side of it.
-  const specks = (loadedSpecks?.features ?? []).map(({ properties: { id, speckZoom }, geometry: { coordinates: [longitude = 0, latitude = 0] } }) => {
+  return (loadedSpecks?.features ?? []).map(({ properties: { id, speckZoom }, geometry: { coordinates: [longitude = 0, latitude = 0] } }) => {
     const { x, y } = shownMap.project([longitude + 360 * Math.round((tapLongitude - longitude) / 360), latitude]);
     return { placeId: id, x, y, speckZoom };
   });
-  return aidedPlaceId({ tap: point, outlinedPlaceIds, specks, zoom: shownMap.getZoom() }, mapDrawing());
 };
+
+const pickAidedPlaceId = (shownMap: MapLibreMap, point: MapMouseEvent['point']) => {
+  const outlinedPlaceIds = shownMap.queryRenderedFeatures(point, { layers: ['chain-tint'] }).map(({ properties }) => properties.id as string);
+  return aidedPlaceId({ tap: point, outlinedPlaceIds, specks: screenSpecksOf(shownMap, point), zoom: shownMap.getZoom() }, mapDrawing());
+};
+
+const pickLandAidedPlaceId = (shownMap: MapLibreMap, point: MapMouseEvent['point'], hitPlaceId: string) => landAidedPlaceId(
+  { tap: point, hitPlaceId, specks: screenSpecksOf(shownMap, point), zoom: shownMap.getZoom(), microstatePlaceIds: props.microstatePlaceIds },
+  mapDrawing(),
+);
 
 const pickPlaceId = (point: MapMouseEvent['point']) => {
   if (!map) return undefined;
@@ -332,7 +342,7 @@ const pickPlaceId = (point: MapMouseEvent['point']) => {
   const tapBox: [PointLike, PointLike] = [[point.x - tapBoxPx, point.y - tapBoxPx], [point.x + tapBoxPx, point.y + tapBoxPx]];
   const picked = map.queryRenderedFeatures(point, query)[0] ?? map.queryRenderedFeatures(tapBox, query)[0];
   if (!picked && settings.isChainOutlinesOn) return pickAidedPlaceId(map, point);
-  return picked?.properties.id as string | undefined;
+  return picked ? pickLandAidedPlaceId(map, point, picked.properties.id as string) : undefined;
 };
 
 const labelPointsOf = (specks: SpeckCollection) => new Map(specks.features.map(({ properties, geometry }) => [properties.id, geometry.coordinates as [number, number]]));
