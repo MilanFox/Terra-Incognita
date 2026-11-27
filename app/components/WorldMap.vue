@@ -65,6 +65,7 @@ const props = withDefaults(defineProps<{
   isNamesOnly?: boolean
   foundPlaceIds?: string[]
   highlightedPlaceId?: string | null
+  hintedPlaceId?: string | null
   keyboardInset?: number
   placeRatings: PlaceRatings | null
   route?: RouteMarks | null
@@ -74,7 +75,7 @@ const props = withDefaults(defineProps<{
   freeArea?: MapFreeArea | null
   nameablePlaces?: Record<string, string> | null
   gapPlaceIds?: string[]
-}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null, gapPlaceIds: () => [] });
+}>(), { selectedPlaceId: null, verdict: null, resultPlaces: null, fade: 0, tier: 'sovereign', poolPlaceIds: null, frameRegion: null, frameInset: 0, isRoundPlay: false, isFocusable: false, isStatsMap: false, isNamesOnly: false, foundPlaceIds: () => [], highlightedPlaceId: null, hintedPlaceId: null, keyboardInset: 0, route: null, landShown: 1, topInset: 0, bottomCover: 0, freeArea: null, nameablePlaces: null, gapPlaceIds: () => [] });
 const emit = defineEmits<{ drawn: [], tap: [placeId?: string], announce: [text: string], cursor: [placeId: string], next: [] }>();
 
 const { t, locale } = useI18n();
@@ -87,6 +88,7 @@ const flightMaxZoom = 4;
 const minimumFlightFramePx = 120;
 const freeAreaMarginPx = 16;
 const worldPxAtZoomZero = 512;
+const wideRoundSpanDegrees = 300;
 const uncovered: MapFreeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 const minZoom = -1;
 const maxZoom = 10;
@@ -159,6 +161,7 @@ const mixedColour = (from: string, to: string, amount: number) => {
 
 const status: ExpressionSpecification = ['to-string', ['feature-state', 'status']];
 const isCursor: ExpressionSpecification = ['boolean', ['feature-state', 'cursor'], false];
+const isHinted: ExpressionSpecification = ['boolean', ['feature-state', 'hinted'], false];
 const rating: ExpressionSpecification = ['to-string', ['feature-state', 'rating']];
 const landFillAt = (landShown: number): ExpressionSpecification => {
   const tones = landTones.map(tone => mixedColour(waterColour(), tone, landShown));
@@ -177,7 +180,7 @@ const speckStrokeAt = (landShown: number): ExpressionSpecification => ['case', [
 const targetOutlineFilterFor = (targetId: string | undefined): FilterSpecification => ['==', ['get', 'id'], targetId ?? ''];
 const shortestOutlineFilterFor = (placeIds: string[] = []): FilterSpecification => ['in', ['get', 'id'], ['literal', placeIds]];
 const isPlace: FilterSpecification = ['!', ['has', 'unclaimed']];
-const isSpeckMarked: ExpressionSpecification = ['any', isCursor, ['==', status, 'selected']];
+const isSpeckMarked: ExpressionSpecification = ['any', isCursor, isHinted, ['==', status, 'selected']];
 const isChainTinted: ExpressionSpecification = ['any', isCursor, ['!=', status, '']];
 const chainOutlineShownState: ExpressionSpecification = ['number', ['feature-state', 'outlineShown'], 0];
 const chainVisibility = () => (settings.isChainOutlinesOn ? 'visible' : 'none');
@@ -226,9 +229,11 @@ const styleFor = ({ places, specks, chains }: TierMap): StyleSpecification => ({
     { id: 'place-fill', type: 'fill', source: 'places', paint: { 'fill-color': placeFillOver(landFillAt(props.landShown)) } },
     { id: 'place-hatch', type: 'fill', source: 'places', paint: { 'fill-pattern': hatchNameOf(hatchName), 'fill-opacity': ['case', ['==', status, 'wrong'], 1, 0] } },
     { id: 'place-hatch-missed', type: 'fill', source: 'places', paint: { 'fill-pattern': missedHatchName, 'fill-opacity': ['case', ['==', status, 'missed'], 1, 0] } },
+    { id: 'place-hint-tint', type: 'fill', source: 'places', paint: { 'fill-color': colours.mustard, 'fill-opacity': ['case', isHinted, 0.35, 0] } },
     { id: 'place-dim', type: 'fill', source: 'places', filter: dimmedFilterFor(props.poolPlaceIds), paint: { 'fill-color': waterColour(), 'fill-opacity': 0.7 } },
     { id: 'place-border', type: 'line', source: 'places', paint: { 'line-color': mixedColour(waterColour(), borderColour(), props.landShown), 'line-width': borderWidth() } },
     { id: 'place-status-border', type: 'line', source: 'places', paint: { 'line-color': statusBorderColour(), 'line-width': statusBorderWidth() } },
+    { id: 'place-hint-outline', type: 'line', source: 'places', layout: { 'line-join': 'round' }, paint: { 'line-color': colours.ink, 'line-width': ['case', isHinted, 1.6, 0] } },
     { id: 'place-shortest-outline', type: 'line', source: 'places', filter: shortestOutlineFilterFor(props.route?.reveal?.shortestPlaceIds), layout: { 'line-join': 'round' }, paint: { 'line-color': colours.ink, 'line-width': 1.8, 'line-dasharray': [2, 1.5] } },
     { id: 'place-target-outline', type: 'line', source: 'places', filter: targetOutlineFilterFor(props.route?.targetId), layout: { 'line-join': 'round' }, paint: { 'line-color': outlineOf('targetOutline'), 'line-width': 2.6, 'line-dasharray': [2, 1.2] } },
     {
@@ -454,6 +459,11 @@ const flyTo = (placeId: string) => {
   if (bounds) fitInFreeArea(bounds, { maxZoom: flightMaxZoom });
 };
 
+const flyToPlaces = (placeIds: string[], topCover = 0) => {
+  const placeBounds = placeIds.map(boundsOf).filter(bounds => !!bounds);
+  if (placeBounds.length > 0) fitInFreeArea(boundsAround(placeBounds), { maxZoom: flightMaxZoom, freeArea: { ...currentFreeArea.value, top: Math.max(currentFreeArea.value.top, topCover) } });
+};
+
 watch(() => props.verdict, (verdict, previousVerdict) => {
   if (previousVerdict) setPlaceStatus(previousVerdict.placeId, null);
   if (previousVerdict && 'tappedPlaceId' in previousVerdict) setPlaceStatus(previousVerdict.tappedPlaceId, null);
@@ -508,19 +518,34 @@ watch(() => props.fade, (fadeAmount = 0) => {
   for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { fade: fadeAmount });
 });
 
+const resultStatusOf = (placeId: string) => props.resultPlaces?.find(result => result.placeId === placeId)?.outcome ?? null;
+
 // After the verdict and results watchers, so a confirmed two-step mark keeps the colour its answer gave it.
 watch(() => props.selectedPlaceId, (selectedPlaceId, previousPlaceId) => {
-  if (previousPlaceId && hasLoaded && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, null);
+  if (previousPlaceId && hasLoaded && map?.getFeatureState({ source: 'places', id: previousPlaceId }).status === 'selected') setPlaceStatus(previousPlaceId, resultStatusOf(previousPlaceId));
   if (selectedPlaceId) setPlaceStatus(selectedPlaceId, 'selected');
 }, { flush: 'post' });
+
+const setHinted = (placeId: string, isOn: boolean) => {
+  if (!hasLoaded) return;
+  for (const source of placeSources) map?.setFeatureState({ source, id: placeId }, { hinted: isOn });
+};
+
+watch(() => props.hintedPlaceId, (hintedPlaceId, previousPlaceId) => {
+  if (previousPlaceId) setHinted(previousPlaceId, false);
+  if (hintedPlaceId) setHinted(hintedPlaceId, true);
+});
 
 // Without a tray the region fills the whole map, as on home and until a round's card is drawn.
 const flyToRegion = (region = props.frameRegion, { freeArea = props.frameInset > 0 && props.freeArea ? props.freeArea : uncovered }: { freeArea?: MapFreeArea } = {}) => {
   if (!map || !region) return;
   framedRegion = region;
   const resultBounds = props.resultPlaces?.map(({ placeId }) => boundsOf(placeId)).filter(bounds => !!bounds);
-  if (props.frameInset > 0 && resultBounds?.length) {
-    fitInFreeArea(boundsAround(resultBounds), { maxZoom: flightMaxZoom, freeArea });
+  if (props.frameInset > 0 && resultBounds?.length && region === props.frameRegion) {
+    const roundBounds = boundsAround(resultBounds);
+    // A round spread around the globe is framed as the world, which keeps the map's seam in the Pacific.
+    const isWideRound = roundBounds[1][0] - roundBounds[0][0] > wideRoundSpanDegrees;
+    fitInFreeArea(isWideRound ? regionFrames.world : roundBounds, { maxZoom: flightMaxZoom, freeArea, mayEndPastPoles: true });
     return;
   }
   fitInFreeArea(regionFrames[region], { freeArea, mayZoomOutFurther: false });
@@ -569,8 +594,17 @@ const isWithinWorld = (shownMap: MapLibreMap, { center, zoom }: JumpToOptions) =
   return centreY >= halfHeight && centreY <= worldPx - halfHeight;
 };
 
+// MapLibre never zooms out past the world filling the free area top to bottom, which on a tall screen cuts a whole-world fit off at the sides. The free area is cut down to a band as tall as the fitted world, read with the free area as the map's padding, so the fit shows all of it with water above and below.
+const bandFor = (shownMap: MapLibreMap, bounds: [[number, number], [number, number]], { freeArea, fitMaxZoom }: { freeArea: MapFreeArea, fitMaxZoom: number }): MapFreeArea => {
+  const { top, bottom } = freeAreaPaddingOf(shownMap, freeArea);
+  const fittedZoom = shownMap.cameraForBounds(bounds, { maxZoom: fitMaxZoom, padding: freeAreaMarginPx })?.zoom;
+  if (fittedZoom === undefined) return freeArea;
+  const spareHeight = shownMap.getContainer().clientHeight - top - bottom - worldPxAtZoomZero * 2 ** fittedZoom;
+  return spareHeight > 0 ? { ...freeArea, top: top + spareHeight / 2, bottom: bottom + spareHeight / 2 } : freeArea;
+};
+
 // Without a tray the map keeps no padding of its own, so MapLibre keeps the world filling it top to bottom (D7). A tray stays the map's padding as it always has, and so does the free area for places that only fit past a pole or below the whole-map zoom limit (D13).
-const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value, mayZoomOutFurther = true }: { maxZoom?: number, freeArea?: MapFreeArea, mayZoomOutFurther?: boolean } = {}) => {
+const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: fitMaxZoom = maxZoom, freeArea = currentFreeArea.value, mayZoomOutFurther = true, mayEndPastPoles = false }: { maxZoom?: number, freeArea?: MapFreeArea, mayZoomOutFurther?: boolean, mayEndPastPoles?: boolean } = {}) => {
   if (!map) return;
   if (props.frameInset === 0) {
     padToFreeArea(map, uncovered);
@@ -583,6 +617,7 @@ const fitInFreeArea = (bounds: [[number, number], [number, number]], { maxZoom: 
     }
   }
   padToFreeArea(map, freeArea);
+  if (mayEndPastPoles) padToFreeArea(map, bandFor(map, bounds, { freeArea, fitMaxZoom }));
   map.fitBounds(bounds, { ...cameraMotion(flightMs), maxZoom: fitMaxZoom, padding: freeAreaMarginPx });
 };
 
@@ -780,6 +815,12 @@ const applyLabel = () => {
 };
 
 watch([() => props.isRoundPlay, () => props.isStatsMap], applyRoundPlay);
+// A place opened on the results map would otherwise start the next round's cursor and pull the camera off the round's frame.
+watch(() => props.isStatsMap, (isStatsMap) => {
+  if (isStatsMap) return;
+  clearCursor();
+  lastSelectedPlaceId = null;
+});
 watch(() => props.isFocusable, applyFocusable);
 watch([() => props.isRoundPlay, () => props.isStatsMap, () => props.isNamesOnly, locale], applyLabel);
 watch(() => props.tier, swapTierMap);
@@ -875,6 +916,7 @@ defineExpose({
   focus: () => map?.getCanvas().focus(),
   getMap: () => map,
   flyTo,
+  flyToPlaces,
   flyToRegion,
   fitInFreeArea,
   reveal: followCursor,
@@ -889,6 +931,7 @@ defineExpose({
   <div
     ref="mapContainer"
     class="world-map"
+    :style="{ background: waterColour() }"
   />
 </template>
 

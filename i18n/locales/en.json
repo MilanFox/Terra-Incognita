@@ -297,7 +297,66 @@
     "missed": "{place}: missed",
     "unreachedList": "Not reached: {places}",
     "playAgain": "Play again",
-    "changeSetup": "Change setup"
+    "changeSetup": "Change setup",
+    "sheet": {
+      "label": "Results",
+      "showAll": "Show all",
+      "setupLine": "{mode} · {region} · {tier} · {time}",
+      "rightCount": "Right",
+      "rightCountText": "{count} right",
+      "order": "In the order asked",
+      "orderLabel": "Prompts in the order asked: {right} right, {wrong} wrong, {missed} missed. Arrow keys move, Enter shows the place",
+      "entry": "Prompt {number}: {place}, {outcome}",
+      "regions": "Regions, weakest first",
+      "regionAllRight": "all right",
+      "regionAllFilled": "all filled",
+      "regionUnfilled": "{count} not filled",
+      "regionFilledText": "{count} of {total} filled",
+      "mistakes": "Mistakes: asked → answered",
+      "mistakeText": "{asked}, answered: {answered}",
+      "mistakePrompt": "Prompt {number} · {region}",
+      "tags": {
+        "classic": "Classic ×{count}",
+        "repeat": "{count}nd time",
+        "new": "new"
+      },
+      "tagsSpoken": {
+        "classic": "classic, mixed up {count} times",
+        "repeat": "mixed up for the {count}nd time",
+        "new": "mixed up for the first time"
+      },
+      "unreached": "Not reached · {count}",
+      "gaps": "Not filled, by region",
+      "gapRegion": "{region} · {count}",
+      "filled": "Filled",
+      "filledText": "{count} filled",
+      "unfilled": "Not filled",
+      "unfilledText": "{count} not filled",
+      "outcomes": {
+        "right": "right",
+        "wrong": "wrong",
+        "missed": "missed",
+        "unreached": "not reached",
+        "filled": "filled",
+        "unfilled": "not filled",
+        "notInRound": "not in this round"
+      },
+      "bubble": {
+        "right": "Right · prompt {number}",
+        "wrong": "Wrong · prompt {number}",
+        "wrongAnswered": "Wrong · prompt {number} · your answer: {answered}",
+        "missed": "Missed · prompt {number}",
+        "unreached": "Not reached",
+        "notInRound": "Not in this round",
+        "filled": "Filled, number {number} named",
+        "unfilled": "Not filled",
+        "mixUpNew": "Mixed up with {answered} for the first time",
+        "mixUpCount": "Mixed up with {answered} {count} times now",
+        "answeredInstead": "Your answer instead of {asked} (prompt {number})",
+        "regionRight": "{region}: {right} of {total} right",
+        "regionFilled": "{region}: {right} of {total} filled"
+      }
+    }
   },
   "record": {
     "time": "Time: {time}",
@@ -555,10 +614,6 @@
       "ambiguous": "Which one? Keep typing.",
       "none": "No place by that name.",
       "start": "Name any place on the map. {total} to fill."
-    },
-    "results": {
-      "unreached": "Unreached",
-      "unreachedText": "{count} unreached"
     }
   },
   "missing": {

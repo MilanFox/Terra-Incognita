@@ -2,6 +2,7 @@
 import type { JumpToOptions } from 'maplibre-gl';
 import { dailySetupOf, isNoMapMode, isTypedMode } from '#shared/game/game';
 import type { DailyVariant, Mode, Region, RoundSetup } from '#shared/game/game';
+import type ResultsSheet from '~/components/ResultsSheet.vue';
 import type StatsTray from '~/components/StatsTray.vue';
 import type { StatsView } from '~/components/StatsTray.vue';
 import type AboutTray from '~/components/AboutTray.vue';
@@ -35,6 +36,7 @@ const roundScreen = useTemplateRef<{ card?: HTMLElement | null, zoomTiles?: HTML
 const wayfinderAnswerTray = useTemplateRef('wayfinderAnswerTray');
 const wayfinderResultsTray = useTemplateRef('wayfinderResultsTray');
 const statsTray = useTemplateRef<InstanceType<typeof StatsTray>>('statsTray');
+const resultsSheet = useTemplateRef<InstanceType<typeof ResultsSheet>>('resultsSheet');
 const aboutTray = useTemplateRef<InstanceType<typeof AboutTray>>('aboutTray');
 const answerFade = useRightAnswerFade();
 const setupDraft = ref<RoundSetup | null>(null);
@@ -56,8 +58,12 @@ const isStatsOpen = ref(false);
 const isCameraHeld = ref(false);
 const statsRegion = ref<Region | null>(null);
 const rulingFrame = shallowRef<[[number, number], [number, number]] | null>(null);
-// The stats tray is shifted down to its peek, which its layout box doesn't show; a region tap always drops it there.
-const mapFreeArea = computed(() => (isStatsOpen.value && coveredFreeArea.value ? { ...coveredFreeArea.value, bottom: statsTray.value?.peekHeight ?? 0 } : coveredFreeArea.value));
+const isSheetResults = computed(() => game.state.phase === 'results' && !game.state.learning && game.state.dailyDate === null && game.state.setup.mode !== 'missing');
+// The stats tray and the results sheet are shifted down to their peek, which their layout box doesn't show; a region tap always drops them there.
+const mapFreeArea = computed(() => {
+  if (isSheetResults.value && coveredFreeArea.value) return { ...coveredFreeArea.value, right: 0, bottom: resultsSheet.value?.peekHeight ?? 0 };
+  return isStatsOpen.value && coveredFreeArea.value ? { ...coveredFreeArea.value, bottom: statsTray.value?.peekHeight ?? 0 } : coveredFreeArea.value;
+});
 const freeAreaKey = () => freeAreaKeyOf(mapFreeArea.value);
 const aboutOpeningSection = ref<AboutSectionId | null>(null);
 const aboutOpener = shallowRef<AboutOpener>({ tray: 'home' });
@@ -135,10 +141,11 @@ const frameInset = computed(() => {
   if (game.state.phase === 'wayfinderResults') return wayfinderResultsTrayHeight.value;
   if (isStatsOpen.value) return statsTray.value?.peekHeight ?? 0;
   if (isAboutOpen.value) return aboutTray.value?.trayHeight ?? 0;
+  if (isSheetResults.value) return resultsSheet.value?.peekHeight ?? 0;
   return game.state.phase === 'results' ? resultsTrayHeight.value : 0;
 });
 
-const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || game.state.phase === 'results' || game.state.phase === 'wayfinderResults'
+const isMapInert = computed(() => !!traySetup.value || isSettingsOpen.value || (game.state.phase === 'results' && !isSheetResults.value) || game.state.phase === 'wayfinderResults'
   || ((game.state.phase === 'prompt' || game.state.phase === 'verdict' || game.state.phase === 'missing' || game.state.phase === 'fill') && (game.state.isConfirmingEnd || game.state.isPaused))
   || (game.state.phase === 'wayfinder' && game.state.isConfirmingEnd));
 
@@ -146,6 +153,11 @@ const handleTap = async (placeId?: string) => {
   if (isStatsOpen.value) {
     if (!placeId || statsTray.value?.isSpecialPage) return;
     await statsTray.value?.openBubble(placeId);
+    worldMap.value?.reveal(placeId);
+  }
+  else if (isSheetResults.value) {
+    if (!placeId) return;
+    await resultsSheet.value?.openBubble(placeId);
     worldMap.value?.reveal(placeId);
   }
   else if (game.state.phase !== 'home') tapPlace(placeId);
@@ -445,7 +457,7 @@ onMounted(game.load);
 
     <Transition name="tray">
       <ResultsTray
-        v-if="isShellReady && game.state.phase === 'results'"
+        v-if="isShellReady && game.state.phase === 'results' && !isSheetResults"
         ref="resultsTray"
         :state="game.state"
         @play-again="playAgainFromResults"
@@ -463,10 +475,29 @@ onMounted(game.load);
 
     <div
       class="home__map-scope"
-      :role="isStatsOpen || isAboutOpen ? 'dialog' : undefined"
-      :aria-modal="isStatsOpen || isAboutOpen || undefined"
-      :aria-labelledby="isStatsOpen ? statsTray?.titleId : isAboutOpen ? aboutTray?.titleId : undefined"
+      :role="isStatsOpen || isAboutOpen || isSheetResults ? 'dialog' : undefined"
+      :aria-modal="isStatsOpen || isAboutOpen || isSheetResults || undefined"
+      :aria-labelledby="isStatsOpen ? statsTray?.titleId : isAboutOpen ? aboutTray?.titleId : isSheetResults ? resultsSheet?.titleId : undefined"
     >
+      <Transition name="tray">
+        <ResultsSheet
+          v-if="isShellReady && game.state.phase === 'results' && isSheetResults"
+          ref="resultsSheet"
+          :state="game.state"
+          :map-canvas="worldMap?.getMap()?.getCanvas()"
+          :is-at-min-zoom="worldMap?.isAtMinZoom ?? false"
+          :is-at-max-zoom="worldMap?.isAtMaxZoom ?? false"
+          @zoom-in="worldMap?.zoomIn()"
+          @zoom-out="worldMap?.zoomOut()"
+          @frame-places="(placeIds, topCover) => worldMap?.flyToPlaces(placeIds, topCover)"
+          @frame-region="worldMap?.flyToRegion($event)"
+          @announce="announce"
+          @play-again="playAgainFromResults"
+          @change-setup="changeSetup"
+          @leave="leave"
+        />
+      </Transition>
+
       <Transition name="tray">
         <StatsTray
           v-if="isShellReady && game.state.phase === 'home' && isStatsOpen"
@@ -514,10 +545,11 @@ onMounted(game.load);
         :frame-inset="frameInset"
         :inert="isMapInert"
         :is-round-play="isRoundPlay"
-        :is-focusable="isRoundPlay || isWayfinderRound || isFillRound || isStatsOpen || isAboutOpen"
-        :is-stats-map="isStatsOpen || isAboutOpen"
-        :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : 0"
-        :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : markedPlaceId"
+        :is-focusable="isRoundPlay || isWayfinderRound || isFillRound || isStatsOpen || isAboutOpen || isSheetResults"
+        :is-stats-map="isStatsOpen || isAboutOpen || isSheetResults"
+        :bottom-cover="isStatsOpen ? statsTray?.visibleTrayHeight ?? 0 : isSheetResults ? resultsSheet?.visibleTrayHeight ?? 0 : 0"
+        :selected-place-id="isStatsOpen ? statsTray?.bubblePlaceId : isSheetResults ? resultsSheet?.bubblePlaceId : markedPlaceId"
+        :hinted-place-id="isSheetResults ? resultsSheet?.hintedPlaceId : null"
         :found-place-ids="foundPlaceIds"
         :highlighted-place-id="highlightedPlaceId"
         :keyboard-inset="isTypedRound || isFillRound ? typedAnswerTrayHeight : 0"
@@ -526,11 +558,11 @@ onMounted(game.load);
         :route="routeMarks"
         :land-shown="landShown"
         :nameable-places="nameablePlaces"
-        :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : 0"
+        :top-inset="isStatsOpen ? statsTray?.bubbleBottom ?? 0 : isSheetResults ? resultsSheet?.bubbleBottom ?? 0 : 0"
         :free-area="mapFreeArea"
         @drawn="isMapDrawn = true"
         @tap="handleTap"
-        @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : statsTray?.placeLabel($event) ?? '')"
+        @cursor="announce(isAboutOpen ? game.nameOf($event, locale) : (statsTray ?? resultsSheet)?.placeLabel($event) ?? '')"
         @announce="announce"
         @next="next"
       />
