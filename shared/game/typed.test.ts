@@ -186,7 +186,7 @@ describe('typed answers', () => {
 
     game.send({ type: 'submit', text: nameOf(typedPlaceId) });
 
-    expect(storedPlaces(storage)).toEqual({ 'name:map': { [placeId]: { seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusedWith: typedPlaceId } } });
+    expect(storedPlaces(storage)).toEqual({ 'name:map': { [placeId]: { seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusedWith: typedPlaceId, confusions: { [typedPlaceId]: 1 } } } });
   });
 
   it('are ignored in Find on the map, where taps answer', () => {
@@ -334,7 +334,7 @@ describe('Easy mode in a typed mode', () => {
     game.send({ type: 'pick', placeId: wrongOption });
 
     expect(game.state).toMatchObject({ phase: 'verdict', score: 0, attemptsLeft: 1, answer: { placeId, tappedPlaceId: wrongOption, outcome: 'wrong' } });
-    expect(storedPlaces(storage)['name:map'][placeId]).toMatchObject({ confusedWith: wrongOption });
+    expect(storedPlaces(storage)['name:map'][placeId]).toMatchObject({ confusedWith: wrongOption, confusions: { [wrongOption]: 1 } });
   });
 
   it('ignores a place that is not among the options, typing, and a second pick', () => {

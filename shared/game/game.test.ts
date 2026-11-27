@@ -704,7 +704,7 @@ describe('recording per place', () => {
 
     expect(Object.keys(records).sort()).toEqual([firstPlaceId, ...restOfDeck].sort());
     for (const placeId of restOfDeck.slice(0, 6)) expect(records[placeId]).toEqual({ seen: 1, correct: 1, recent: [1], easySeen: 0, easyCorrect: 0 });
-    for (const placeId of restOfDeck.slice(6)) expect(records[placeId]).toEqual({ seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusedWith: someOtherPlaceId(placeId) });
+    for (const placeId of restOfDeck.slice(6)) expect(records[placeId]).toEqual({ seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusedWith: someOtherPlaceId(placeId), confusions: { [someOtherPlaceId(placeId)]: 1 } });
   });
 
   it('counts only answered prompts when a round is ended early', () => {
@@ -723,7 +723,24 @@ describe('recording per place', () => {
     const { game, storage } = recordingGame(memoryStorage(), places.filter(fiveOceaniaPlaces));
     for (let round = 1; round <= 10; round += 1) playRound(game, { variant: 'name', region: 'Oceania' }, round <= 3 ? 5 : 0);
 
-    expect(storedJson(storage, 'ti:places')['find:name'].FJI).toEqual({ seen: 10, correct: 3, recent: [1, 0, 0, 0, 0, 0, 0, 0], easySeen: 0, easyCorrect: 0, confusedWith: 'DEU' });
+    expect(storedJson(storage, 'ti:places')['find:name'].FJI).toEqual({ seen: 10, correct: 3, recent: [1, 0, 0, 0, 0, 0, 0, 0], easySeen: 0, easyCorrect: 0, confusedWith: 'DEU', confusions: { DEU: 7 } });
+  });
+
+  it('counts every mix-up by the place answered instead, and keeps the last one as confusedWith', () => {
+    const fiveOceaniaPlaces = ({ region, tier, id }: Place) => region !== 'Oceania' || tier !== 'sovereign' || ['AUS', 'NZL', 'FJI', 'PNG', 'WSM'].includes(id);
+    const { game, storage } = recordingGame(memoryStorage(), places.filter(fiveOceaniaPlaces));
+    for (const tappedForFiji of ['NZL', 'AUS', 'NZL', 'FJI']) {
+      startRound(game, { variant: 'name', region: 'Oceania' });
+      while (game.state.phase === 'prompt') {
+        const placeId = promptedPlaceId(game);
+        game.send({ type: 'tap', placeId: placeId === 'FJI' ? tappedForFiji : placeId });
+        game.send({ type: 'next' });
+      }
+      game.send({ type: 'leave' });
+    }
+
+    expect(storedJson(storage, 'ti:places')['find:name'].FJI).toMatchObject({ seen: 4, correct: 1, confusedWith: 'NZL', confusions: { NZL: 2, AUS: 1 } });
+    expect(storedJson(storage, 'ti:places')['find:name'].NZL.confusions).toBeUndefined();
   });
 
   it('counts Easy-mode answers only in the easy counters', () => {
@@ -737,11 +754,39 @@ describe('recording per place', () => {
     for (const tappedPlaceId of ['BRA', 'CHL', 'PER']) game.send({ type: 'tap', placeId: tappedPlaceId === wrongThreeTimes ? 'DEU' : tappedPlaceId });
 
     const records = storedJson(storage, 'ti:places')['find:flag'];
-    expect(records[rightOnSecondTry]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 1, confusedWith: 'BRA' });
+    expect(records[rightOnSecondTry]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 1, confusedWith: 'BRA', confusions: { BRA: 1 } });
     expect(records[wrongThreeTimes]).toMatchObject({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 0 });
   });
 
-  it('stores the holder as confusedWith when merged land was tapped, and keeps one record per place across tiers', () => {
+  it('counts every wrong tap of Easy mode\'s three tries as a mix-up, merged land as its holder', () => {
+    const { game, storage } = recordingGame();
+    startRound(game, { easy: true });
+    const askedPlaceId = promptedPlaceId(game);
+    const [firstWrong] = ['BRA', 'CHL', 'PER'].filter(placeId => placeId !== askedPlaceId);
+    for (const tappedPlaceId of [firstWrong!, 'GIB', firstWrong!]) game.send({ type: 'tap', placeId: tappedPlaceId });
+    game.send({ type: 'next' });
+    const rightOnThirdTry = promptedPlaceId(game);
+    const [firstTry, secondTry] = ['BRA', 'CHL', 'PER'].filter(placeId => placeId !== rightOnThirdTry);
+    for (const tappedPlaceId of [firstTry!, secondTry!, rightOnThirdTry]) game.send({ type: 'tap', placeId: tappedPlaceId });
+
+    const records = storedJson(storage, 'ti:places')['find:flag'];
+    expect(askedPlaceId).not.toBe('GBR');
+    expect(records[askedPlaceId]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 0, confusedWith: firstWrong, confusions: { [firstWrong!]: 2, GBR: 1 } });
+    expect(records[rightOnThirdTry]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 1, easyCorrect: 1, confusedWith: secondTry, confusions: { [firstTry!]: 1, [secondTry!]: 1 } });
+  });
+
+  it('counts an Easy-mode wrong tap as a mix-up even when the round ends before the prompt is answered', () => {
+    const { game, storage } = recordingGame();
+    startRound(game, { easy: true });
+    const askedPlaceId = promptedPlaceId(game);
+    game.send({ type: 'tap', placeId: someOtherPlaceId(askedPlaceId) });
+
+    endRoundNow(game);
+
+    expect(storedJson(storage, 'ti:places')['find:flag'][askedPlaceId]).toEqual({ seen: 0, correct: 0, recent: [], easySeen: 0, easyCorrect: 0, confusedWith: someOtherPlaceId(askedPlaceId), confusions: { [someOtherPlaceId(askedPlaceId)]: 1 } });
+  });
+
+  it('stores and counts the holder as the mix-up when merged land was tapped, and keeps one record per place across tiers', () => {
     const { game, storage } = recordingGame();
     const answerUntil = (placeId: string, tappedPlaceId: string) => {
       while (promptedPlaceId(game) !== placeId) {
@@ -758,7 +803,7 @@ describe('recording per place', () => {
     startRound(game, { variant: 'name', tier: 'dependencies', deckSize: 'all' });
     answerUntil('FRA', 'FRA');
 
-    expect(storedJson(storage, 'ti:places')['find:name'].FRA).toEqual({ seen: 2, correct: 1, recent: [0, 1], easySeen: 0, easyCorrect: 0, confusedWith: 'GBR' });
+    expect(storedJson(storage, 'ti:places')['find:name'].FRA).toEqual({ seen: 2, correct: 1, recent: [0, 1], easySeen: 0, easyCorrect: 0, confusedWith: 'GBR', confusions: { GBR: 1 } });
   });
 });
 
@@ -1307,12 +1352,12 @@ describe('storage migration on boot', () => {
     expect(read('ti:places')).toEqual(stored['ti:places']);
   });
 
-  it('moves a renamed id, remaps confusedWith and stamps the new version', () => {
+  it('moves a renamed id, remaps confusedWith and the mix-up counts and stamps the new version', () => {
     const { read } = bootWith({
       'ti:meta': { schema: 1, dataVersion: 1 },
-      'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'AAA' } } },
+      'ti:places': { 'find:flag': { AAA: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'AAA', confusions: { AAA: 2, DDD: 1 } } } },
     }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
-    expect(read('ti:places')).toEqual({ 'find:flag': { BBB: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'BBB' } } });
+    expect(read('ti:places')).toEqual({ 'find:flag': { BBB: record(2, 1, [1, 0]), CCC: { ...record(1, 0, [0]), confusedWith: 'BBB', confusions: { BBB: 2, DDD: 1 } } } });
     expect(read('ti:meta')).toEqual({ schema: 3, dataVersion: 2 });
   });
 
@@ -1335,6 +1380,23 @@ describe('storage migration on boot', () => {
       'ti:places': { 'find:flag': { AAA: { ...{ ...record(1, 1, [1]), confusedWith: 'BBB' }, easySeen: 2, easyCorrect: 1 }, BBB: { ...record(0, 0, []), easySeen: 3, easyCorrect: 3 } } },
     }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
     expect(read('ti:places')['find:flag']).toEqual({ BBB: { seen: 1, correct: 1, recent: [1], easySeen: 5, easyCorrect: 4 } });
+  });
+
+  it('sums the mix-up counts of merged ids and drops the ones that point at the place itself', () => {
+    const { read } = bootWith({
+      'ti:meta': { schema: 1, dataVersion: 1 },
+      'ti:places': {
+        'find:flag': {
+          AAA: { ...record(1, 0, [0]), confusedWith: 'CCC', confusions: { CCC: 1, BBB: 2 } },
+          BBB: { ...record(1, 0, [0]), confusedWith: 'CCC', confusions: { CCC: 2, AAA: 1 } },
+          CCC: { ...record(2, 0, [0, 0]), confusedWith: 'BBB', confusions: { AAA: 1, BBB: 1 } },
+        }
+      },
+    }, { dataVersion: 2, idMoves: { 2: { AAA: 'BBB' } } });
+    expect(read('ti:places')['find:flag']).toEqual({
+      BBB: { ...record(2, 0, [0]), confusedWith: 'CCC', confusions: { CCC: 3 } },
+      CCC: { ...record(2, 0, [0, 0]), confusedWith: 'BBB', confusions: { BBB: 2 } },
+    });
   });
 
   it('applies every missed version in order, skipping versions already stored', () => {

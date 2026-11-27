@@ -6,8 +6,8 @@ import { createGame, isTypedMode } from './game';
 import type { Game, KeyValueStorage, Place, RoundSetup } from './game';
 import type { NamesFile, PlaceNames } from './matcher';
 import { bestKeyOf } from './records';
-import type { RoundSummary } from './records';
-import { createStats } from './stats';
+import type { PlaceRecord, PlaceRecords, RoundSummary } from './records';
+import { createStats, mixUpCount } from './stats';
 import type { Rating } from './stats';
 
 const fiveOceaniaPlaceIds = ['AUS', 'NZL', 'FJI', 'PNG', 'WSM'];
@@ -277,6 +277,45 @@ describe('place details', () => {
     game.send({ type: 'tap', placeId: placeId === 'AUS' ? 'NZL' : 'AUS' });
 
     expect(stats.placeDetails(placeId).confusedWith).toBe(placeId === 'AUS' ? 'NZL' : 'AUS');
+  });
+});
+
+describe('mix-up count', () => {
+  const answered = (confusions: Record<string, number>): PlaceRecord => ({ seen: 1, correct: 0, recent: [0], easySeen: 0, easyCorrect: 0, confusions });
+
+  it('sums how often one place was answered for another over every mode and variant, one way only', () => {
+    const records: PlaceRecords = {
+      'find:flag': { NER: answered({ NGA: 2, TCD: 1 }) },
+      'name:map': { NER: answered({ NGA: 1 }), NGA: answered({ NER: 4 }) },
+      'capital:map': { NER: { seen: 1, correct: 1, recent: [1], easySeen: 0, easyCorrect: 0 } },
+    };
+
+    expect(mixUpCount(records, 'NER', 'NGA')).toBe(3);
+    expect(mixUpCount(records, 'NGA', 'NER')).toBe(4);
+    expect(mixUpCount(records, 'NER', 'MLI')).toBe(0);
+    expect(mixUpCount({}, 'NER', 'NGA')).toBe(0);
+  });
+
+  it('already holds the round just played, tapped and typed mix-ups pooled', () => {
+    const { game, stats } = statsGame();
+    const playMixingUp = (setup: Partial<RoundSetup>) => {
+      game.send({ type: 'leave' });
+      game.send({ type: 'start', setup: { ...oceaniaRound, ...setup } });
+      while (game.state.phase === 'prompt') {
+        const { placeId } = game.state;
+        const answeredId = placeId === 'AUS' ? 'NZL' : placeId;
+        game.send(isTypedMode(game.state.setup.mode) ? { type: 'submit', text: (names[answeredId] as PlaceNames).en.name } : { type: 'tap', placeId: answeredId });
+        game.send({ type: 'next' });
+      }
+    };
+
+    playMixingUp({});
+    expect(game.state.phase).toBe('results');
+    expect(stats.mixUpCount('AUS', 'NZL')).toBe(1);
+
+    playMixingUp({ mode: 'name', variant: 'map' });
+    expect(stats.mixUpCount('AUS', 'NZL')).toBe(2);
+    expect(stats.mixUpCount('NZL', 'AUS')).toBe(0);
   });
 });
 
