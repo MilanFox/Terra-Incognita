@@ -30,4 +30,9 @@ describe('landAidedPlaceId', () => {
   it('never lets a microstate outside the pool take the tap', () => {
     expect(landAidedPlaceId({ ...tapOnItaly, specks: vaticanNearby, zoom: 10 }, { ...fullMap, poolPlaceIds: ['ITA', 'SMR'] })).toBe('ITA');
   });
+
+  it('keeps a microstate that was hit even when another microstate\'s point is nearer', () => {
+    const specks = [{ placeId: 'SXM', x: 102, y: 100, speckZoom: 5.5 }, { placeId: 'MAF', x: 115, y: 100, speckZoom: 4.5 }];
+    expect(landAidedPlaceId({ tap: { x: 100, y: 100 }, hitPlaceId: 'MAF', specks, zoom: 7, microstatePlaceIds: ['SXM', 'MAF'] }, fullMap)).toBe('MAF');
+  });
 });
