@@ -111,7 +111,6 @@ const poolPlaceIds = computed(() => {
   return game.state.phase === 'fill' ? game.poolOf(game.state.setup) : null;
 });
 const gapPlaceIds = computed(() => (game.state.phase === 'missing' ? game.state.gapPlaceIds : []));
-const microstatePlaceIds = computed(() => game.microstateIdsOf(shownTier.value));
 const frameRegion = computed(() => (isCameraHeld.value ? null : traySetup.value?.region ?? (game.state.phase === 'home' ? statsRegion.value ?? 'world' : game.state.setup.region)));
 
 const verdict = computed(() => game.state.phase === 'verdict' ? game.state.answer : null);
@@ -542,7 +541,6 @@ onMounted(game.load);
         :tier="shownTier"
         :pool-place-ids="poolPlaceIds"
         :gap-place-ids="gapPlaceIds"
-        :microstate-place-ids="microstatePlaceIds"
         :frame-region="frameRegion"
         :frame-inset="frameInset"
         :inert="isMapInert"
