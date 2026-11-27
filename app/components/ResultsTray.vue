@@ -55,8 +55,6 @@ const newBestLine = computed(() => props.state.setup.mode === 'missing'
       deckSize: t(`setup.deckSizes.${props.state.setup.deckSize}`),
     }));
 
-const isFill = computed(() => props.state.setup.mode === 'fill');
-
 const learningStatTiles = computed((): { label: string, value: string, total?: number, text: string }[] | null => {
   if (!props.state.learning) return null;
   const { learnedCount, answerCount } = props.state.learning;
@@ -72,16 +70,11 @@ const unreachedCount = computed(() => props.state.deckSize - props.state.score);
 
 const missedCount = computed(() => unreachedCount.value - (props.state.wrongTapCount === undefined ? wrongCount.value : 0));
 
-const statTiles = computed(() => (isFill.value
-  ? [
-      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreLabelled', { score: t('fill.progress', { count: props.state.score, total: props.state.deckSize }) }) },
-      { label: t('fill.results.unreached'), value: String(unreachedCount.value), text: t('fill.results.unreachedText', { count: unreachedCount.value }) },
-    ]
-  : [
-      { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreLabelled', { score: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) }) },
-      { label: t('results.wrongCount'), value: String(wrongCount.value), text: t('results.wrongCountText', { count: wrongCount.value }) },
-      { label: t('results.missedCount'), value: String(missedCount.value), text: t('results.missedCountText', { count: missedCount.value }) },
-    ]));
+const statTiles = computed(() => [
+  { label: t('results.score'), value: String(props.state.score), total: props.state.deckSize, text: t('results.scoreLabelled', { score: t('results.scoreText', { score: props.state.score, total: props.state.deckSize }) }) },
+  { label: t('results.wrongCount'), value: String(wrongCount.value), text: t('results.wrongCountText', { count: wrongCount.value }) },
+  { label: t('results.missedCount'), value: String(missedCount.value), text: t('results.missedCountText', { count: missedCount.value }) },
+]);
 
 const shareText = computed(() => [
   [t('daily.shareHeader', { date: props.state.dailyDate }), props.state.setup.variant === 'flag' ? t('daily.hard') : ''].filter(Boolean).join(' · '),
@@ -204,7 +197,6 @@ defineExpose({ element: tray });
     </div>
 
     <ol
-      v-if="!isFill"
       class="results-tray__cells"
       :class="{ 'results-tray__cells--daily': isDaily, 'results-tray__cells--perfect': isPerfectDay }"
     >
@@ -249,8 +241,6 @@ defineExpose({ element: tray });
     <p
       v-if="state.missedPlaceIds.length"
       class="results-tray__unreached"
-      :class="isFill && 'results-tray__unreached--scrolling'"
-      :tabindex="isFill ? 0 : undefined"
     >
       {{ $t('results.unreachedList', { places: unreachedNames }) }}
     </p>
@@ -418,11 +408,6 @@ defineExpose({ element: tray });
     color: $color-muted;
     font-size: 14px;
     overflow-wrap: anywhere;
-  }
-
-  &__unreached--scrolling {
-    max-height: 5.5em;
-    overflow-y: auto;
   }
 
   &__actions {

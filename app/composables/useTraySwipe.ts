@@ -16,10 +16,21 @@ interface Gesture {
   isInSidewaysScroller: boolean
 }
 
+export interface TraySettle {
+  shift: number
+  startShift: number
+  direction: 'up' | 'down' | null
+}
+
+// eslint-disable-next-line no-unused-vars
+type SettleTray = (settled: TraySettle) => void;
+
 interface TraySwipeOptions {
   tray: Ref<HTMLElement | null>
   isOpen: Ref<boolean>
   collapsedShift: Ref<number>
+  restingShift?: () => number
+  onSettle?: SettleTray
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
 }
@@ -32,12 +43,12 @@ const isInSidewaysScroller = (target: EventTarget | null, tray: HTMLElement | nu
 };
 
 // Touch gestures use touch events because pointer events are cancelled once the browser starts scrolling the open tray; mouse and pen use pointer events.
-export const useTraySwipe = ({ tray, isOpen, collapsedShift, onSwipeLeft, onSwipeRight }: TraySwipeOptions) => {
+export const useTraySwipe = ({ tray, isOpen, collapsedShift, restingShift: restingShiftOf, onSettle, onSwipeLeft, onSwipeRight }: TraySwipeOptions) => {
   const dragShift = ref<number | null>(null);
   let gesture: Gesture | null = null;
   let isClickSwallowed = false;
 
-  const restingShift = () => (isOpen.value ? 0 : collapsedShift.value);
+  const restingShift = () => restingShiftOf?.() ?? (isOpen.value ? 0 : collapsedShift.value);
 
   const begin = (x: number, y: number, target: EventTarget | null) => {
     isClickSwallowed = false;
@@ -79,7 +90,8 @@ export const useTraySwipe = ({ tray, isOpen, collapsedShift, onSwipeLeft, onSwip
     }
     if (!finished?.isActive) return;
     const deltaY = y - finished.startY;
-    if (deltaY < -settleDistancePx) isOpen.value = true;
+    if (onSettle) onSettle({ shift: dragShift.value ?? finished.startShift, startShift: finished.startShift, direction: deltaY < -settleDistancePx ? 'up' : deltaY > settleDistancePx ? 'down' : null });
+    else if (deltaY < -settleDistancePx) isOpen.value = true;
     else if (deltaY > settleDistancePx) isOpen.value = false;
     else isOpen.value = (dragShift.value ?? 0) < collapsedShift.value / 2;
     dragShift.value = null;

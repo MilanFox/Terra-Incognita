@@ -297,7 +297,66 @@
     "missed": "{place}: verpasst",
     "unreachedList": "Nicht erreicht: {places}",
     "playAgain": "Nochmal spielen",
-    "changeSetup": "Einstellungen ändern"
+    "changeSetup": "Einstellungen ändern",
+    "sheet": {
+      "label": "Ergebnis",
+      "showAll": "Ganz anzeigen",
+      "setupLine": "{mode} · {region} · {tier} · {time}",
+      "rightCount": "Richtig",
+      "rightCountText": "{count} richtig",
+      "order": "Reihenfolge der Fragen",
+      "orderLabel": "Reihenfolge der Fragen: {right} richtig, {wrong} falsch, {missed} verpasst. Pfeiltasten bewegen, Eingabe zeigt den Ort",
+      "entry": "Frage {number}: {place}, {outcome}",
+      "regions": "Regionen, schwächste zuerst",
+      "regionAllRight": "alles richtig",
+      "regionAllFilled": "alles gefüllt",
+      "regionUnfilled": "{count} nicht gefüllt",
+      "regionFilledText": "{count} von {total} gefüllt",
+      "mistakes": "Fehler: gefragt → geantwortet",
+      "mistakeText": "{asked}, geantwortet: {answered}",
+      "mistakePrompt": "Frage {number} · {region}",
+      "tags": {
+        "classic": "Klassiker ×{count}",
+        "repeat": "{count}. Mal",
+        "new": "neu"
+      },
+      "tagsSpoken": {
+        "classic": "Klassiker, {count}-mal verwechselt",
+        "repeat": "zum {count}. Mal verwechselt",
+        "new": "zum ersten Mal verwechselt"
+      },
+      "unreached": "Nicht erreicht · {count}",
+      "gaps": "Nicht gefüllt, nach Region",
+      "gapRegion": "{region} · {count}",
+      "filled": "Gefüllt",
+      "filledText": "{count} gefüllt",
+      "unfilled": "Nicht gefüllt",
+      "unfilledText": "{count} nicht gefüllt",
+      "outcomes": {
+        "right": "richtig",
+        "wrong": "falsch",
+        "missed": "verpasst",
+        "unreached": "nicht erreicht",
+        "filled": "gefüllt",
+        "unfilled": "nicht gefüllt",
+        "notInRound": "nicht in dieser Runde"
+      },
+      "bubble": {
+        "right": "Richtig · Frage {number}",
+        "wrong": "Falsch · Frage {number}",
+        "wrongAnswered": "Falsch · Frage {number} · deine Antwort: {answered}",
+        "missed": "Verpasst · Frage {number}",
+        "unreached": "Nicht erreicht",
+        "notInRound": "Nicht in dieser Runde",
+        "filled": "Gefüllt, als {number}. genannt",
+        "unfilled": "Nicht gefüllt",
+        "mixUpNew": "Zum ersten Mal mit {answered} verwechselt",
+        "mixUpCount": "Schon {count}-mal mit {answered} verwechselt",
+        "answeredInstead": "Deine Antwort statt {asked} (Frage {number})",
+        "regionRight": "{region}: {right} von {total} richtig",
+        "regionFilled": "{region}: {right} von {total} gefüllt"
+      }
+    }
   },
   "record": {
     "time": "Zeit: {time}",
@@ -555,10 +614,6 @@
       "ambiguous": "Welcher genau? Schreib weiter.",
       "none": "Kein Ort mit diesem Namen.",
       "start": "Nenne irgendeinen Ort auf der Karte. {total} zu füllen."
-    },
-    "results": {
-      "unreached": "Nicht erreicht",
-      "unreachedText": "{count} nicht erreicht"
     }
   },
   "missing": {
