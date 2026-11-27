@@ -62,6 +62,14 @@ defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed
         <p class="fill-card__line">
           {{ inputLine }}
         </p>
+
+        <button
+          type="button"
+          class="fill-card__finish"
+          @click="game.send({ type: 'askFinish' })"
+        >
+          {{ $t('finishRound.open') }}
+        </button>
       </div>
     </template>
   </RoundChrome>
@@ -111,6 +119,20 @@ defineExpose({ card: computed(() => chrome.value?.cardFlip), zoomTiles: computed
     font-weight: 900;
     line-height: 1.1;
     overflow-wrap: anywhere;
+  }
+
+  &__finish {
+    justify-self: end;
+    min-height: 44px;
+    margin: 0 -8px -10px 0;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 }
 
