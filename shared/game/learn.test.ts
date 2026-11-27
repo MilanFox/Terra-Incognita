@@ -506,6 +506,19 @@ describe('recording a learning round', () => {
     expect(placeRecordOf(storage, 'RUS')).toMatchObject({ seen: 1, correct: 0, recent: [0], confusedWith: 'UKR' });
   });
 
+  it('counts the mix-up of every miss, repeats included, without counting the repeats as answers', () => {
+    const storage = memoryStorage();
+    const game = startLearning(learnEurope, storage);
+
+    for (const answeredInstead of ['POL', 'UKR', 'POL']) {
+      while (promptOf(game).placeId !== 'RUS') play(game, right);
+      answer(game, '✗', answeredInstead);
+      game.send({ type: 'next' });
+    }
+
+    expect(placeRecordOf(storage, 'RUS')).toMatchObject({ seen: 1, correct: 0, recent: [0], confusedWith: 'POL', confusions: { POL: 2, UKR: 1 } });
+  });
+
   it('feeds the easy counters under Easy mode', () => {
     const storage = memoryStorage();
     const game = startLearning({ ...learnEurope, easy: true }, storage);

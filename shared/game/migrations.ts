@@ -60,6 +60,9 @@ export const idMovesSince = ({ idMoves }: Pick<DataVersion, 'idMoves'>, storedDa
 
 export const remapId = (placeId: string, moveSteps: IdMoves[]) => moveSteps.reduce((current, moves) => moves[current] ?? current, placeId);
 
+const addedConfusions = (confusions: Record<string, number>, more: [string, number][]) => more
+  .reduce((added, [answeredPlaceId, count]) => ({ ...added, [answeredPlaceId]: (added[answeredPlaceId] ?? 0) + count }), confusions);
+
 const mergeRecords = (kept: PlaceRecord, moved: PlaceRecord): PlaceRecord => {
   const merged: PlaceRecord = {
     seen: kept.seen + moved.seen,
@@ -70,6 +73,8 @@ const mergeRecords = (kept: PlaceRecord, moved: PlaceRecord): PlaceRecord => {
   };
   const confusedWith = kept.confusedWith ?? moved.confusedWith;
   if (confusedWith) merged.confusedWith = confusedWith;
+  const confusions = addedConfusions(kept.confusions ?? {}, Object.entries(moved.confusions ?? {}));
+  if (Object.keys(confusions).length > 0) merged.confusions = confusions;
   return merged;
 };
 
@@ -80,9 +85,14 @@ export const remapPlaceRecords = (records: PlaceRecords, moveSteps: IdMoves[]): 
       const newId = remapId(placeId, moveSteps);
       const existing = remapped[newId];
       const confusedWith = record.confusedWith === undefined ? undefined : remapId(record.confusedWith, moveSteps);
+      const confusions = addedConfusions({}, Object.entries(record.confusions ?? {})
+        .map(([answeredPlaceId, count]): [string, number] => [remapId(answeredPlaceId, moveSteps), count])
+        .filter(([answeredPlaceId]) => answeredPlaceId !== newId));
       const moved: PlaceRecord = { ...record };
       delete moved.confusedWith;
+      delete moved.confusions;
       if (confusedWith !== undefined && confusedWith !== newId) moved.confusedWith = confusedWith;
+      if (Object.keys(confusions).length > 0) moved.confusions = confusions;
       remapped[newId] = existing ? mergeRecords(existing, moved) : moved;
     }
     return [modeVariant, remapped];

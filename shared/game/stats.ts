@@ -132,6 +132,9 @@ const readPlaceRecords = (storage: KeyValueStorage): PlaceRecords => {
   return {};
 };
 
+export const mixUpCount = (records: PlaceRecords, askedPlaceId: string, answeredPlaceId: string) => Object.values(records)
+  .reduce((count, byPlaceId) => count + (byPlaceId[askedPlaceId]?.confusions?.[answeredPlaceId] ?? 0), 0);
+
 export const createStats = ({ places, storage }: StatsDependencies) => {
   const records = createRecords(storage);
 
@@ -247,7 +250,9 @@ export const createStats = ({ places, storage }: StatsDependencies) => {
     };
   };
 
-  return { placeRatings, sameKnowledgeAnswers, regionCounts, placeDetails, allGames, modeStats };
+  const pooledMixUpCount = (askedPlaceId: string, answeredPlaceId: string) => mixUpCount(readPlaceRecords(storage), askedPlaceId, answeredPlaceId);
+
+  return { placeRatings, sameKnowledgeAnswers, regionCounts, placeDetails, allGames, modeStats, mixUpCount: pooledMixUpCount };
 };
 
 export type Stats = ReturnType<typeof createStats>;

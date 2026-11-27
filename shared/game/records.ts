@@ -7,6 +7,7 @@ export interface PlaceRecord {
   easySeen: number
   easyCorrect: number
   confusedWith?: string
+  confusions?: Record<string, number>
 }
 
 export type PlaceRecords = Record<string, Record<string, PlaceRecord>>;
@@ -65,6 +66,8 @@ export const bestKeyOf = ({ mode, variant, region, tier, deckSize, easy, timed }
 
 const noRecord = (): PlaceRecord => ({ seen: 0, correct: 0, recent: [], easySeen: 0, easyCorrect: 0 });
 
+const withConfusion = (record: PlaceRecord, confusedWith: string): PlaceRecord => ({ ...record, confusedWith, confusions: { ...record.confusions, [confusedWith]: (record.confusions?.[confusedWith] ?? 0) + 1 } });
+
 export const createRecords = (storage: KeyValueStorage) => {
   const read = <T extends object>(key: string, empty: T): T => {
     try {
@@ -84,10 +87,10 @@ export const createRecords = (storage: KeyValueStorage) => {
     const modeVariant = modeVariantOf(setup);
     const record = { ...noRecord(), ...records[modeVariant]?.[placeId] };
     const right: 0 | 1 = outcome === 'right' ? 1 : 0;
-    const updated: PlaceRecord = setup.easy
+    const answered: PlaceRecord = setup.easy
       ? { ...record, easySeen: record.easySeen + 1, easyCorrect: record.easyCorrect + right }
       : { ...record, seen: record.seen + 1, correct: record.correct + right, recent: [...record.recent, right].slice(-recentLength) };
-    if (confusedWith) updated.confusedWith = confusedWith;
+    const updated = confusedWith ? withConfusion(answered, confusedWith) : answered;
     storage.setItem(placesStorageKey, JSON.stringify({ ...records, [modeVariant]: { ...records[modeVariant], [placeId]: updated } }));
   };
 
@@ -95,7 +98,7 @@ export const createRecords = (storage: KeyValueStorage) => {
     if (!confusedWith) return;
     const records = read<PlaceRecords>(placesStorageKey, {});
     const modeVariant = modeVariantOf(setup);
-    const updated: PlaceRecord = { ...noRecord(), ...records[modeVariant]?.[placeId], confusedWith };
+    const updated = withConfusion({ ...noRecord(), ...records[modeVariant]?.[placeId] }, confusedWith);
     storage.setItem(placesStorageKey, JSON.stringify({ ...records, [modeVariant]: { ...records[modeVariant], [placeId]: updated } }));
   };
 

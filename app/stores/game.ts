@@ -112,6 +112,7 @@ export const useGameStore = defineStore('game', () => {
   const placeRatings = (scope?: StatsScope) => stats!.placeRatings(scope);
   const regionCounts = (scope?: StatsScope) => stats!.regionCounts(scope);
   const placeDetails = (placeId: string, scope?: StatsScope) => stats!.placeDetails(placeId, scope);
+  const mixUpCount = (askedPlaceId: string, answeredPlaceId: string) => stats!.mixUpCount(askedPlaceId, answeredPlaceId);
 
   const exportData = () => yourData!.exportData();
 
@@ -131,5 +132,5 @@ export const useGameStore = defineStore('game', () => {
     return place && ownLand ? drawSilhouette(ownLand, place.bbox, place.silhouetteFrame) : null;
   };
 
-  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, modeStats, placeRatings, exportData, importData, resetStats, regionCounts, placeDetails };
+  return { state, isReady, lastSetup, homeTier, timeLeftMs, todaysDaily, streak, load, send, play, playDaily, viewDaily, refreshDaily, dailyVariant, setupFor, poolOf, choicesFor, nameOf, capitalNamesOf, firstCapitalNameOf, loadOwnLand, silhouetteOf, allGamesStats, modeStats, placeRatings, exportData, importData, resetStats, regionCounts, placeDetails, mixUpCount };
 });

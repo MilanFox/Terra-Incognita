@@ -579,10 +579,11 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     const answeredPlaceId = answeredAs(tappedPlaceId);
     if (answeredPlaceId !== placeId && wrongTapPlaceIds.length + 1 < attemptsAllowed()) {
       wrongTapPlaceIds = [...wrongTapPlaceIds, answeredPlaceId];
+      records.recordConfusion(setup, placeId, answeredPlaceId);
       return;
     }
     const outcome = answeredPlaceId === placeId ? 'right' : 'wrong';
-    settle({ placeId, tappedPlaceId: answeredPlaceId, outcome }, outcome === 'wrong' ? answeredPlaceId : wrongTapPlaceIds.at(-1));
+    settle({ placeId, tappedPlaceId: answeredPlaceId, outcome }, outcome === 'wrong' ? answeredPlaceId : undefined);
   };
 
   const submit = (text: string) => {

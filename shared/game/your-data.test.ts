@@ -61,12 +61,16 @@ describe('export', () => {
 
 describe('import', () => {
   it('replaces the current data with the file and drops what the file lacks', () => {
-    const { json } = yourDataOf(playedStorage()).exportData();
+    const played = playedStorage();
+    const playedPlaces = JSON.parse(played.getItem('ti:places')!);
+    played.setItem('ti:places', JSON.stringify({ ...playedPlaces, 'name:map': { NER: { seen: 2, correct: 0, recent: [0, 0], easySeen: 0, easyCorrect: 0, confusedWith: 'NGA', confusions: { NGA: 2 } } } }));
+    const { json } = yourDataOf(played).exportData();
     const target = memoryStorage();
     target.setItem('ti:bests', JSON.stringify({ stale: { score: 1, fastestPerfectMs: null } }));
     target.setItem('ti:round', '{}');
     expect(yourDataOf(target).importData(json)).toEqual({ ok: true });
     expect(target.getItem('ti:places')).toBe(JSON.stringify(JSON.parse(json).data.places));
+    expect(JSON.parse(target.getItem('ti:places')!)['name:map'].NER.confusions).toEqual({ NGA: 2 });
     expect(target.getItem('ti:settings')).toBe(JSON.stringify({ sound: false, language: 'de' }));
     expect(target.getItem('ti:bests')).toBe(JSON.stringify(JSON.parse(json).data.bests));
     expect(target.getItem('ti:round')).toBeNull();
