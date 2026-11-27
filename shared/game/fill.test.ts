@@ -149,12 +149,60 @@ describe('Fill the map rules', () => {
     game.send({ type: 'submit', text: nameOf(first!) });
 
     game.send({ type: 'askEnd' });
-    expect(fillStateOf(game).isConfirmingEnd).toBe(true);
+    expect(fillStateOf(game)).toMatchObject({ isConfirmingEnd: true, isConfirmingFinish: false });
+    game.send({ type: 'finish' });
+    expect(game.state.phase).toBe('fill');
     game.send({ type: 'end' });
 
     const results = resultsOf(game);
     expect(results).toMatchObject({ score: 1, deckSize: oceaniaIds.length, isComplete: false });
     expect(results.missedPlaceIds.toSorted()).toEqual(oceaniaIds.filter(id => id !== first).toSorted());
+  });
+
+  it('ends complete when the player confirms that is all they know, with the unfilled places unreached', () => {
+    const { game } = startFill();
+    const [first] = oceaniaIds;
+    game.send({ type: 'submit', text: nameOf(first!) });
+
+    game.send({ type: 'askFinish' });
+    expect(fillStateOf(game)).toMatchObject({ isConfirmingEnd: true, isConfirmingFinish: true });
+    game.send({ type: 'submit', text: nameOf(oceaniaIds[1]!) });
+    game.send({ type: 'end' });
+    expect(fillStateOf(game).score).toBe(1);
+    game.send({ type: 'finish' });
+
+    const results = resultsOf(game);
+    expect(results).toMatchObject({ score: 1, deckSize: oceaniaIds.length, isComplete: true });
+    expect(results.missedPlaceIds.toSorted()).toEqual(oceaniaIds.filter(id => id !== first).toSorted());
+  });
+
+  it('ends complete when the player finishes with no place named', () => {
+    const { game } = startFill();
+
+    game.send({ type: 'askFinish' });
+    game.send({ type: 'finish' });
+
+    expect(resultsOf(game)).toMatchObject({ score: 0, isComplete: true });
+  });
+
+  it('plays on when the player keeps playing instead of finishing', () => {
+    const { game } = startFill();
+
+    game.send({ type: 'askFinish' });
+    game.send({ type: 'keepPlaying' });
+    game.send({ type: 'finish' });
+    game.send({ type: 'submit', text: nameOf(oceaniaIds[0]!) });
+
+    expect(fillStateOf(game)).toMatchObject({ isConfirmingEnd: false, isConfirmingFinish: false, score: 1 });
+  });
+
+  it('only finishes a fill the map round', () => {
+    const game = createGame({ places, names, version: shippedVersion, random: Math.random, clock: () => startOfDay, storage: memoryStorage() });
+    game.send({ type: 'start', setup: game.setupFor('find') });
+
+    game.send({ type: 'askFinish' });
+
+    expect(game.state).toMatchObject({ phase: 'prompt', isConfirmingEnd: false });
   });
 
   it('ends on the timer, with a budget of 6 seconds per place in the pool', () => {
@@ -228,6 +276,17 @@ describe('Fill the map recording', () => {
     expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ mode: 'fill', score: 1, complete: false })]);
     expect(storage.getItem('ti:bests')).toBeNull();
     expect(resultsOf(game).isNewBest).toBe(false);
+  });
+
+  it('counts a finished round for the log and the personal bests', () => {
+    const { game, storage } = startFill();
+    game.send({ type: 'submit', text: nameOf(oceaniaIds[0]!) });
+    game.send({ type: 'askFinish' });
+    game.send({ type: 'finish' });
+
+    expect(storedJson(storage, 'ti:rounds')).toEqual([expect.objectContaining({ mode: 'fill', score: 1, complete: true })]);
+    expect(storedJson(storage, 'ti:bests')).toEqual({ 'fill:map:Oceania:sovereign:all:normal': { score: 1, fastestPerfectMs: null } });
+    expect(resultsOf(game).isNewBest).toBe(true);
   });
 
   it('records a completed round\'s fastest perfect time and a new best on a better score', () => {

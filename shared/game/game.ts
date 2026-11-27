@@ -96,6 +96,8 @@ export type GameEvent
     | { type: 'askEnd' }
     | { type: 'keepPlaying' }
     | { type: 'end' }
+    | { type: 'askFinish' }
+    | { type: 'finish' }
     | { type: 'leave' }
     | { type: 'hide' }
     | { type: 'show' }
@@ -162,7 +164,7 @@ export type GameState
   = | { phase: 'home' }
     | { phase: 'prompt' } & RoundInPlay
     | { phase: 'verdict', answer: Answer, answeredAt: number } & RoundInPlay
-    | { phase: 'fill', setup: RoundSetup, deckSize: number, score: number, filledPlaceIds: string[], filledLandPlaceIds: string[], lastInput: FillInput | null, inputCount: number, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
+    | { phase: 'fill', setup: RoundSetup, deckSize: number, score: number, filledPlaceIds: string[], filledLandPlaceIds: string[], lastInput: FillInput | null, inputCount: number, isConfirmingEnd: boolean, isConfirmingFinish: boolean, isPaused: boolean, pausesLeft: number }
     | { phase: 'missing', setup: RoundSetup, gapPlaceIds: string[], foundPlaceIds: string[], tapsLeft: number, lastTap: MissingTap | null, isConfirmingEnd: boolean, isPaused: boolean, pausesLeft: number }
     | { phase: 'results', setup: RoundSetup, deckSize: number, score: number, answers: Answer[], missedPlaceIds: string[], wrongTapCount?: number, isComplete: boolean, elapsedMs: number, isNewBest: boolean, dailyDate: string | null, learning?: LearningResults }
     | WayfinderState;
@@ -268,6 +270,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   let unresolvedAnswers: UnresolvedAnswer[] = [];
   let optionPlaceIds: string[] = [];
   let isConfirmingEnd = false;
+  let isConfirmingFinish = false;
   let isComplete = true;
   let startedAt = 0;
   let hiddenAt: number | null = null;
@@ -427,7 +430,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
   const snapshot = (): GameState => {
     if (phase === 'home') return { phase };
     const score = scoreNow();
-    if (phase === 'fill') return { phase, setup, deckSize: deck.length, score, filledPlaceIds: answers.map(({ placeId }) => placeId), filledLandPlaceIds: filledLandPlaceIds(), lastInput: lastFillInput, inputCount: fillInputCount, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
+    if (phase === 'fill') return { phase, setup, deckSize: deck.length, score, filledPlaceIds: answers.map(({ placeId }) => placeId), filledLandPlaceIds: filledLandPlaceIds(), lastInput: lastFillInput, inputCount: fillInputCount, isConfirmingEnd, isConfirmingFinish, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
     if (phase === 'missing') return { phase, setup, gapPlaceIds: [...deck], foundPlaceIds: [...foundPlaceIds], tapsLeft: tapBudgetOf(setup.easy) - tapsUsed, lastTap, isConfirmingEnd, isPaused: pausedAt !== null, pausesLeft: pausesLeft() };
     if (phase === 'results' && learningLoop) {
       const { firstAnswers, learnedPlaceIds, answerCount } = learningLoop;
@@ -515,6 +518,7 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     tapsUsed = 0;
     lastTap = null;
     isConfirmingEnd = false;
+    isConfirmingFinish = false;
     isComplete = true;
     startedAt = clock();
     hiddenAt = null;
@@ -699,12 +703,24 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
 
   const keepPlaying = () => {
     isConfirmingEnd = false;
+    isConfirmingFinish = false;
     restartRightAnswerHold();
   };
 
   const end = () => {
     isConfirmingEnd = false;
     isComplete = false;
+    finish();
+  };
+
+  const askFinish = () => {
+    isConfirmingEnd = true;
+    isConfirmingFinish = true;
+  };
+
+  const finishByChoice = () => {
+    isConfirmingEnd = false;
+    isConfirmingFinish = false;
     finish();
   };
 
@@ -749,11 +765,13 @@ export const createGame = ({ places, names = {}, version, random, clock, storage
     else if (event.type === 'pause' && isInRound && pausesLeft() > 0) pause();
     else if (isInRound && isConfirmingEnd) {
       if (event.type === 'keepPlaying') keepPlaying();
-      else if (event.type === 'end') end();
+      else if (event.type === 'end' && !isConfirmingFinish) end();
+      else if (event.type === 'finish' && isConfirmingFinish) finishByChoice();
       else return;
     }
     else if (event.type === 'askEnd' && isInRound && learningLoop) finish();
     else if (event.type === 'askEnd' && isInRound) isConfirmingEnd = true;
+    else if (event.type === 'askFinish' && phase === 'fill') askFinish();
     else if (event.type === 'tap' && phase === 'missing') tapGap(event.placeId);
     else if (event.type === 'start' && (phase === 'home' || phase === 'results') && variantChoicesByMode[event.setup.mode].includes(event.setup.variant) && (event.setup.mode !== 'missing' || event.setup.region === 'world') && poolSizeOf(event.setup) >= minimumPoolSize) start(event.setup);
     else if (event.type === 'startDaily' && (phase === 'home' || phase === 'results') && dailyVariants.includes(event.variant) && !todaysDaily()) startDaily(event.variant);

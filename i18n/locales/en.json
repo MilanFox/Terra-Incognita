@@ -240,7 +240,7 @@
     "fill": {
       "name": "Here Be Dragons",
       "subtitle": "Fill the map",
-      "help": "Type the places of your chosen region and tier, in any order and in English or German, and each one you name fills in on the map. Typos are forgiven; a name that is wrong, already filled or not in this round just shakes, with no penalty. Naming a place also fills the land merged into it in this tier. The round ends when the map is full, the timer runs out or you end it, and your score is the places filled out of all of them. A round ended with End round doesn't count for your stats or bests."
+      "help": "Type the places of your chosen region and tier, in any order and in English or German, and each one you name fills in on the map. Typos are forgiven; a name that is wrong, already filled or not in this round just shakes, with no penalty. Naming a place also fills the land merged into it in this tier. The round ends when the map is full, the timer runs out or you press That's all I know, and your score is the places filled out of all of them. A round ended with End round instead doesn't count for your stats or bests."
     },
     "missing": {
       "name": "Atlantis",
@@ -389,6 +389,12 @@
     "line": "Unreached places count as missed.",
     "confirm": "End round",
     "keepPlaying": "Keep playing"
+  },
+  "finishRound": {
+    "open": "That's all I know",
+    "title": "Finish the round?",
+    "line": "You keep the places you've filled, and the round counts for your stats and bests.",
+    "confirm": "Finish round"
   },
   "pause": {
     "open": "Pause, {count} of {total} left",

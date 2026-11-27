@@ -240,7 +240,7 @@
     "fill": {
       "name": "Here Be Dragons",
       "subtitle": "Fülle die Karte",
-      "help": "Schreib die Orte deiner gewählten Region und Stufe, in beliebiger Reihenfolge und auf Deutsch oder Englisch, und jeder genannte Ort füllt sich auf der Karte. Kleine Tippfehler werden verziehen; ein falscher, schon gefüllter oder nicht zur Runde gehörender Name wackelt nur, ohne Abzug. Wer einen Ort nennt, füllt auch das in ihn eingegliederte Land dieser Stufe. Die Runde endet, wenn die Karte voll ist, die Zeit abläuft oder du sie beendest; dein Ergebnis sind die gefüllten Orte von allen. Eine mit „Runde beenden“ beendete Runde zählt weder für deine Statistik noch für Bestwerte."
+      "help": "Schreib die Orte deiner gewählten Region und Stufe, in beliebiger Reihenfolge und auf Deutsch oder Englisch, und jeder genannte Ort füllt sich auf der Karte. Kleine Tippfehler werden verziehen; ein falscher, schon gefüllter oder nicht zur Runde gehörender Name wackelt nur, ohne Abzug. Wer einen Ort nennt, füllt auch das in ihn eingegliederte Land dieser Stufe. Die Runde endet, wenn die Karte voll ist, die Zeit abläuft oder du auf „Mehr weiß ich nicht“ drückst; dein Ergebnis sind die gefüllten Orte von allen. Eine mit „Runde beenden“ beendete Runde zählt dagegen weder für deine Statistik noch für Bestwerte."
     },
     "missing": {
       "name": "Atlantis",
@@ -389,6 +389,12 @@
     "line": "Noch nicht erreichte Orte zählen als verpasst.",
     "confirm": "Runde beenden",
     "keepPlaying": "Weiterspielen"
+  },
+  "finishRound": {
+    "open": "Mehr weiß ich nicht",
+    "title": "Runde abschließen?",
+    "line": "Deine gefüllten Orte bleiben, und die Runde zählt für deine Statistik und Bestwerte.",
+    "confirm": "Runde abschließen"
   },
   "pause": {
     "open": "Pause, {count} von {total} übrig",

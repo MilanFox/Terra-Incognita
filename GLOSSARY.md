@@ -79,6 +79,10 @@ _Avoid_: Break, freeze
 Stopping a round before it ends by itself. Prompts not yet reached count as missed and the round does not count for personal bests; a learning round loses nothing.
 _Avoid_: Give up, quit
 
+**Finish round**:
+In fill the map, stopping the round because the player has named all they know. Unlike end round, the round counts as complete, whatever the score.
+_Avoid_: Give up, done
+
 **Learning round**:
 A round of a regular mode that starts at the player's reach, brings misses back until they are answered right twice in a row, and runs until the player ends it.
 _Avoid_: Practice, training, session

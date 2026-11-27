@@ -6,7 +6,7 @@ import { useDurationText } from '~/composables/useDurationText';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useGameStore } from '~/stores/game';
 
-const props = defineProps<{ state: { setup: RoundSetup, isConfirmingEnd: boolean, isPaused?: boolean, pausesLeft?: number }, endLine: string, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
+const props = defineProps<{ state: { setup: RoundSetup, isConfirmingEnd: boolean, isConfirmingFinish?: boolean, isPaused?: boolean, pausesLeft?: number }, endLine: string, isAtMinZoom: boolean, isAtMaxZoom: boolean }>();
 const emit = defineEmits<{ zoomIn: [], zoomOut: [] }>();
 
 const game = useGameStore();
@@ -19,6 +19,7 @@ const flipInMs = 160;
 const isMotionReduced = useReducedMotion();
 const isConfirming = computed(() => props.state.isConfirmingEnd);
 const shownFace = ref<'card' | 'end'>(isConfirming.value ? 'end' : 'card');
+const isFinishShown = ref(!!props.state.isConfirmingFinish);
 const flipPhase = ref<'out' | 'in' | null>(null);
 const root = useTemplateRef<HTMLElement>('root');
 const cardFlip = useTemplateRef<HTMLElement>('cardFlip');
@@ -37,6 +38,7 @@ const showFace = async (face: 'card' | 'end') => {
 };
 
 watch(isConfirming, (confirming) => {
+  if (confirming) isFinishShown.value = !!props.state.isConfirmingFinish;
   const face = confirming ? 'end' : 'card';
   clearTimeout(flipTimer);
   if (isMotionReduced.value) {
@@ -197,14 +199,14 @@ defineExpose({ root, cardFlip, zoomTiles: computed(() => zoomTiles.value?.$el as
           :id="`${endLineId}-title`"
           class="end-card__title"
         >
-          {{ $t('endRound.title') }}
+          {{ isFinishShown ? $t('finishRound.title') : $t('endRound.title') }}
         </h2>
 
         <p
           :id="endLineId"
           class="end-card__line"
         >
-          {{ endLine }}
+          {{ isFinishShown ? $t('finishRound.line') : endLine }}
         </p>
 
         <div class="end-card__actions">
@@ -212,9 +214,9 @@ defineExpose({ root, cardFlip, zoomTiles: computed(() => zoomTiles.value?.$el as
             ref="confirmEndTile"
             type="button"
             class="tile end-card__confirm"
-            @click="game.send({ type: 'end' })"
+            @click="game.send({ type: isFinishShown ? 'finish' : 'end' })"
           >
-            {{ $t('endRound.confirm') }}
+            {{ isFinishShown ? $t('finishRound.confirm') : $t('endRound.confirm') }}
           </button>
 
           <button
